@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
 
 interface GatherNodeData {
   input?: string;
@@ -9,11 +9,11 @@ interface GatherNodeData {
 }
 
 const GatherNode: React.FC<NodeProps<GatherNodeData>> = ({ data }) => {
-  const [input, setInput] = useState(data.input || '');
+  const [input, setInput] = useState(data?.input || '');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ input: e.target.value });
     }
   };

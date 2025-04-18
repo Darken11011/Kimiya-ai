@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
 interface LogicNodeData {
   logicType?: string;
@@ -10,20 +11,20 @@ interface LogicNodeData {
 }
 
 const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ data }) => {
-  const [logicType, setLogicType] = useState(data.logicType || 'condition');
-  const [value, setValue] = useState(data.value || '');
+  const [logicType, setLogicType] = useState(data?.logicType || 'condition');
+  const [value, setValue] = useState(data?.value || '');
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setLogicType(newValue);
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ logicType: newValue, value });
     }
   };
 
   const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ logicType, value: e.target.value });
     }
   };
@@ -74,6 +75,22 @@ const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ data }) => {
         id="a"
         className="w-3 h-3 bottom-0 bg-blue-500"
       />
+      {logicType === 'condition' && (
+        <>
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="true"
+            className="w-3 h-3 right-0 bg-green-500"
+          />
+          <Handle
+            type="source"
+            position={Position.Left}
+            id="false"
+            className="w-3 h-3 left-0 bg-red-500"
+          />
+        </>
+      )}
     </div>
   );
 };

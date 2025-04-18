@@ -1,15 +1,29 @@
 
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Input } from "@/components/ui/input";
 
-const AINode: React.FC<NodeProps> = ({ data }) => {
-  const [flowId, setFlowId] = useState((data.flowId as string) || '');
+interface AINodeData {
+  flowId?: string;
+  openAIKey?: string;
+  onChange?: (params: { flowId: string; openAIKey: string }) => void;
+}
+
+const AINode: React.FC<NodeProps<AINodeData>> = ({ data }) => {
+  const [flowId, setFlowId] = useState(data?.flowId || '');
+  const [openAIKey, setOpenAIKey] = useState(data?.openAIKey || '');
 
   const handleFlowIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFlowId(e.target.value);
-    // Update node data
-    if (data.onChange && typeof data.onChange === 'function') {
-      data.onChange({ flowId: e.target.value });
+    if (data?.onChange) {
+      data.onChange({ flowId: e.target.value, openAIKey });
+    }
+  };
+
+  const handleOpenAIKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOpenAIKey(e.target.value);
+    if (data?.onChange) {
+      data.onChange({ flowId, openAIKey: e.target.value });
     }
   };
 
@@ -28,21 +42,37 @@ const AINode: React.FC<NodeProps> = ({ data }) => {
       <div className="text-center font-medium">AI Node</div>
       <div className="text-xs text-gray-500 text-center mt-1">Langflow integration</div>
       
-      <div className="mt-3">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Langflow Flow ID
-        </label>
-        <input
-          className="w-full p-2 border border-gray-300 rounded text-sm"
-          value={flowId}
-          onChange={handleFlowIdChange}
-          placeholder="Enter Langflow Flow ID"
-          id="flowId"
-          name="flowId"
-        />
+      <div className="mt-3 space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Langflow Flow ID
+          </label>
+          <Input
+            className="w-full"
+            value={flowId}
+            onChange={handleFlowIdChange}
+            placeholder="Enter Langflow Flow ID"
+            id="flowId"
+            name="flowId"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            OpenAI API Key
+          </label>
+          <Input
+            className="w-full"
+            value={openAIKey}
+            onChange={handleOpenAIKeyChange}
+            placeholder="Enter OpenAI API Key"
+            id="openAIKey"
+            name="openAIKey"
+            type="password"
+          />
+        </div>
       </div>
 
-      {/* Input handle */}
       <Handle
         type="target"
         position={Position.Top}
@@ -50,7 +80,6 @@ const AINode: React.FC<NodeProps> = ({ data }) => {
         className="w-3 h-3 top-0 bg-blue-500"
       />
 
-      {/* Output handle */}
       <Handle
         type="source"
         position={Position.Bottom}

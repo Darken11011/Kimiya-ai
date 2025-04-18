@@ -1,4 +1,5 @@
-import React, { useCallback, useRef, DragEvent } from 'react';
+
+import React, { useCallback, useRef, useState, DragEvent } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -12,9 +13,11 @@ import {
   Panel,
   ReactFlowProvider,
   useReactFlow,
-  Node
+  Node,
+  NodeTypes
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { toast } from "sonner";
 
 import StartCallNode from './nodes/StartCallNode';
 import PlayAudioNode from './nodes/PlayAudioNode';
@@ -26,7 +29,7 @@ import ApiRequestNode from './nodes/ApiRequestNode';
 import TransferCallNode from './nodes/TransferCallNode';
 import Sidebar from './Sidebar';
 
-const nodeTypes = {
+const nodeTypes: NodeTypes = {
   startCall: StartCallNode,
   playAudio: PlayAudioNode,
   aiNode: AINode,
@@ -52,6 +55,7 @@ const getId = () => `node_${id++}`;
 const FlowEditorContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [workflowName, setWorkflowName] = useState("New Workflow");
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
   // Get ReactFlow utilities from hook
@@ -63,34 +67,44 @@ const FlowEditorContent: React.FC = () => {
   );
 
   const onSave = useCallback(() => {
+    if (!reactFlowInstance) return;
+
     const flow = {
-      nodes,
+      name: workflowName,
+      nodes: nodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          onChange: undefined // Remove function references before saving
+        }
+      })),
       edges,
     };
-    // In a real application, you would send this data to your backend API
-    console.log('Workflow saved:', flow);
-    alert('Workflow saved!');
     
-    // Example API call to save workflow
-    /*
-    fetch('http://localhost:8000/api/workflows', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(flow),
-    })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Workflow saved successfully:', data);
-        alert('Workflow saved!');
-      })
-      .catch(error => {
-        console.error('Error saving workflow:', error);
-        alert('Failed to save workflow');
-      });
-    */
-  }, [nodes, edges]);
+    console.log('Workflow saved:', flow);
+    
+    // In a real scenario, this would be sent to the backend
+    // Mock API call to simulate saving to the backend
+    setTimeout(() => {
+      toast.success("Workflow saved successfully!");
+    }, 500);
+    
+    // Store in localStorage for demo purposes
+    try {
+      localStorage.setItem('savedWorkflow', JSON.stringify(flow));
+    } catch (error) {
+      console.error('Error saving workflow to localStorage:', error);
+    }
+  }, [nodes, edges, reactFlowInstance, workflowName]);
+
+  const onNewWorkflow = useCallback(() => {
+    if (window.confirm("Create a new workflow? Any unsaved changes will be lost.")) {
+      setNodes(initialNodes);
+      setEdges([]);
+      setWorkflowName("New Workflow");
+      toast.info("New workflow created");
+    }
+  }, [setNodes, setEdges]);
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -101,58 +115,63 @@ const FlowEditorContent: React.FC = () => {
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
 
-      if (reactFlowWrapper.current) {
-        const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-        const type = event.dataTransfer.getData('application/reactflow');
-        
-        if (typeof type === 'undefined' || !type) {
-          return;
-        }
-
-        // Calculate the position where the node should be created
-        const position = {
-          x: event.clientX - reactFlowBounds.left,
-          y: event.clientY - reactFlowBounds.top,
-        };
-        
-        // Create a node based on the type
-        const newNode = {
-          id: getId(),
-          type,
-          position,
-          data: { 
-            label: `${type.charAt(0).toUpperCase() + type.slice(1)}`, 
-            onChange: (params: Record<string, unknown>) => {
-              setNodes(nds => 
-                nds.map(node => {
-                  if (node.id === newNode.id) {
-                    return {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        ...params,
-                      },
-                    };
-                  }
-                  return node;
-                })
-              );
-            }
-          },
-        };
-
-        setNodes((nds) => [...nds, newNode as any]);
+      if (!reactFlowWrapper.current || !reactFlowInstance) {
+        return;
       }
+
+      const type = event.dataTransfer.getData('application/reactflow');
+      
+      if (!type) {
+        return;
+      }
+
+      // Get the position where the node was dropped
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      
+      // Calculate the exact position where the node should be created
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+      
+      // Create the new node with proper data structure
+      const newNodeId = getId();
+      const newNode: Node = {
+        id: newNodeId,
+        type,
+        position,
+        data: { 
+          onChange: (params: Record<string, unknown>) => {
+            setNodes(nds => 
+              nds.map(node => {
+                if (node.id === newNodeId) {
+                  return {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      ...params,
+                    },
+                  };
+                }
+                return node;
+              })
+            );
+          }
+        },
+      };
+
+      // Add the new node to the flow
+      setNodes((nds) => [...nds, newNode]);
     },
-    [setNodes]
+    [reactFlowInstance, setNodes]
   );
 
   // Handle node deletion via keyboard
-  const onNodeDelete = useCallback((event: React.KeyboardEvent) => {
+  const onKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      // Get selected nodes using the current state
+      // Get selected nodes
       const selectedNodeIds = nodes
-        .filter(node => (node as any).selected)
+        .filter(node => node.selected)
         .map(node => node.id);
       
       if (selectedNodeIds.length > 0) {
@@ -179,12 +198,25 @@ const FlowEditorContent: React.FC = () => {
           nodeTypes={nodeTypes}
           onDragOver={onDragOver}
           onDrop={onDrop}
-          onKeyDown={onNodeDelete}
+          onKeyDown={onKeyDown}
           fitView
           attributionPosition="bottom-right"
           className="bg-gray-50"
         >
-          <Panel position="top-right">
+          <Panel position="top-right" className="flex gap-2">
+            <input
+              type="text"
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+              placeholder="Workflow Name"
+            />
+            <button 
+              onClick={onNewWorkflow}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md"
+            >
+              New Workflow
+            </button>
             <button 
               onClick={onSave}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md"
