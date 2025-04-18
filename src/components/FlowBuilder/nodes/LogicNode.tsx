@@ -1,14 +1,20 @@
 
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Select } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 
-const LogicNode: React.FC<NodeProps> = ({ data }) => {
+interface LogicNodeData {
+  logicType?: string;
+  value?: string;
+  onChange?: (params: { logicType: string; value: string }) => void;
+}
+
+const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ data }) => {
   const [logicType, setLogicType] = useState(data.logicType || 'condition');
   const [value, setValue] = useState(data.value || '');
 
-  const handleTypeChange = (newValue: string) => {
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value;
     setLogicType(newValue);
     if (data.onChange) {
       data.onChange({ logicType: newValue, value });
@@ -34,15 +40,16 @@ const LogicNode: React.FC<NodeProps> = ({ data }) => {
       <div className="text-center font-medium mb-2">Logic</div>
       
       <div className="space-y-3">
-        <Select
+        <select
           value={logicType}
-          onValueChange={handleTypeChange}
+          onChange={handleTypeChange}
+          className="w-full border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="condition">Condition</option>
           <option value="set">Set Variable</option>
           <option value="component">Component</option>
           <option value="end">End</option>
-        </Select>
+        </select>
 
         <Input
           type="text"

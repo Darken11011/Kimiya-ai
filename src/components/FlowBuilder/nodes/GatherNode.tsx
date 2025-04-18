@@ -3,7 +3,12 @@ import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input"
 
-const GatherNode: React.FC<NodeProps> = ({ data }) => {
+interface GatherNodeData {
+  input?: string;
+  onChange?: (params: { input: string }) => void;
+}
+
+const GatherNode: React.FC<NodeProps<GatherNodeData>> = ({ data }) => {
   const [input, setInput] = useState(data.input || '');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -2,10 +2,16 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 
-const ApiRequestNode: React.FC<NodeProps> = ({ data }) => {
+interface ApiRequestNodeData {
+  method?: string;
+  url?: string;
+  body?: string;
+  onChange?: (params: { method: string; url: string; body: string }) => void;
+}
+
+const ApiRequestNode: React.FC<NodeProps<ApiRequestNodeData>> = ({ data }) => {
   const [method, setMethod] = useState(data.method || 'GET');
   const [url, setUrl] = useState(data.url || '');
   const [body, setBody] = useState(data.body || '');
@@ -36,12 +42,16 @@ const ApiRequestNode: React.FC<NodeProps> = ({ data }) => {
       <div className="text-center font-medium mb-2">API Request</div>
       
       <div className="space-y-3">
-        <Select value={method} onValueChange={(value) => handleChange('method', value)}>
+        <select
+          value={method}
+          onChange={(e) => handleChange('method', e.target.value)}
+          className="w-full border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
           <option value="GET">GET</option>
           <option value="POST">POST</option>
           <option value="PUT">PUT</option>
           <option value="DELETE">DELETE</option>
-        </Select>
+        </select>
 
         <Input
           type="text"

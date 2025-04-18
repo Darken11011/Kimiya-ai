@@ -3,7 +3,12 @@ import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input"
 
-const TransferCallNode: React.FC<NodeProps> = ({ data }) => {
+interface TransferCallNodeData {
+  phoneNumber?: string;
+  onChange?: (params: { phoneNumber: string }) => void;
+}
+
+const TransferCallNode: React.FC<NodeProps<TransferCallNodeData>> = ({ data }) => {
   const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber || '');
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
