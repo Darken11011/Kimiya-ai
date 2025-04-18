@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef, useState, DragEvent } from 'react';
 import {
   ReactFlow,
@@ -37,7 +36,8 @@ const nodeTypes: NodeTypes = {
   logic: LogicNode,
   gather: GatherNode,
   apiRequest: ApiRequestNode,
-  transferCall: TransferCallNode
+  transferCall: TransferCallNode,
+  default: LogicNode, // Add default type for branch nodes
 };
 
 const initialNodes = [
@@ -125,26 +125,21 @@ const FlowEditorContent: React.FC = () => {
         return;
       }
 
-      // Get the position where the node was dropped
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-      
-      // Calculate the exact position where the node should be created
       const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
+        x: event.clientX - reactFlowWrapper.current.getBoundingClientRect().left,
+        y: event.clientY - reactFlowWrapper.current.getBoundingClientRect().top,
       });
-      
-      // Create the new node with proper data structure
-      const newNodeId = getId();
-      const newNode: Node = {
-        id: newNodeId,
+
+      const newNode = {
+        id: getId(),
         type,
         position,
         data: { 
-          onChange: (params: Record<string, unknown>) => {
-            setNodes(nds => 
-              nds.map(node => {
-                if (node.id === newNodeId) {
+          label: type,
+          onChange: (params: any) => {
+            setNodes(nodes => 
+              nodes.map(node => {
+                if (node.id === newNode.id) {
                   return {
                     ...node,
                     data: {
@@ -160,8 +155,7 @@ const FlowEditorContent: React.FC = () => {
         },
       };
 
-      // Add the new node to the flow
-      setNodes((nds) => [...nds, newNode]);
+      setNodes(nds => [...nds, newNode]);
     },
     [reactFlowInstance, setNodes]
   );

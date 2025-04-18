@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { useReactFlow } from '@xyflow/react';
 
 interface LogicNodeData {
   logicType?: string;
@@ -10,13 +10,54 @@ interface LogicNodeData {
   onChange?: (params: { logicType: string; value: string }) => void;
 }
 
-const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ data }) => {
-  const [logicType, setLogicType] = useState(data?.logicType || 'condition');
+const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data, xPos, yPos }) => {
+  const [logicType, setLogicType] = useState(data?.logicType || '');
   const [value, setValue] = useState(data?.value || '');
+  const { setNodes, setEdges } = useReactFlow();
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setLogicType(newValue);
+    
+    if (newValue === 'condition' && !value) {
+      // Create "if" and "else" nodes when condition is selected
+      const ifNode = {
+        id: `${id}-if`,
+        type: 'default',
+        data: { label: 'If Branch' },
+        position: { x: 100, y: 100 }, // Relative to parent
+      };
+
+      const elseNode = {
+        id: `${id}-else`,
+        type: 'default',
+        data: { label: 'Else Branch' },
+        position: { x: -100, y: 100 }, // Relative to parent
+      };
+
+      setNodes((nodes) => [...nodes, ifNode, elseNode]);
+
+      // Create edges connecting to "if" and "else" nodes
+      const newEdges = [
+        {
+          id: `${id}-to-if`,
+          source: id,
+          target: `${id}-if`,
+          sourceHandle: 'true',
+          type: 'smoothstep',
+        },
+        {
+          id: `${id}-to-else`,
+          source: id,
+          target: `${id}-else`,
+          sourceHandle: 'false',
+          type: 'smoothstep',
+        },
+      ];
+
+      setEdges((edges) => [...edges, ...newEdges]);
+    }
+
     if (data?.onChange) {
       data.onChange({ logicType: newValue, value });
     }
@@ -46,6 +87,7 @@ const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ data }) => {
           onChange={handleTypeChange}
           className="w-full border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          <option value="">Select Type</option>
           <option value="condition">Condition</option>
           <option value="set">Set Variable</option>
           <option value="component">Component</option>
