@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef, DragEvent } from 'react';
 import {
   ReactFlow,
@@ -21,14 +20,21 @@ import StartCallNode from './nodes/StartCallNode';
 import PlayAudioNode from './nodes/PlayAudioNode';
 import AINode from './nodes/AINode';
 import EndCallNode from './nodes/EndCallNode';
+import LogicNode from './nodes/LogicNode';
+import GatherNode from './nodes/GatherNode';
+import ApiRequestNode from './nodes/ApiRequestNode';
+import TransferCallNode from './nodes/TransferCallNode';
 import Sidebar from './Sidebar';
 
-// Define custom node types
 const nodeTypes = {
   startCall: StartCallNode,
   playAudio: PlayAudioNode,
   aiNode: AINode,
-  endCall: EndCallNode
+  endCall: EndCallNode,
+  logic: LogicNode,
+  gather: GatherNode,
+  apiRequest: ApiRequestNode,
+  transferCall: TransferCallNode
 };
 
 const initialNodes = [

@@ -37,7 +37,66 @@ const Sidebar: React.FC = () => {
               <circle cx="18" cy="16" r="3"></circle>
             </svg>
           </div>
-          <span className="font-medium">Play Audio</span>
+          <span className="font-medium">Assistant (Say)</span>
+        </div>
+
+        <div 
+          className="bg-yellow-50 p-3 rounded border border-yellow-200 cursor-move flex items-center"
+          onDragStart={(event) => onDragStart(event, 'logic')}
+          draggable
+        >
+          <div className="w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center mr-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+          </div>
+          <span className="font-medium">Logic</span>
+        </div>
+
+        <div 
+          className="bg-orange-50 p-3 rounded border border-orange-200 cursor-move flex items-center"
+          onDragStart={(event) => onDragStart(event, 'gather')}
+          draggable
+        >
+          <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center mr-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+          <span className="font-medium">Gather</span>
+        </div>
+
+        <div 
+          className="bg-indigo-50 p-3 rounded border border-indigo-200 cursor-move flex items-center"
+          onDragStart={(event) => onDragStart(event, 'apiRequest')}
+          draggable
+        >
+          <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center mr-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </div>
+          <span className="font-medium">API Request</span>
+        </div>
+
+        <div 
+          className="bg-teal-50 p-3 rounded border border-teal-200 cursor-move flex items-center"
+          onDragStart={(event) => onDragStart(event, 'transferCall')}
+          draggable
+        >
+          <div className="w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center mr-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <polyline points="17 1 21 5 17 9"/>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+              <path d="M7 23h8"/>
+              <path d="M11 19v4"/>
+              <path d="M15 13v2a4 4 0 0 1-4 4h0a4 4 0 0 1-4-4v-2"/>
+            </svg>
+          </div>
+          <span className="font-medium">Transfer Call</span>
         </div>
 
         <div 
