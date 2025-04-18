@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import { useReactFlow } from '@xyflow/react';
@@ -10,7 +10,7 @@ interface LogicNodeData {
   onChange?: (params: { logicType: string; value: string }) => void;
 }
 
-const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data, xPos, yPos }) => {
+const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
   const [logicType, setLogicType] = useState(data?.logicType || '');
   const [value, setValue] = useState(data?.value || '');
   const { setNodes, setEdges } = useReactFlow();
@@ -41,14 +41,14 @@ const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data, xPos, yPos })
       const newEdges = [
         {
           id: `${id}-to-if`,
-          source: id,
+          source: id as string,
           target: `${id}-if`,
           sourceHandle: 'true',
           type: 'smoothstep',
         },
         {
           id: `${id}-to-else`,
-          source: id,
+          source: id as string,
           target: `${id}-else`,
           sourceHandle: 'false',
           type: 'smoothstep',

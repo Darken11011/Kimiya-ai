@@ -2,13 +2,18 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
-const PlayAudioNode: React.FC<NodeProps> = ({ data }) => {
-  const [audioMessage, setAudioMessage] = useState((data.audioMessage as string) || 'Welcome to our service. How can I help you today?');
+interface PlayAudioNodeData {
+  audioMessage?: string;
+  onChange?: (params: { audioMessage: string }) => void;
+}
+
+const PlayAudioNode: React.FC<NodeProps<PlayAudioNodeData>> = ({ data }) => {
+  const [audioMessage, setAudioMessage] = useState(data?.audioMessage || 'Welcome to our service. How can I help you today?');
 
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setAudioMessage(e.target.value);
     // Update node data
-    if (data.onChange && typeof data.onChange === 'function') {
+    if (data?.onChange) {
       data.onChange({ audioMessage: e.target.value });
     }
   };

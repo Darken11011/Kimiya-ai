@@ -1,3 +1,4 @@
+
 import React, { useCallback, useRef, useState, DragEvent } from 'react';
 import {
   ReactFlow,
@@ -28,6 +29,7 @@ import ApiRequestNode from './nodes/ApiRequestNode';
 import TransferCallNode from './nodes/TransferCallNode';
 import Sidebar from './Sidebar';
 
+// Define the NodeTypes explicitly with proper typing
 const nodeTypes: NodeTypes = {
   startCall: StartCallNode,
   playAudio: PlayAudioNode,
