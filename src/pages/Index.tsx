@@ -15,14 +15,15 @@ const Index: React.FC = () => {
   
   const handleDocumentation = () => {
     // In a real application, this would navigate to documentation
-    window.open('https://github.com/user/vapi-clone-docs', '_blank');
+    window.open('https://docs.langflow.org/get-started-installation', '_blank');
   };
 
   return (
     <div className="w-full h-screen">
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
-          <h1 className="text-xl font-bold text-gray-800">AI Call Flow Builder</h1>
+          <img src="/icon.png" alt="Kimiyi Logo" className="h-8 w-8 mr-2" />
+          <h1 className="text-xl font-bold text-gray-800">Kimiyi Call Flow</h1>
         </div>
         <div className="flex items-center space-x-2">
           <button 

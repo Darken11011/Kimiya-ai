@@ -29,7 +29,7 @@ const PlayAudioNode: React.FC<NodeProps<PlayAudioNodeData>> = ({ data }) => {
           </svg>
         </div>
       </div>
-      <div className="text-center font-medium">Play Audio</div>
+      <div className="text-center font-medium">Agent</div>
       
       <div className="mt-3">
         <textarea
