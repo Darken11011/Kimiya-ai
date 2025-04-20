@@ -24,38 +24,40 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
       const ifNode = {
         id: `${id}-if`,
         type: 'default',
-        data: { label: 'If Branch' },
-        position: { x: 200, y: 100 }, // Position relative to parent
+        data: { 
+          label: 'If Branch',
+          selectable: true,
+        },
+        position: { x: 200, y: 100 },
       };
 
       const elseNode = {
         id: `${id}-else`,
         type: 'default',
-        data: { label: 'Else Branch' },
-        position: { x: -200, y: 100 }, // Position relative to parent
+        data: { 
+          label: 'Else Branch',
+          selectable: true,
+        },
+        position: { x: -200, y: 100 },
       };
 
       setNodes((nodes) => [...nodes, ifNode, elseNode]);
 
-      // Create edges connecting to "if" and "else" nodes
+      // Create standard edges for both branches
       const newEdges = [
         {
           id: `${id}-to-if`,
-          source: id as string,
+          source: id,
           target: `${id}-if`,
           sourceHandle: 'true',
           type: 'smoothstep',
-          animated: true,
-          style: { stroke: '#22c55e' }
         },
         {
           id: `${id}-to-else`,
-          source: id as string,
+          source: id,
           target: `${id}-else`,
           sourceHandle: 'false',
           type: 'smoothstep',
-          animated: true,
-          style: { stroke: '#ef4444' }
         }
       ];
 
@@ -127,13 +129,13 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
             type="source"
             position={Position.Right}
             id="true"
-            className="w-3 h-3 right-0 bg-green-500"
+            className="w-3 h-3 right-0 bg-gray-500"
           />
           <Handle
             type="source"
             position={Position.Left}
             id="false"
-            className="w-3 h-3 left-0 bg-red-500"
+            className="w-3 h-3 left-0 bg-gray-500"
           />
         </>
       )}
