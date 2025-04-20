@@ -10,7 +10,7 @@ interface LogicNodeData {
   onChange?: (params: { logicType: string; value: string }) => void;
 }
 
-const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
+const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
   const [logicType, setLogicType] = useState(data?.logicType || '');
   const [value, setValue] = useState(data?.value || '');
   const { setNodes, setEdges } = useReactFlow();
@@ -19,20 +19,20 @@ const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
     const newValue = e.target.value;
     setLogicType(newValue);
     
-    if (newValue === 'condition' && !value) {
-      // Create "if" and "else" nodes when condition is selected
+    if (newValue === 'condition') {
+      // Create "if" and "else" nodes
       const ifNode = {
         id: `${id}-if`,
         type: 'default',
         data: { label: 'If Branch' },
-        position: { x: 100, y: 100 }, // Relative to parent
+        position: { x: 200, y: 100 }, // Position relative to parent
       };
 
       const elseNode = {
         id: `${id}-else`,
         type: 'default',
         data: { label: 'Else Branch' },
-        position: { x: -100, y: 100 }, // Relative to parent
+        position: { x: -200, y: 100 }, // Position relative to parent
       };
 
       setNodes((nodes) => [...nodes, ifNode, elseNode]);
@@ -45,6 +45,8 @@ const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
           target: `${id}-if`,
           sourceHandle: 'true',
           type: 'smoothstep',
+          animated: true,
+          style: { stroke: '#22c55e' }
         },
         {
           id: `${id}-to-else`,
@@ -52,7 +54,9 @@ const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
           target: `${id}-else`,
           sourceHandle: 'false',
           type: 'smoothstep',
-        },
+          animated: true,
+          style: { stroke: '#ef4444' }
+        }
       ];
 
       setEdges((edges) => [...edges, ...newEdges]);
