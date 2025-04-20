@@ -20,12 +20,23 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
     setLogicType(newValue);
     
     if (newValue === 'condition') {
-      // Create "if" and "else" nodes
+      // Create nodes for if/else paths with condition inputs
       const ifNode = {
         id: `${id}-if`,
         type: 'default',
         data: { 
-          label: 'If Branch',
+          label: (
+            <div className="space-y-2">
+              <div className="font-medium">If Branch</div>
+              <select className="w-full border-input bg-background ring-offset-background focus:ring-ring flex h-8 rounded-md border px-3 py-1 text-sm">
+                <option value="equals">equals</option>
+                <option value="not_equals">not equals</option>
+                <option value="greater_than">greater than</option>
+                <option value="less_than">less than</option>
+              </select>
+              <Input type="text" placeholder="Enter value" className="h-8" />
+            </div>
+          ),
           selectable: true,
         },
         position: { x: 200, y: 100 },
@@ -35,7 +46,18 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
         id: `${id}-else`,
         type: 'default',
         data: { 
-          label: 'Else Branch',
+          label: (
+            <div className="space-y-2">
+              <div className="font-medium">Else Branch</div>
+              <select className="w-full border-input bg-background ring-offset-background focus:ring-ring flex h-8 rounded-md border px-3 py-1 text-sm">
+                <option value="equals">equals</option>
+                <option value="not_equals">not equals</option>
+                <option value="greater_than">greater than</option>
+                <option value="less_than">less than</option>
+              </select>
+              <Input type="text" placeholder="Enter value" className="h-8" />
+            </div>
+          ),
           selectable: true,
         },
         position: { x: -200, y: 100 },
@@ -43,20 +65,18 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
 
       setNodes((nodes) => [...nodes, ifNode, elseNode]);
 
-      // Create standard edges for both branches
+      // Create edges for both branches
       const newEdges = [
         {
           id: `${id}-to-if`,
           source: id,
           target: `${id}-if`,
-          sourceHandle: 'true',
           type: 'smoothstep',
         },
         {
           id: `${id}-to-else`,
           source: id,
           target: `${id}-else`,
-          sourceHandle: 'false',
           type: 'smoothstep',
         }
       ];
@@ -91,7 +111,7 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
         <select
           value={logicType}
           onChange={handleTypeChange}
-          className="w-full border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full border-input bg-background ring-offset-background focus:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm"
         >
           <option value="">Select Type</option>
           <option value="condition">Condition</option>
@@ -123,22 +143,6 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
         id="a"
         className="w-3 h-3 bottom-0 bg-blue-500"
       />
-      {logicType === 'condition' && (
-        <>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="true"
-            className="w-3 h-3 right-0 bg-gray-500"
-          />
-          <Handle
-            type="source"
-            position={Position.Left}
-            id="false"
-            className="w-3 h-3 left-0 bg-gray-500"
-          />
-        </>
-      )}
     </div>
   );
 };
