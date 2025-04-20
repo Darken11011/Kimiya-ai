@@ -10,6 +10,40 @@ interface LogicNodeData {
   onChange?: (params: { logicType: string; value: string }) => void;
 }
 
+interface BranchNodeProps {
+  title: string;
+  conditionType: string;
+  conditionValue: string;
+  onConditionTypeChange: (value: string) => void;
+  onConditionValueChange: (value: string) => void;
+}
+
+// Create a custom branch node content component
+const BranchNodeContent = ({ title, conditionType, conditionValue, onConditionTypeChange, onConditionValueChange }: BranchNodeProps) => {
+  return (
+    <div className="space-y-2 p-2">
+      <div className="font-medium">{title}</div>
+      <select 
+        value={conditionType}
+        onChange={(e) => onConditionTypeChange(e.target.value)}
+        className="w-full border-input bg-background ring-offset-background focus:ring-ring flex h-8 rounded-md border px-3 py-1 text-sm"
+      >
+        <option value="equals">equals</option>
+        <option value="not_equals">not equals</option>
+        <option value="greater_than">greater than</option>
+        <option value="less_than">less than</option>
+      </select>
+      <Input 
+        type="text" 
+        placeholder="Enter value" 
+        className="h-8"
+        value={conditionValue}
+        onChange={(e) => onConditionValueChange(e.target.value)}
+      />
+    </div>
+  );
+};
+
 const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
   const [logicType, setLogicType] = useState(data?.logicType || '');
   const [value, setValue] = useState(data?.value || '');
@@ -20,23 +54,52 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
     setLogicType(newValue);
     
     if (newValue === 'condition') {
-      // Create nodes for if/else paths with condition inputs
+      // Create nodes for if/else branches with proper condition UI
       const ifNode = {
         id: `${id}-if`,
         type: 'default',
         data: { 
           label: (
-            <div className="space-y-2">
-              <div className="font-medium">If Branch</div>
-              <select className="w-full border-input bg-background ring-offset-background focus:ring-ring flex h-8 rounded-md border px-3 py-1 text-sm">
-                <option value="equals">equals</option>
-                <option value="not_equals">not equals</option>
-                <option value="greater_than">greater than</option>
-                <option value="less_than">less than</option>
-              </select>
-              <Input type="text" placeholder="Enter value" className="h-8" />
-            </div>
+            <BranchNodeContent 
+              title="If Condition"
+              conditionType="equals"
+              conditionValue=""
+              onConditionTypeChange={(value) => {
+                setNodes(nodes => 
+                  nodes.map(node => {
+                    if (node.id === `${id}-if`) {
+                      return {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          conditionType: value
+                        }
+                      };
+                    }
+                    return node;
+                  })
+                );
+              }}
+              onConditionValueChange={(value) => {
+                setNodes(nodes => 
+                  nodes.map(node => {
+                    if (node.id === `${id}-if`) {
+                      return {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          conditionValue: value
+                        }
+                      };
+                    }
+                    return node;
+                  })
+                );
+              }}
+            />
           ),
+          conditionType: "equals",
+          conditionValue: "",
           selectable: true,
         },
         position: { x: 200, y: 100 },
@@ -47,17 +110,46 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
         type: 'default',
         data: { 
           label: (
-            <div className="space-y-2">
-              <div className="font-medium">Else Branch</div>
-              <select className="w-full border-input bg-background ring-offset-background focus:ring-ring flex h-8 rounded-md border px-3 py-1 text-sm">
-                <option value="equals">equals</option>
-                <option value="not_equals">not equals</option>
-                <option value="greater_than">greater than</option>
-                <option value="less_than">less than</option>
-              </select>
-              <Input type="text" placeholder="Enter value" className="h-8" />
-            </div>
+            <BranchNodeContent 
+              title="Else Condition"
+              conditionType="equals"
+              conditionValue=""
+              onConditionTypeChange={(value) => {
+                setNodes(nodes => 
+                  nodes.map(node => {
+                    if (node.id === `${id}-else`) {
+                      return {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          conditionType: value
+                        }
+                      };
+                    }
+                    return node;
+                  })
+                );
+              }}
+              onConditionValueChange={(value) => {
+                setNodes(nodes => 
+                  nodes.map(node => {
+                    if (node.id === `${id}-else`) {
+                      return {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          conditionValue: value
+                        }
+                      };
+                    }
+                    return node;
+                  })
+                );
+              }}
+            />
           ),
+          conditionType: "equals",
+          conditionValue: "",
           selectable: true,
         },
         position: { x: -200, y: 100 },
