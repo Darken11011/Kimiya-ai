@@ -27,18 +27,19 @@ import GatherNode from './nodes/GatherNode';
 import ApiRequestNode from './nodes/ApiRequestNode';
 import TransferCallNode from './nodes/TransferCallNode';
 import Sidebar from './Sidebar';
+import ChatbotTester from './ChatbotTester';
 
 // Define the NodeTypes with specific types for each node
 const nodeTypes: NodeTypes = {
-  startCall: StartCallNode,
-  playAudio: PlayAudioNode,
-  aiNode: AINode,
-  endCall: EndCallNode,
-  logic: LogicNode,
-  gather: GatherNode,
-  apiRequest: ApiRequestNode,
-  transferCall: TransferCallNode,
-  default: BranchNode, // Use BranchNode for condition nodes
+  startCall: StartCallNode as any,
+  playAudio: PlayAudioNode as any,
+  aiNode: AINode as any,
+  endCall: EndCallNode as any,
+  logic: LogicNode as any,
+  gather: GatherNode as any,
+  apiRequest: ApiRequestNode as any,
+  transferCall: TransferCallNode as any,
+  default: BranchNode as any, // Use BranchNode for condition nodes
 };
 
 const initialNodes = [
@@ -58,6 +59,7 @@ const FlowEditorContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [workflowName, setWorkflowName] = useState("New Workflow");
+  const [showChatbotTester, setShowChatbotTester] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
   // Get ReactFlow utilities from hook
@@ -167,7 +169,7 @@ const FlowEditorContent: React.FC = () => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       // Get selected nodes
       const selectedNodeIds = nodes
-        .filter((node) => node.selected)
+        .filter((node: any) => node.selected)
         .map(node => node.id);
       
       if (selectedNodeIds.length > 0) {
@@ -219,11 +221,22 @@ const FlowEditorContent: React.FC = () => {
             >
               Save Workflow
             </button>
+            <button 
+              onClick={() => setShowChatbotTester(true)}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md"
+            >
+              Test Chatbot
+            </button>
           </Panel>
           <Controls />
           <MiniMap nodeStrokeWidth={3} />
           <Background gap={12} size={1} />
         </ReactFlow>
+        
+        <ChatbotTester 
+          isOpen={showChatbotTester} 
+          onClose={() => setShowChatbotTester(false)} 
+        />
       </div>
     </div>
   );
