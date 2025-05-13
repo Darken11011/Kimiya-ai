@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, Edge } from '@xyflow/react';
 
 interface LogicNodeData {
   logicType?: string;
@@ -10,17 +10,32 @@ interface LogicNodeData {
   onChange?: (params: { logicType: string; value: string }) => void;
 }
 
-interface BranchNodeProps {
-  id: string;
-  title: string;
-  conditionType: string;
-  conditionValue: string;
-  onConditionTypeChange: (value: string) => void;
-  onConditionValueChange: (value: string) => void;
+interface BranchNodeData {
+  title?: string;
+  conditionType?: string;
+  conditionValue?: string;
+  onChange?: (params: { conditionType: string; conditionValue: string }) => void;
 }
 
 // Create a custom branch node content component for if/else nodes
-const BranchNodeContent = ({ id, title, conditionType, conditionValue, onConditionTypeChange, onConditionValueChange }: BranchNodeProps) => {
+export const BranchNode: React.FC<NodeProps<BranchNodeData>> = ({ id, data }) => {
+  const [conditionType, setConditionType] = useState(data?.conditionType || "equals");
+  const [conditionValue, setConditionValue] = useState(data?.conditionValue || "");
+
+  const handleConditionTypeChange = (value: string) => {
+    setConditionType(value);
+    if (data?.onChange) {
+      data.onChange({ conditionType: value, conditionValue });
+    }
+  };
+
+  const handleConditionValueChange = (value: string) => {
+    setConditionValue(value);
+    if (data?.onChange) {
+      data.onChange({ conditionType, conditionValue: value });
+    }
+  };
+
   return (
     <div className="rounded-md border border-gray-300 bg-white p-4 shadow-md min-w-[250px]">
       <div className="flex items-center justify-center mb-2">
@@ -30,11 +45,11 @@ const BranchNodeContent = ({ id, title, conditionType, conditionValue, onConditi
           </svg>
         </div>
       </div>
-      <div className="text-center font-medium mb-2">{title}</div>
+      <div className="text-center font-medium mb-2">{data?.title || "Condition"}</div>
       <div className="space-y-2">
         <select 
           value={conditionType}
-          onChange={(e) => onConditionTypeChange(e.target.value)}
+          onChange={(e) => handleConditionTypeChange(e.target.value)}
           className="w-full border-input bg-background ring-offset-background focus:ring-ring flex h-8 rounded-md border px-3 py-1 text-sm"
         >
           <option value="equals">equals</option>
@@ -47,7 +62,7 @@ const BranchNodeContent = ({ id, title, conditionType, conditionValue, onConditi
           placeholder="Enter value" 
           className="h-8"
           value={conditionValue}
-          onChange={(e) => onConditionValueChange(e.target.value)}
+          onChange={(e) => handleConditionValueChange(e.target.value)}
         />
       </div>
       <Handle
@@ -66,29 +81,7 @@ const BranchNodeContent = ({ id, title, conditionType, conditionValue, onConditi
   );
 };
 
-// Define a branch node for condition handling
-const BranchNode = ({ id, data }: NodeProps) => {
-  return (
-    <BranchNodeContent 
-      id={id}
-      title={data.title || "Condition"}
-      conditionType={data.conditionType || "equals"}
-      conditionValue={data.conditionValue || ""}
-      onConditionTypeChange={(value) => {
-        if (data.onChange) {
-          data.onChange({ conditionType: value, conditionValue: data.conditionValue || "" });
-        }
-      }}
-      onConditionValueChange={(value) => {
-        if (data.onChange) {
-          data.onChange({ conditionType: data.conditionType || "equals", conditionValue: value });
-        }
-      }}
-    />
-  );
-};
-
-const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
+const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
   const [logicType, setLogicType] = useState(data?.logicType || '');
   const [value, setValue] = useState(data?.value || '');
   const { setNodes, setEdges } = useReactFlow();
@@ -156,16 +149,16 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
       setNodes((nodes) => [...nodes, ifNode as any, elseNode as any]);
 
       // Create edges for both branches with proper type casting
-      const ifEdge = {
+      const ifEdge: Edge = {
         id: `${id}-to-if`,
-        source: id,
+        source: id as string,
         target: `${id}-if`,
         type: 'smoothstep',
       };
       
-      const elseEdge = {
+      const elseEdge: Edge = {
         id: `${id}-to-else`,
-        source: id,
+        source: id as string,
         target: `${id}-else`,
         type: 'smoothstep',
       };
@@ -236,5 +229,4 @@ const LogicNode = ({ id, data }: NodeProps<LogicNodeData>) => {
   );
 };
 
-export { BranchNode };
 export default LogicNode;

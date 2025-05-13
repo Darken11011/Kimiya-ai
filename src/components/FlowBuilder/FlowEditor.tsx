@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef, useState, DragEvent } from 'react';
 import {
   ReactFlow,
@@ -29,19 +28,17 @@ import ApiRequestNode from './nodes/ApiRequestNode';
 import TransferCallNode from './nodes/TransferCallNode';
 import Sidebar from './Sidebar';
 
-// Define the NodeTypes with type any to avoid TypeScript errors
-// This is a compromise for now, but the proper solution would involve 
-// defining proper type interfaces for all node types
+// Define the NodeTypes with specific types for each node
 const nodeTypes: NodeTypes = {
-  startCall: StartCallNode as any,
-  playAudio: PlayAudioNode as any,
-  aiNode: AINode as any,
-  endCall: EndCallNode as any,
-  logic: LogicNode as any,
-  gather: GatherNode as any,
-  apiRequest: ApiRequestNode as any,
-  transferCall: TransferCallNode as any,
-  default: BranchNode as any, // Use our custom BranchNode component for condition nodes
+  startCall: StartCallNode,
+  playAudio: PlayAudioNode,
+  aiNode: AINode,
+  endCall: EndCallNode,
+  logic: LogicNode,
+  gather: GatherNode,
+  apiRequest: ApiRequestNode,
+  transferCall: TransferCallNode,
+  default: BranchNode, // Use BranchNode for condition nodes
 };
 
 const initialNodes = [
@@ -170,7 +167,7 @@ const FlowEditorContent: React.FC = () => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       // Get selected nodes
       const selectedNodeIds = nodes
-        .filter((node: any) => node.selected)
+        .filter((node) => node.selected)
         .map(node => node.id);
       
       if (selectedNodeIds.length > 0) {
