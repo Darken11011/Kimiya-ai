@@ -1,15 +1,15 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import { TransferCallNodeData } from '../../../types/flowTypes';
 
 const TransferCallNode: React.FC<NodeProps<TransferCallNodeData>> = ({ data }) => {
-  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ phoneNumber: e.target.value });
     }
-  };
+  }, [data.onChange]);
 
   return (
     <div className="rounded-md border border-gray-300 bg-white p-4 shadow-md min-w-[250px]">

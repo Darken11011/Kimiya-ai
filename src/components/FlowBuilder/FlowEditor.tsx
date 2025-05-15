@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -26,21 +26,22 @@ import WorkflowControls from './components/WorkflowControls';
 import FlowCanvas from './components/FlowCanvas';
 
 // Define the node types
-const nodeTypes = {
-  startCall: StartCallNode as any,
-  playAudio: PlayAudioNode as any,
-  aiNode: AINode as any,
-  endCall: EndCallNode as any,
-  logic: LogicNode as any,
-  gather: GatherNode as any,
-  apiRequest: ApiRequestNode as any,
-  transferCall: TransferCallNode as any,
-  branch: BranchNode as any,
-};
-
 const FlowEditorContent: React.FC = () => {
   // Ref for the flow wrapper
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  
+  // Memoize nodeTypes to avoid recreation on each render
+  const nodeTypes = useMemo(() => ({
+    startCall: StartCallNode as any,
+    playAudio: PlayAudioNode as any,
+    aiNode: AINode as any,
+    endCall: EndCallNode as any,
+    logic: LogicNode as any,
+    gather: GatherNode as any,
+    apiRequest: ApiRequestNode as any,
+    transferCall: TransferCallNode as any,
+    branch: BranchNode as any,
+  }), []);
   
   // Hook for managing nodes, edges, and workflow state
   const {

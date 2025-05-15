@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { initiateCall, defaultTwilioConfig } from '../../../services/twilioService';
 import { StartCallNodeData } from '../../../types/flowTypes';
+import { Input } from '@/components/ui/input';
 
 const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
   const [showConfig, setShowConfig] = useState(false);
@@ -29,29 +30,29 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
     }
   };
 
-  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ phoneNumber: e.target.value });
     }
-  };
+  }, [data.onChange]);
 
-  const handleAccountSidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAccountSidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ accountSid: e.target.value });
     }
-  };
+  }, [data.onChange]);
 
-  const handleAuthTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAuthTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ authToken: e.target.value });
     }
-  };
+  }, [data.onChange]);
 
-  const handleFromNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFromNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ fromNumber: e.target.value });
     }
-  };
+  }, [data.onChange]);
 
   return (
     <div className="rounded-md border border-gray-300 bg-white p-4 shadow-md">
@@ -65,12 +66,12 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
       <div className="text-center font-medium">Start Call</div>
       
       <div className="mt-3">
-        <input
+        <Input
           type="text"
           placeholder="Phone number to call"
           value={data.phoneNumber || ""}
           onChange={handlePhoneNumberChange}
-          className="w-full p-1 text-xs border rounded"
+          className="w-full text-xs"
         />
       </div>
       
@@ -98,26 +99,26 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
       {showConfig && (
         <div className="mt-3 border-t pt-2">
           <div className="text-xs font-medium mb-1">Twilio Configuration</div>
-          <input
+          <Input
             type="text"
             placeholder="Account SID"
             value={data.accountSid || defaultTwilioConfig.accountSid}
             onChange={handleAccountSidChange}
-            className="w-full p-1 text-xs border rounded mb-1"
+            className="w-full text-xs mb-1"
           />
-          <input
+          <Input
             type="password"
             placeholder="Auth Token"
             value={data.authToken || defaultTwilioConfig.authToken}
             onChange={handleAuthTokenChange}
-            className="w-full p-1 text-xs border rounded mb-1"
+            className="w-full text-xs mb-1"
           />
-          <input
+          <Input
             type="text"
             placeholder="From Number"
             value={data.fromNumber || defaultTwilioConfig.fromNumber}
             onChange={handleFromNumberChange}
-            className="w-full p-1 text-xs border rounded"
+            className="w-full text-xs"
           />
         </div>
       )}

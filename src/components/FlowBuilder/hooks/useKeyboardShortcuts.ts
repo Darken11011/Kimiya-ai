@@ -5,26 +5,27 @@ import { Node, Edge, applyEdgeChanges, EdgeChange } from '@xyflow/react';
 export const useKeyboardShortcuts = (
   nodes: Node[],
   setNodes: (updater: (nodes: Node[]) => Node[]) => void,
-  setEdges: (updater: (edges: Edge[]) => Edge[]) => void
+  onEdgesChange: (changes: EdgeChange[]) => void
 ) => {
-  // Handle node deletion via keyboard
-  const onKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key === 'Delete' || event.key === 'Backspace') {
-      // Get selected nodes
-      const selectedNodeIds = nodes
-        .filter((node) => node.selected)
-        .map(node => node.id);
-      
-      if (selectedNodeIds.length > 0) {
-        // Remove selected nodes
-        setNodes((nds) => nds.filter((node) => !selectedNodeIds.includes(node.id)));
-        // Remove edges connected to deleted nodes
-        setEdges((eds) => eds.filter((edge) => 
-          !selectedNodeIds.includes(edge.source) && !selectedNodeIds.includes(edge.target)
-        ));
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if ((event.key === 'Backspace' || event.key === 'Delete') && event.target === document.body) {
+        const selectedNodes = nodes.filter((node) => node.selected);
+        
+        if (selectedNodes.length > 0) {
+          // Remove selected nodes
+          setNodes((nds) => nds.filter((node) => !node.selected));
+          
+          // Remove edges connected to these nodes
+          const nodeIds = selectedNodes.map((node) => node.id);
+          onEdgesChange([
+            ...nodeIds.map((id) => ({ id, type: 'remove' as const })),
+          ]);
+        }
       }
-    }
-  }, [nodes, setNodes, setEdges]);
+    },
+    [nodes, setNodes, onEdgesChange]
+  );
 
   return { onKeyDown };
 };

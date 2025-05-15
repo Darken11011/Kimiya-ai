@@ -1,6 +1,6 @@
 
 import { useCallback, useState } from 'react';
-import { useNodesState, useEdgesState, addEdge, Connection, Node, Edge } from '@xyflow/react';
+import { useNodesState, useEdgesState, addEdge, Connection, Edge } from '@xyflow/react';
 import { CustomNode } from '../../../types/flowTypes';
 import { toast } from "sonner";
 
@@ -61,14 +61,35 @@ export const useNodeManagement = () => {
 
   const onNewWorkflow = useCallback(() => {
     if (window.confirm("Create a new workflow? Any unsaved changes will be lost.")) {
-      setNodes(initialNodes);
+      setNodes(initialNodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          onChange: (params: any) => {
+            setNodes(nds => 
+              nds.map(n => {
+                if (n.id === node.id) {
+                  return {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      ...params,
+                    },
+                  };
+                }
+                return n;
+              })
+            );
+          }
+        }
+      })));
       setEdges([]);
       setWorkflowName("New Workflow");
       toast.info("New workflow created");
     }
   }, [setNodes, setEdges]);
 
-  const createNewNode = (type: string, position: {x: number, y: number}) => {
+  const createNewNode = useCallback((type: string, position: {x: number, y: number}) => {
     const newNode = {
       id: getId(),
       type,
@@ -76,8 +97,8 @@ export const useNodeManagement = () => {
       data: { 
         label: type,
         onChange: (params: any) => {
-          setNodes(nodes => 
-            nodes.map(node => {
+          setNodes(nds => 
+            nds.map(node => {
               if (node.id === newNode.id) {
                 return {
                   ...node,
@@ -95,7 +116,36 @@ export const useNodeManagement = () => {
     };
     
     setNodes(nds => [...nds, newNode]);
-  };
+    return newNode;
+  }, [setNodes]);
+
+  // Initialize the onChange handlers for the initial nodes
+  useState(() => {
+    setNodes(nodes => 
+      nodes.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          onChange: (params: any) => {
+            setNodes(nds => 
+              nds.map(n => {
+                if (n.id === node.id) {
+                  return {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      ...params,
+                    },
+                  };
+                }
+                return n;
+              })
+            );
+          }
+        }
+      }))
+    );
+  });
 
   return {
     nodes,
