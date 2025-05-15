@@ -10,7 +10,7 @@ interface TwilioConfig {
 // Default Twilio configuration with the provided credentials
 export const defaultTwilioConfig: TwilioConfig = {
   accountSid: "AC4aea4e1116bb6c5991749aaa0323073d",
-  authToken: "6bef332334903b42fd16715db3dd53d8",
+  authToken: "fe55633ecf6aabff60c97685b8338e05", // Updated auth token
   fromNumber: "+18576785216"
 };
 
