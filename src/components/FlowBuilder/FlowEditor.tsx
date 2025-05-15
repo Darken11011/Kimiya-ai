@@ -12,12 +12,12 @@ import {
   Panel,
   ReactFlowProvider,
   useReactFlow,
-  Node,
   NodeTypes
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toast } from "sonner";
 
+import { CustomNode } from '../../types/flowTypes';
 import StartCallNode from './nodes/StartCallNode';
 import PlayAudioNode from './nodes/PlayAudioNode';
 import AINode from './nodes/AINode';
@@ -39,14 +39,17 @@ const nodeTypes: NodeTypes = {
   gather: GatherNode as any,
   apiRequest: ApiRequestNode as any,
   transferCall: TransferCallNode as any,
-  default: BranchNode as any, // Use BranchNode for condition nodes
+  branch: BranchNode as any,
 };
 
-const initialNodes = [
+const initialNodes: CustomNode[] = [
   {
     id: 'start-1',
     type: 'startCall',
-    data: { label: 'Start Call' },
+    data: { 
+      label: 'Start Call',
+      phoneNumber: ''
+    },
     position: { x: 250, y: 50 },
   }
 ];
@@ -56,6 +59,7 @@ const getId = () => `node_${id++}`;
 
 const FlowEditorContent: React.FC = () => {
   
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [workflowName, setWorkflowName] = useState("New Workflow");

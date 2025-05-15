@@ -1,8 +1,41 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
+import { initiateCall, defaultTwilioConfig } from '../../../services/twilioService';
 
-const StartCallNode: React.FC<NodeProps> = ({ data }) => {
+interface StartCallNodeData {
+  phoneNumber: string;
+  accountSid: string;
+  authToken: string;
+  fromNumber: string;
+  onChange?: (params: Partial<StartCallNodeData>) => void;
+}
+
+const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
+  const [showConfig, setShowConfig] = useState(false);
+  const [isCallInProgress, setIsCallInProgress] = useState(false);
+
+  const handleCallNow = async () => {
+    if (!data.phoneNumber) {
+      alert("Please enter a phone number to call");
+      return;
+    }
+
+    setIsCallInProgress(true);
+
+    try {
+      const config = {
+        accountSid: data.accountSid || defaultTwilioConfig.accountSid,
+        authToken: data.authToken || defaultTwilioConfig.authToken,
+        fromNumber: data.fromNumber || defaultTwilioConfig.fromNumber
+      };
+
+      await initiateCall(data.phoneNumber, "current-workflow", config);
+    } finally {
+      setIsCallInProgress(false);
+    }
+  };
+
   return (
     <div className="rounded-md border border-gray-300 bg-white p-4 shadow-md">
       <div className="flex items-center justify-center mb-2">
@@ -13,8 +46,65 @@ const StartCallNode: React.FC<NodeProps> = ({ data }) => {
         </div>
       </div>
       <div className="text-center font-medium">Start Call</div>
-      <div className="text-xs text-gray-500 text-center mt-1">Initiates a call</div>
       
+      <div className="mt-3">
+        <input
+          type="text"
+          placeholder="Phone number to call"
+          value={data.phoneNumber || ""}
+          onChange={(e) => data.onChange?.({ phoneNumber: e.target.value })}
+          className="w-full p-1 text-xs border rounded"
+        />
+      </div>
+      
+      <div className="mt-2 flex justify-between">
+        <button
+          onClick={() => setShowConfig(!showConfig)}
+          className="text-xs text-blue-600 underline"
+        >
+          {showConfig ? "Hide Twilio Config" : "Twilio Config"}
+        </button>
+        
+        <button
+          onClick={handleCallNow}
+          disabled={isCallInProgress || !data.phoneNumber}
+          className={`text-xs px-2 py-1 rounded ${
+            isCallInProgress || !data.phoneNumber
+              ? "bg-gray-300 text-gray-500"
+              : "bg-green-500 text-white"
+          }`}
+        >
+          {isCallInProgress ? "Calling..." : "Call Now"}
+        </button>
+      </div>
+      
+      {showConfig && (
+        <div className="mt-3 border-t pt-2">
+          <div className="text-xs font-medium mb-1">Twilio Configuration</div>
+          <input
+            type="text"
+            placeholder="Account SID"
+            value={data.accountSid || defaultTwilioConfig.accountSid}
+            onChange={(e) => data.onChange?.({ accountSid: e.target.value })}
+            className="w-full p-1 text-xs border rounded mb-1"
+          />
+          <input
+            type="password"
+            placeholder="Auth Token"
+            value={data.authToken || defaultTwilioConfig.authToken}
+            onChange={(e) => data.onChange?.({ authToken: e.target.value })}
+            className="w-full p-1 text-xs border rounded mb-1"
+          />
+          <input
+            type="text"
+            placeholder="From Number"
+            value={data.fromNumber || defaultTwilioConfig.fromNumber}
+            onChange={(e) => data.onChange?.({ fromNumber: e.target.value })}
+            className="w-full p-1 text-xs border rounded"
+          />
+        </div>
+      )}
+
       {/* Output handle */}
       <Handle
         type="source"

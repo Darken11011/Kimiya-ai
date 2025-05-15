@@ -1,17 +1,13 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { callAzureOpenAI } from '@/services/azureOpenAI';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { useReactFlow, Node } from '@xyflow/react';
-import { toast } from "sonner";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { callAzureOpenAI } from '../../services/azureOpenAI';
+import { initiateCall } from '../../services/twilioService';
 
 interface Message {
-  role: "system" | "user" | "assistant";
+  role: 'system' | 'user' | 'assistant';
   content: string;
-  timestamp: Date;
 }
 
 interface ChatbotTesterProps {
@@ -20,200 +16,207 @@ interface ChatbotTesterProps {
 }
 
 const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'system',
+      content: 'You are a helpful AI assistant following the conversation flow.'
+    }
+  ]);
+  const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [systemPrompt, setSystemPrompt] = useState("You are a helpful AI assistant following the conversation flow.");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { getNodes } = useReactFlow();
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [isCallMode, setIsCallMode] = useState(false);
+  const [isCallInProgress, setIsCallInProgress] = useState(false);
 
-  // Auto-scroll to bottom when messages change
+  // Scroll chat to bottom when messages change
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
     }
   }, [messages]);
 
-  // Generate system prompt based on the current flow
-  const generateSystemPromptFromFlow = () => {
-    const nodes = getNodes();
-    let flowDescription = "You are following this conversation flow:\n\n";
+  const handleSendMessage = async () => {
+    if (!userInput.trim()) return;
     
-    // Sort nodes by their positions to create a somewhat logical flow description
-    const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y);
-    
-    sortedNodes.forEach((node: Node) => {
-      switch (node.type) {
-        case 'startCall':
-          flowDescription += `- Start call\n`;
-          break;
-        case 'playAudio':
-          flowDescription += `- Say: "${node.data?.audioMessage || 'Hello'}"\n`;
-          break;
-        case 'aiNode':
-          flowDescription += `- Process with AI using flow: ${node.data?.flowId || 'default'}\n`;
-          break;
-        case 'gather':
-          flowDescription += `- Gather user input: ${node.data?.input || 'response'}\n`;
-          break;
-        case 'logic':
-          flowDescription += `- Logic step: ${node.data?.logicType || 'condition'}\n`;
-          break;
-        case 'default': // For branch nodes
-          flowDescription += `- Condition: ${node.data?.title || 'If'} ${node.data?.conditionType || 'equals'} ${node.data?.conditionValue || ''}\n`;
-          break;
-        case 'apiRequest':
-          flowDescription += `- API Request: ${node.data?.method || 'GET'} to ${node.data?.url || 'API endpoint'}\n`;
-          break;
-        case 'transferCall':
-          flowDescription += `- Transfer call to: ${node.data?.phoneNumber || 'another agent'}\n`;
-          break;
-        case 'endCall':
-          flowDescription += `- End call\n`;
-          break;
-        default:
-          flowDescription += `- ${node.type}: ${JSON.stringify(node.data)}\n`;
-      }
-    });
-    
-    flowDescription += "\nBehave as if you're following this call flow when responding to the user.";
-    return flowDescription;
-  };
-
-  const applyFlowPrompt = () => {
-    const flowPrompt = generateSystemPromptFromFlow();
-    setSystemPrompt(flowPrompt);
-    toast.success("System prompt updated based on current flow");
-  };
-
-  const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
-    
-    // Add user message
-    const userMessage: Message = {
-      role: "user",
-      content: inputMessage,
-      timestamp: new Date()
+    // Add user message to chat
+    const newUserMessage: Message = {
+      role: 'user',
+      content: userInput
     };
     
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage("");
+    setMessages(prevMessages => [...prevMessages, newUserMessage]);
+    setUserInput('');
     setIsLoading(true);
     
     try {
-      // Prepare full conversation history for context
-      const conversationHistory = [
-        { role: "system" as const, content: systemPrompt },
-        ...messages.map(msg => ({ role: msg.role, content: msg.content })),
-        { role: "user" as const, content: inputMessage }
-      ];
+      // Call AI service
+      const updatedMessages = [...messages, newUserMessage];
+      const response = await callAzureOpenAI(updatedMessages);
       
-      // Call Azure OpenAI
-      const response = await callAzureOpenAI(conversationHistory);
-      
-      // Add AI response
-      const aiMessage: Message = {
-        role: "assistant",
-        content: response,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, aiMessage]);
+      // Add AI response to chat
+      setMessages(prevMessages => [
+        ...prevMessages, 
+        { role: 'assistant', content: response }
+      ]);
     } catch (error) {
-      console.error("Error in chatbot conversation:", error);
-      toast.error("Failed to get response from AI");
+      console.error('Error getting AI response:', error);
+      setMessages(prevMessages => [
+        ...prevMessages, 
+        { role: 'assistant', content: 'Sorry, I encountered an error processing your request.' }
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  const handleInitiateCall = async () => {
+    if (!phoneNumber) {
+      alert('Please enter a valid phone number');
+      return;
+    }
+
+    setIsCallInProgress(true);
+    
+    try {
+      // Start a call with the current workflow
+      const callResponse = await initiateCall(phoneNumber, 'current-workflow');
+      
+      if (callResponse.success) {
+        setIsCallMode(true);
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { 
+            role: 'system', 
+            content: `Call initiated to ${phoneNumber}. Call SID: ${callResponse.callSid}` 
+          }
+        ]);
+      } else {
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { 
+            role: 'system', 
+            content: `Failed to initiate call: ${callResponse.error || 'Unknown error'}` 
+          }
+        ]);
+      }
+    } finally {
+      setIsCallInProgress(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Test Chatbot with Flow</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6 6 18"></path>
-              <path d="m6 6 12 12"></path>
-            </svg>
-          </Button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Test Your Call Flow Chatbot</DialogTitle>
+        </DialogHeader>
         
-        <div className="space-y-2 mb-4">
-          <label className="text-sm font-medium">System Prompt:</label>
-          <div className="flex space-x-2">
-            <Textarea 
-              value={systemPrompt} 
-              onChange={(e) => setSystemPrompt(e.target.value)} 
-              placeholder="Enter system instructions..."
-              className="h-24 text-sm"
-            />
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm" onClick={applyFlowPrompt}>
-              Generate From Flow
-            </Button>
-          </div>
-        </div>
-        
-        <ScrollArea className="flex-grow border rounded-md p-3 bg-gray-50 mb-4">
-          <div className="space-y-4">
-            {messages.map((msg, i) => (
-              <div 
-                key={i} 
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div 
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    msg.role === "user" 
-                      ? "bg-blue-500 text-white" 
-                      : "bg-gray-200 text-gray-800"
-                  }`}
+        <div className="flex flex-col space-y-4">
+          {!isCallMode ? (
+            // Phone number input mode
+            <div className="flex flex-col space-y-2">
+              <p className="text-sm text-gray-500">
+                Enter a phone number to start a call with your workflow,
+                or test the conversation directly in chat mode.
+              </p>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Phone number (e.g. +12345678901)"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  disabled={isCallInProgress}
+                />
+                <Button 
+                  onClick={handleInitiateCall}
+                  disabled={!phoneNumber || isCallInProgress}
+                  className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                  <p className="text-xs opacity-70 mt-1">
-                    {msg.timestamp.toLocaleTimeString()}
-                  </p>
-                </div>
+                  {isCallInProgress ? "Calling..." : "Start Call"}
+                </Button>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-3 bg-gray-200 text-gray-800">
-                  <div className="flex space-x-2 items-center">
-                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                    <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+              <div className="flex justify-center">
+                <span className="text-sm text-gray-500 italic">- or -</span>
+              </div>
+              <Button 
+                onClick={() => setIsCallMode(true)}
+                variant="outline"
+              >
+                Continue in Chat Mode
+              </Button>
+            </div>
+          ) : (
+            // Chat mode
+            <>
+              <div 
+                id="chat-container"
+                className="bg-gray-50 p-4 rounded-md h-96 overflow-y-auto flex flex-col space-y-2"
+              >
+                {messages.filter(m => m.role !== 'system' || m.role === 'system' && messages.indexOf(m) > 0).map((message, index) => (
+                  <div 
+                    key={index}
+                    className={`p-2 rounded-lg max-w-[80%] ${
+                      message.role === 'user' 
+                        ? 'bg-blue-500 text-white self-end' 
+                        : message.role === 'system'
+                          ? 'bg-yellow-100 text-gray-800 self-center italic text-sm'
+                          : 'bg-gray-200 text-gray-800 self-start'
+                    }`}
+                  >
+                    {message.content}
                   </div>
-                </div>
+                ))}
+                {isLoading && (
+                  <div className="bg-gray-200 text-gray-800 self-start p-2 rounded-lg max-w-[80%]">
+                    <div className="flex space-x-1">
+                      <div className="animate-bounce">.</div>
+                      <div className="animate-bounce delay-100">.</div>
+                      <div className="animate-bounce delay-200">.</div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </ScrollArea>
-        
-        <div className="flex space-x-2">
-          <Input
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Type your message..."
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            disabled={isLoading}
-          />
-          <Button onClick={sendMessage} disabled={isLoading}>
-            Send
-          </Button>
+              
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                  disabled={isLoading}
+                />
+                <Button 
+                  onClick={handleSendMessage}
+                  disabled={!userInput.trim() || isLoading}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Send
+                </Button>
+              </div>
+            </>
+          )}
         </div>
-      </div>
-    </div>
+          
+        <DialogFooter className="sm:justify-between">
+          <div className="text-xs text-gray-500">
+            Using Azure OpenAI for responses
+          </div>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
