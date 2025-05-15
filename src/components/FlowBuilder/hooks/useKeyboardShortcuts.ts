@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { Node, Edge } from '@xyflow/react';
+import { Node, Edge, applyEdgeChanges, EdgeChange } from '@xyflow/react';
 
 export const useKeyboardShortcuts = (
   nodes: Node[],

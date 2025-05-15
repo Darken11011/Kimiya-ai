@@ -1,19 +1,12 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
-
-interface TransferCallNodeData {
-  phoneNumber?: string;
-  onChange?: (params: { phoneNumber: string }) => void;
-}
+import { TransferCallNodeData } from '../../../types/flowTypes';
 
 const TransferCallNode: React.FC<NodeProps<TransferCallNodeData>> = ({ data }) => {
-  const [phoneNumber, setPhoneNumber] = useState(data?.phoneNumber || '');
-
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhoneNumber(e.target.value);
-    if (data?.onChange) {
+    if (data.onChange) {
       data.onChange({ phoneNumber: e.target.value });
     }
   };
@@ -35,7 +28,7 @@ const TransferCallNode: React.FC<NodeProps<TransferCallNodeData>> = ({ data }) =
       
       <Input
         type="tel"
-        value={phoneNumber}
+        value={data.phoneNumber || ""}
         onChange={handlePhoneNumberChange}
         placeholder="Enter phone number"
         className="w-full"

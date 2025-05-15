@@ -2,14 +2,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { initiateCall, defaultTwilioConfig } from '../../../services/twilioService';
-
-interface StartCallNodeData {
-  phoneNumber: string;
-  accountSid: string;
-  authToken: string;
-  fromNumber: string;
-  onChange?: (params: Partial<StartCallNodeData>) => void;
-}
+import { StartCallNodeData } from '../../../types/flowTypes';
 
 const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
   const [showConfig, setShowConfig] = useState(false);
@@ -36,6 +29,30 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
     }
   };
 
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (data.onChange) {
+      data.onChange({ phoneNumber: e.target.value });
+    }
+  };
+
+  const handleAccountSidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (data.onChange) {
+      data.onChange({ accountSid: e.target.value });
+    }
+  };
+
+  const handleAuthTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (data.onChange) {
+      data.onChange({ authToken: e.target.value });
+    }
+  };
+
+  const handleFromNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (data.onChange) {
+      data.onChange({ fromNumber: e.target.value });
+    }
+  };
+
   return (
     <div className="rounded-md border border-gray-300 bg-white p-4 shadow-md">
       <div className="flex items-center justify-center mb-2">
@@ -52,7 +69,7 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
           type="text"
           placeholder="Phone number to call"
           value={data.phoneNumber || ""}
-          onChange={(e) => data.onChange?.({ phoneNumber: e.target.value })}
+          onChange={handlePhoneNumberChange}
           className="w-full p-1 text-xs border rounded"
         />
       </div>
@@ -85,21 +102,21 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
             type="text"
             placeholder="Account SID"
             value={data.accountSid || defaultTwilioConfig.accountSid}
-            onChange={(e) => data.onChange?.({ accountSid: e.target.value })}
+            onChange={handleAccountSidChange}
             className="w-full p-1 text-xs border rounded mb-1"
           />
           <input
             type="password"
             placeholder="Auth Token"
             value={data.authToken || defaultTwilioConfig.authToken}
-            onChange={(e) => data.onChange?.({ authToken: e.target.value })}
+            onChange={handleAuthTokenChange}
             className="w-full p-1 text-xs border rounded mb-1"
           />
           <input
             type="text"
             placeholder="From Number"
             value={data.fromNumber || defaultTwilioConfig.fromNumber}
-            onChange={(e) => data.onChange?.({ fromNumber: e.target.value })}
+            onChange={handleFromNumberChange}
             className="w-full p-1 text-xs border rounded"
           />
         </div>
