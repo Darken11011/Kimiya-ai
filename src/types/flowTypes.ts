@@ -3,6 +3,7 @@ import { Node as ReactFlowNode } from '@xyflow/react';
 
 // Base types for node data with common fields
 export interface BaseNodeData {
+  label?: string;
   onChange?: (params: any) => void;
   [key: string]: any;
 }
