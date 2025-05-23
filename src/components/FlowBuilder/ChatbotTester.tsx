@@ -1,9 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { callAzureOpenAI } from '../../services/azureOpenAI';
 import { initiateCall } from '../../services/twilioService';
+import { useReactFlow, Node, Edge } from '@xyflow/react';
+import { toast } from 'sonner';
+import { Input } from '../ui/input';
+import { CustomNode } from '../../types/flowTypes';
 
 interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -16,17 +20,32 @@ interface ChatbotTesterProps {
 }
 
 const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'system',
-      content: 'You are a helpful AI assistant following the conversation flow.'
-    }
-  ]);
+  const { getNodes, getEdges } = useReactFlow();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isCallMode, setIsCallMode] = useState(false);
   const [isCallInProgress, setIsCallInProgress] = useState(false);
+  
+  // Generate system instruction from flow structure
+  useEffect(() => {
+    if (isOpen) {
+      const nodes = getNodes() as CustomNode[];
+      const edges = getEdges();
+      
+      // Create system instruction based on flow structure
+      const flowInstructions = generateFlowInstructions(nodes, edges);
+      
+      // Initialize messages with system instruction
+      setMessages([
+        {
+          role: 'system',
+          content: `You are a helpful AI assistant following this conversation flow structure: ${flowInstructions}. Stay in character and follow the flow strictly.`
+        }
+      ]);
+    }
+  }, [isOpen, getNodes, getEdges]);
 
   // Scroll chat to bottom when messages change
   useEffect(() => {
@@ -35,6 +54,90 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
   }, [messages]);
+
+  // Generate instructions from flow structure
+  const generateFlowInstructions = (nodes: CustomNode[], edges: Edge[]): string => {
+    let instructions = "Here is the conversation flow structure to follow:\n\n";
+    
+    // Find start node
+    const startNode = nodes.find(node => node.type === 'startCall');
+    if (!startNode) return "No valid flow structure found.";
+    
+    // Generate path descriptions
+    try {
+      // Map nodes by their IDs for quick lookup
+      const nodeMap = new Map();
+      nodes.forEach(node => nodeMap.set(node.id, node));
+      
+      // Build flow representation
+      instructions += traverseFlow(startNode, nodeMap, edges, [], 0);
+      
+      // Add specific handling for AI nodes
+      const aiNodes = nodes.filter(node => node.type === 'aiNode');
+      if (aiNodes.length > 0) {
+        instructions += "\n\nAI Agent Instructions:\n";
+        aiNodes.forEach(node => {
+          const flowId = node.data?.flowId;
+          instructions += `- ${node.data?.label || 'AI Agent'}: ${flowId ? `Follow flow ID ${flowId}. ` : ''}${node.data?.label || 'Process user input and respond appropriately.'}\n`;
+        });
+      }
+      
+      return instructions;
+    } catch (error) {
+      console.error("Error generating flow instructions:", error);
+      return "Error generating flow instructions from the workflow structure.";
+    }
+  };
+  
+  // Recursively traverse flow to build instructions
+  const traverseFlow = (
+    currentNode: CustomNode, 
+    nodeMap: Map<string, CustomNode>, 
+    edges: Edge[], 
+    visitedNodes: string[], 
+    depth: number
+  ): string => {
+    if (visitedNodes.includes(currentNode.id) || depth > 20) {
+      return ""; // Prevent infinite loops
+    }
+    
+    visitedNodes.push(currentNode.id);
+    const indent = "  ".repeat(depth);
+    let result = `${indent}${depth + 1}. ${currentNode.type}: ${currentNode.data?.label || ''}\n`;
+    
+    // Add node-specific details
+    switch (currentNode.type) {
+      case 'playAudio':
+        result += `${indent}   Message: "${currentNode.data?.audioMessage || ''}"\n`;
+        break;
+      case 'aiNode':
+        result += `${indent}   AI response based on context\n`;
+        break;
+      case 'gather':
+        result += `${indent}   Ask for: "${currentNode.data?.input || 'user input'}"\n`;
+        break;
+      case 'logic':
+        result += `${indent}   Logic type: ${currentNode.data?.logicType || ''}, Value: ${currentNode.data?.value || ''}\n`;
+        break;
+    }
+    
+    // Find child nodes through edges
+    const childEdges = edges.filter(edge => edge.source === currentNode.id);
+    
+    // Add next steps
+    if (childEdges.length > 0) {
+      for (const edge of childEdges) {
+        const targetNode = nodeMap.get(edge.target);
+        if (targetNode) {
+          result += traverseFlow(targetNode, nodeMap, edges, [...visitedNodes], depth + 1);
+        }
+      }
+    } else if (currentNode.type !== 'endCall') {
+      result += `${indent}   (End of branch)\n`;
+    }
+    
+    return result;
+  };
 
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
@@ -50,7 +153,7 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
     
     try {
-      // Call AI service
+      // Call AI service with flow context
       const updatedMessages = [...messages, newUserMessage];
       const response = await callAzureOpenAI(updatedMessages);
       
@@ -65,6 +168,7 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
         ...prevMessages, 
         { role: 'assistant', content: 'Sorry, I encountered an error processing your request.' }
       ]);
+      toast.error("Failed to get AI response");
     } finally {
       setIsLoading(false);
     }
@@ -72,15 +176,20 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
 
   const handleInitiateCall = async () => {
     if (!phoneNumber) {
-      alert('Please enter a valid phone number');
+      toast.error('Please enter a valid phone number');
       return;
     }
 
     setIsCallInProgress(true);
     
     try {
+      // Create workflow ID from current nodes/edges
+      const nodes = getNodes();
+      const edges = getEdges();
+      const workflowId = `flow-${Date.now()}`;
+      
       // Start a call with the current workflow
-      const callResponse = await initiateCall(phoneNumber, 'current-workflow');
+      const callResponse = await initiateCall(phoneNumber, workflowId);
       
       if (callResponse.success) {
         setIsCallMode(true);
@@ -91,6 +200,7 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
             content: `Call initiated to ${phoneNumber}. Call SID: ${callResponse.callSid}` 
           }
         ]);
+        toast.success(`Call initiated to ${phoneNumber}`);
       } else {
         setMessages(prevMessages => [
           ...prevMessages,
@@ -99,7 +209,18 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
             content: `Failed to initiate call: ${callResponse.error || 'Unknown error'}` 
           }
         ]);
+        toast.error(`Failed to initiate call: ${callResponse.error || 'Unknown error'}`);
       }
+    } catch (error) {
+      console.error('Error initiating call:', error);
+      toast.error('Error initiating call');
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { 
+          role: 'system', 
+          content: `Error initiating call: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        }
+      ]);
     } finally {
       setIsCallInProgress(false);
     }
@@ -111,11 +232,30 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const resetChat = () => {
+    // Reset to initial state with system instruction
+    const nodes = getNodes() as CustomNode[];
+    const edges = getEdges();
+    const flowInstructions = generateFlowInstructions(nodes, edges);
+    
+    setMessages([
+      {
+        role: 'system',
+        content: `You are a helpful AI assistant following this conversation flow structure: ${flowInstructions}. Stay in character and follow the flow strictly.`
+      }
+    ]);
+    setUserInput('');
+    toast.info('Chat reset with current flow structure');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Test Your Call Flow Chatbot</DialogTitle>
+          <DialogDescription>
+            Test your workflow as a chat or phone call interaction
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col space-y-4">
@@ -127,12 +267,12 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
                 or test the conversation directly in chat mode.
               </p>
               <div className="flex space-x-2">
-                <input
+                <Input
                   type="text"
                   placeholder="Phone number (e.g. +12345678901)"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="flex-1"
                   disabled={isCallInProgress}
                 />
                 <Button 
@@ -186,13 +326,13 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
               </div>
               
               <div className="flex space-x-2">
-                <input
+                <Input
                   type="text"
                   placeholder="Type your message..."
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                  className="flex-1"
                   disabled={isLoading}
                 />
                 <Button 
@@ -208,8 +348,20 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
         </div>
           
         <DialogFooter className="sm:justify-between">
-          <div className="text-xs text-gray-500">
-            Using Azure OpenAI for responses
+          <div className="flex gap-2">
+            <div className="text-xs text-gray-500">
+              Using Azure OpenAI for responses
+            </div>
+            {isCallMode && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={resetChat} 
+                className="text-xs"
+              >
+                Reset Chat
+              </Button>
+            )}
           </div>
           <Button variant="outline" onClick={onClose}>
             Close

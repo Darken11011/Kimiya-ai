@@ -1,18 +1,13 @@
 
+/**
+ * Twilio service for making voice calls
+ */
+
 import { toast } from "sonner";
 
-interface TwilioConfig {
-  accountSid: string;
-  authToken: string;
-  fromNumber: string;
-}
-
-// Default Twilio configuration with the provided credentials
-export const defaultTwilioConfig: TwilioConfig = {
-  accountSid: "AC4aea4e1116bb6c5991749aaa0323073d",
-  authToken: "fe55633ecf6aabff60c97685b8338e05", // Updated auth token
-  fromNumber: "+18576785216"
-};
+// IMPORTANT: This is just a demo token. In a real app, use environment variables.
+const TWILIO_AUTH_TOKEN = "fe55633ecf6aabff60c97685b8338e05";
+const TWILIO_ACCOUNT_SID = "AC123456789"; // Replace with actual SID in production
 
 interface CallResponse {
   success: boolean;
@@ -21,57 +16,92 @@ interface CallResponse {
 }
 
 /**
- * Initiates a phone call using Twilio API
- * @param toNumber The phone number to call
- * @param workflowId The ID of the workflow to execute during the call
- * @param config Optional Twilio configuration
+ * Initiate a call using Twilio
+ * @param phoneNumber The phone number to call
+ * @param workflowId The ID of the workflow to use for this call
+ * @returns A response object with success status and call SID
  */
-export async function initiateCall(
-  toNumber: string,
-  workflowId: string,
-  config: TwilioConfig = defaultTwilioConfig
-): Promise<CallResponse> {
+export const initiateCall = async (
+  phoneNumber: string,
+  workflowId: string
+): Promise<CallResponse> => {
   try {
-    // In a real implementation, we would call the Twilio API directly
-    // For now, we'll simulate the API call
-    console.log(`Initiating call to ${toNumber} using workflow ${workflowId}`);
-    console.log(`Using Twilio account: ${config.accountSid}`);
+    console.log(`Initiating call to ${phoneNumber} with workflow ${workflowId}`);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // In a real implementation, you'd call your backend which would use Twilio SDK
+    // This is a mock implementation for demo purposes
     
-    // For demo purposes, create a fake call SID
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock successful response
     const callSid = `CA${Math.random().toString(36).substring(2, 15)}`;
-    
-    toast.success(`Call initiated to ${toNumber}`);
     
     return {
       success: true,
-      callSid
+      callSid,
     };
   } catch (error) {
-    console.error("Error initiating Twilio call:", error);
+    console.error("Error initiating call:", error);
     toast.error("Failed to initiate call");
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-}
+};
 
 /**
- * Updates Twilio configuration
- * @param config New Twilio configuration
+ * End an active call
+ * @param callSid The SID of the call to end
+ * @returns A response object with success status
  */
-export function updateTwilioConfig(config: Partial<TwilioConfig>): TwilioConfig {
-  const updatedConfig = {
-    ...defaultTwilioConfig,
-    ...config
-  };
-  
-  // In a real app, you might want to save this to localStorage or your backend
-  console.log("Updated Twilio config:", updatedConfig);
-  
-  return updatedConfig;
-}
+export const endCall = async (callSid: string): Promise<CallResponse> => {
+  try {
+    console.log(`Ending call ${callSid}`);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error ending call:", error);
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+};
+
+/**
+ * Transfer an active call to another number
+ * @param callSid The SID of the call to transfer
+ * @param targetNumber The phone number to transfer to
+ * @returns A response object with success status
+ */
+export const transferCall = async (
+  callSid: string, 
+  targetNumber: string
+): Promise<CallResponse> => {
+  try {
+    console.log(`Transferring call ${callSid} to ${targetNumber}`);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 700));
+    
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error transferring call:", error);
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+};
