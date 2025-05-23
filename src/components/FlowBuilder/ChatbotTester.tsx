@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { callAzureOpenAI } from '../../services/azureOpenAI';
@@ -7,6 +7,7 @@ import { initiateCall } from '../../services/twilioService';
 import { useReactFlow, Node, Edge } from '@xyflow/react';
 import { toast } from 'sonner';
 import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 import { CustomNode } from '../../types/flowTypes';
 
 interface Message {
@@ -27,36 +28,18 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isCallMode, setIsCallMode] = useState(false);
   const [isCallInProgress, setIsCallInProgress] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   
-  // Generate system instruction from flow structure
+  // Generate system instruction from flow structure when component opens or when system prompt changes
   useEffect(() => {
     if (isOpen) {
-      const nodes = getNodes() as CustomNode[];
-      const edges = getEdges();
-      
-      // Create system instruction based on flow structure
-      const flowInstructions = generateFlowInstructions(nodes, edges);
-      
-      // Initialize messages with system instruction
-      setMessages([
-        {
-          role: 'system',
-          content: `You are a helpful AI assistant following this conversation flow structure: ${flowInstructions}. Stay in character and follow the flow strictly.`
-        }
-      ]);
+      resetChat();
     }
-  }, [isOpen, getNodes, getEdges]);
-
-  // Scroll chat to bottom when messages change
-  useEffect(() => {
-    const chatContainer = document.getElementById('chat-container');
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-  }, [messages]);
+  }, [isOpen, systemPrompt]);
 
   // Generate instructions from flow structure
-  const generateFlowInstructions = (nodes: CustomNode[], edges: Edge[]): string => {
+  const generateFlowInstructions = useCallback((nodes: CustomNode[], edges: Edge[]): string => {
     let instructions = "Here is the conversation flow structure to follow:\n\n";
     
     // Find start node
@@ -82,15 +65,33 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
         });
       }
       
+      // Add instructions for Play Audio nodes (conversation messages)
+      const playAudioNodes = nodes.filter(node => node.type === 'playAudio');
+      if (playAudioNodes.length > 0) {
+        instructions += "\n\nScript Samples:\n";
+        playAudioNodes.forEach(node => {
+          instructions += `- "${node.data?.audioMessage || 'No message provided'}"\n`;
+        });
+      }
+      
+      // Add instructions for Gather nodes (expected inputs)
+      const gatherNodes = nodes.filter(node => node.type === 'gather');
+      if (gatherNodes.length > 0) {
+        instructions += "\n\nExpected User Inputs:\n";
+        gatherNodes.forEach(node => {
+          instructions += `- Ask for: "${node.data?.input || 'user input'}"\n`;
+        });
+      }
+      
       return instructions;
     } catch (error) {
       console.error("Error generating flow instructions:", error);
       return "Error generating flow instructions from the workflow structure.";
     }
-  };
+  }, []);
   
   // Recursively traverse flow to build instructions
-  const traverseFlow = (
+  const traverseFlow = useCallback((
     currentNode: CustomNode, 
     nodeMap: Map<string, CustomNode>, 
     edges: Edge[], 
@@ -137,7 +138,7 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
     }
     
     return result;
-  };
+  }, []);
 
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
@@ -238,14 +239,23 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
     const edges = getEdges();
     const flowInstructions = generateFlowInstructions(nodes, edges);
     
+    const systemMessage = systemPrompt ? 
+      `${systemPrompt}\n\n${flowInstructions}` : 
+      `You are a helpful AI assistant following this conversation flow structure: ${flowInstructions}. Stay in character and follow the flow strictly.`;
+    
     setMessages([
       {
         role: 'system',
-        content: `You are a helpful AI assistant following this conversation flow structure: ${flowInstructions}. Stay in character and follow the flow strictly.`
+        content: systemMessage
       }
     ]);
+    
     setUserInput('');
     toast.info('Chat reset with current flow structure');
+  };
+
+  const toggleSystemPrompt = () => {
+    setShowSystemPrompt(!showSystemPrompt);
   };
 
   return (
@@ -286,12 +296,38 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
               <div className="flex justify-center">
                 <span className="text-sm text-gray-500 italic">- or -</span>
               </div>
-              <Button 
-                onClick={() => setIsCallMode(true)}
-                variant="outline"
-              >
-                Continue in Chat Mode
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => setIsCallMode(true)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Continue in Chat Mode
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={toggleSystemPrompt}
+                  className="whitespace-nowrap"
+                >
+                  {showSystemPrompt ? "Hide System Prompt" : "Edit System Prompt"}
+                </Button>
+              </div>
+              
+              {showSystemPrompt && (
+                <div className="mt-2">
+                  <Textarea
+                    placeholder="Enter custom system prompt to guide the AI behavior..."
+                    value={systemPrompt}
+                    onChange={(e) => setSystemPrompt(e.target.value)}
+                    className="min-h-24"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This will be combined with the workflow structure instructions
+                  </p>
+                </div>
+              )}
+              
             </div>
           ) : (
             // Chat mode
