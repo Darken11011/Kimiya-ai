@@ -3,13 +3,7 @@ import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-interface ApiRequestNodeData {
-  method?: string;
-  url?: string;
-  body?: string;
-  onChange?: (params: { method: string; url: string; body: string }) => void;
-}
+import { ApiRequestNodeData } from '../../../types/flowTypes';
 
 const ApiRequestNode: React.FC<NodeProps<ApiRequestNodeData>> = ({ data }) => {
   const [method, setMethod] = useState(data?.method || 'GET');
@@ -21,7 +15,7 @@ const ApiRequestNode: React.FC<NodeProps<ApiRequestNodeData>> = ({ data }) => {
     if (field === 'url') setUrl(value);
     if (field === 'body') setBody(value);
 
-    if (data?.onChange) {
+    if (data.onChange) {
       data.onChange({
         method: field === 'method' ? value : method,
         url: field === 'url' ? value : url,

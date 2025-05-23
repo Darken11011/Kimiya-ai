@@ -9,7 +9,7 @@ const TransferCallNode: React.FC<NodeProps<TransferCallNodeData>> = ({ data }) =
     if (data.onChange) {
       data.onChange({ phoneNumber: e.target.value });
     }
-  }, [data.onChange]);
+  }, [data]);
 
   return (
     <div className="rounded-md border border-gray-300 bg-white p-4 shadow-md min-w-[250px]">

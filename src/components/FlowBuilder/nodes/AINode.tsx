@@ -2,12 +2,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
-
-interface AINodeData {
-  flowId?: string;
-  openAIKey?: string;
-  onChange?: (params: { flowId: string; openAIKey: string }) => void;
-}
+import { AINodeData } from '../../../types/flowTypes';
 
 const AINode: React.FC<NodeProps<AINodeData>> = ({ data }) => {
   const [flowId, setFlowId] = useState(data?.flowId || '');
@@ -15,14 +10,14 @@ const AINode: React.FC<NodeProps<AINodeData>> = ({ data }) => {
 
   const handleFlowIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFlowId(e.target.value);
-    if (data?.onChange) {
+    if (data.onChange) {
       data.onChange({ flowId: e.target.value, openAIKey });
     }
   };
 
   const handleOpenAIKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setOpenAIKey(e.target.value);
-    if (data?.onChange) {
+    if (data.onChange) {
       data.onChange({ flowId, openAIKey: e.target.value });
     }
   };

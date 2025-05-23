@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { callAzureOpenAI } from '../../services/azureOpenAI';
@@ -30,13 +30,20 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
   const [isCallInProgress, setIsCallInProgress] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState('');
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   
-  // Generate system instruction from flow structure when component opens or when system prompt changes
   useEffect(() => {
     if (isOpen) {
       resetChat();
     }
-  }, [isOpen, systemPrompt]);
+  }, [isOpen]);
+
+  // Auto scroll to bottom of chat when messages change
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   // Generate instructions from flow structure
   const generateFlowInstructions = useCallback((nodes: CustomNode[], edges: Edge[]): string => {
@@ -61,14 +68,14 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
         instructions += "\n\nAI Agent Instructions:\n";
         aiNodes.forEach(node => {
           const flowId = node.data?.flowId;
-          instructions += `- ${node.data?.label || 'AI Agent'}: ${flowId ? `Follow flow ID ${flowId}. ` : ''}${node.data?.label || 'Process user input and respond appropriately.'}\n`;
+          instructions += `- ${node.data?.label || 'AI Agent'}: ${flowId ? `Follow flow ID ${flowId}. ` : ''}${node.data?.instructions || 'Process user input and respond appropriately.'}\n`;
         });
       }
       
       // Add instructions for Play Audio nodes (conversation messages)
       const playAudioNodes = nodes.filter(node => node.type === 'playAudio');
       if (playAudioNodes.length > 0) {
-        instructions += "\n\nScript Samples:\n";
+        instructions += "\n\nScript Examples (Use these exact phrases when appropriate):\n";
         playAudioNodes.forEach(node => {
           instructions += `- "${node.data?.audioMessage || 'No message provided'}"\n`;
         });
@@ -77,11 +84,13 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
       // Add instructions for Gather nodes (expected inputs)
       const gatherNodes = nodes.filter(node => node.type === 'gather');
       if (gatherNodes.length > 0) {
-        instructions += "\n\nExpected User Inputs:\n";
+        instructions += "\n\nExpected User Inputs (Ask for these specific inputs when following the flow):\n";
         gatherNodes.forEach(node => {
           instructions += `- Ask for: "${node.data?.input || 'user input'}"\n`;
         });
       }
+      
+      instructions += "\n\nFOLLOW THIS FLOW STRICTLY. Respond as if you are the agent in this conversation flow.";
       
       return instructions;
     } catch (error) {
@@ -241,7 +250,7 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
     
     const systemMessage = systemPrompt ? 
       `${systemPrompt}\n\n${flowInstructions}` : 
-      `You are a helpful AI assistant following this conversation flow structure: ${flowInstructions}. Stay in character and follow the flow strictly.`;
+      `You are a helpful AI assistant following this conversation flow structure: \n\n${flowInstructions}\n\nStay in character and follow the flow strictly.`;
     
     setMessages([
       {
@@ -334,9 +343,10 @@ const ChatbotTester: React.FC<ChatbotTesterProps> = ({ isOpen, onClose }) => {
             <>
               <div 
                 id="chat-container"
+                ref={chatContainerRef}
                 className="bg-gray-50 p-4 rounded-md h-96 overflow-y-auto flex flex-col space-y-2"
               >
-                {messages.filter(m => m.role !== 'system' || m.role === 'system' && messages.indexOf(m) > 0).map((message, index) => (
+                {messages.filter(m => m.role !== 'system' || (m.role === 'system' && messages.indexOf(m) > 0)).map((message, index) => (
                   <div 
                     key={index}
                     className={`p-2 rounded-lg max-w-[80%] ${

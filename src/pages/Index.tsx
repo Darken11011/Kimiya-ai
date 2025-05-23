@@ -1,22 +1,24 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import FlowBuilder from '@/components/FlowBuilder';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
   
-  const handleNewWorkflow = () => {
+  const handleNewWorkflow = useCallback(() => {
     // Clear any existing workflow data in localStorage
     localStorage.removeItem('savedWorkflow');
     // Reload the page to start fresh
     window.location.reload();
-  };
+    toast.success("Created new workflow");
+  }, []);
   
-  const handleDocumentation = () => {
-    // In a real application, this would navigate to documentation
+  const handleDocumentation = useCallback(() => {
+    // Open documentation in a new tab
     window.open('https://docs.langflow.org/get-started-installation', '_blank');
-  };
+  }, []);
 
   return (
     <div className="w-full h-screen">
