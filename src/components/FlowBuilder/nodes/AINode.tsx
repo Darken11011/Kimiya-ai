@@ -4,7 +4,8 @@ import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import { AINodeData } from '../../../types/flowTypes';
 
-const AINode: React.FC<NodeProps<AINodeData>> = ({ data }) => {
+const AINode: React.FC<NodeProps<{ data: AINodeData }>> = ({ data: nodeData }) => {
+  const data = nodeData.data;
   const [flowId, setFlowId] = useState(data?.flowId || '');
   const [openAIKey, setOpenAIKey] = useState(data?.openAIKey || '');
 

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiRequestNodeData } from '../../../types/flowTypes';
 
-const ApiRequestNode: React.FC<NodeProps<ApiRequestNodeData>> = ({ data }) => {
+const ApiRequestNode: React.FC<NodeProps<{ data: ApiRequestNodeData }>> = ({ data: nodeData }) => {
+  const data = nodeData.data;
   const [method, setMethod] = useState(data?.method || 'GET');
   const [url, setUrl] = useState(data?.url || '');
   const [body, setBody] = useState(data?.body || '');

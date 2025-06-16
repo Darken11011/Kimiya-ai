@@ -5,7 +5,8 @@ import { initiateCall, defaultTwilioConfig } from '../../../services/twilioServi
 import { StartCallNodeData } from '../../../types/flowTypes';
 import { Input } from '@/components/ui/input';
 
-const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
+const StartCallNode: React.FC<NodeProps<{ data: StartCallNodeData }>> = ({ data: nodeData }) => {
+  const data = nodeData.data;
   const [showConfig, setShowConfig] = useState(false);
   const [isCallInProgress, setIsCallInProgress] = useState(false);
 
@@ -18,13 +19,7 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
     setIsCallInProgress(true);
 
     try {
-      const config = {
-        accountSid: data.accountSid || defaultTwilioConfig.accountSid,
-        authToken: data.authToken || defaultTwilioConfig.authToken,
-        fromNumber: data.fromNumber || defaultTwilioConfig.fromNumber
-      };
-
-      await initiateCall(data.phoneNumber, "current-workflow", config);
+      await initiateCall(data.phoneNumber, "current-workflow");
     } finally {
       setIsCallInProgress(false);
     }

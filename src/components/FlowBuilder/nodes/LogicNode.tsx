@@ -18,7 +18,8 @@ interface BranchNodeData {
 }
 
 // Create a custom branch node content component for if/else nodes
-export const BranchNode: React.FC<NodeProps<BranchNodeData>> = ({ id, data }) => {
+export const BranchNode: React.FC<NodeProps<{ data: BranchNodeData }>> = ({ id, data: nodeData }) => {
+  const data = nodeData.data;
   const [conditionType, setConditionType] = useState(data?.conditionType || "equals");
   const [conditionValue, setConditionValue] = useState(data?.conditionValue || "");
 
@@ -81,7 +82,8 @@ export const BranchNode: React.FC<NodeProps<BranchNodeData>> = ({ id, data }) =>
   );
 };
 
-const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
+const LogicNode: React.FC<NodeProps<{ data: LogicNodeData }>> = ({ id, data: nodeData }) => {
+  const data = nodeData.data;
   const [logicType, setLogicType] = useState(data?.logicType || '');
   const [value, setValue] = useState(data?.value || '');
   const { setNodes, setEdges } = useReactFlow();

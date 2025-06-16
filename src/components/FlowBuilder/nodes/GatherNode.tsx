@@ -4,7 +4,8 @@ import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import { GatherNodeData } from '../../../types/flowTypes';
 
-const GatherNode: React.FC<NodeProps<GatherNodeData>> = ({ data }) => {
+const GatherNode: React.FC<NodeProps<{ data: GatherNodeData }>> = ({ data: nodeData }) => {
+  const data = nodeData.data;
   const [input, setInput] = useState(data?.input || '');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
