@@ -10,7 +10,7 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
   const [isCallInProgress, setIsCallInProgress] = useState(false);
 
   const handleCallNow = async () => {
-    if (!data.phoneNumber) {
+    if (!data?.phoneNumber) {
       alert("Please enter a phone number to call");
       return;
     }
@@ -25,25 +25,25 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
   };
 
   const handlePhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ phoneNumber: e.target.value });
     }
   }, [data]);
 
   const handleAccountSidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ accountSid: e.target.value });
     }
   }, [data]);
 
   const handleAuthTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ authToken: e.target.value });
     }
   }, [data]);
 
   const handleFromNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ fromNumber: e.target.value });
     }
   }, [data]);
@@ -63,7 +63,7 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
         <Input
           type="text"
           placeholder="Phone number to call"
-          value={data.phoneNumber || ""}
+          value={data?.phoneNumber || ""}
           onChange={handlePhoneNumberChange}
           className="w-full text-xs"
         />
@@ -79,9 +79,9 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
         
         <button
           onClick={handleCallNow}
-          disabled={isCallInProgress || !data.phoneNumber}
+          disabled={isCallInProgress || !data?.phoneNumber}
           className={`text-xs px-2 py-1 rounded ${
-            isCallInProgress || !data.phoneNumber
+            isCallInProgress || !data?.phoneNumber
               ? "bg-gray-300 text-gray-500"
               : "bg-green-500 text-white"
           }`}
@@ -96,21 +96,21 @@ const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
           <Input
             type="text"
             placeholder="Account SID"
-            value={data.accountSid || defaultTwilioConfig.accountSid}
+            value={data?.accountSid || defaultTwilioConfig.accountSid}
             onChange={handleAccountSidChange}
             className="w-full text-xs mb-1"
           />
           <Input
             type="password"
             placeholder="Auth Token"
-            value={data.authToken || defaultTwilioConfig.authToken}
+            value={data?.authToken || defaultTwilioConfig.authToken}
             onChange={handleAuthTokenChange}
             className="w-full text-xs mb-1"
           />
           <Input
             type="text"
             placeholder="From Number"
-            value={data.fromNumber || defaultTwilioConfig.fromNumber}
+            value={data?.fromNumber || defaultTwilioConfig.fromNumber}
             onChange={handleFromNumberChange}
             className="w-full text-xs"
           />

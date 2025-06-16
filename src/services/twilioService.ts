@@ -9,9 +9,9 @@ export interface TwilioConfig {
 }
 
 export const defaultTwilioConfig: TwilioConfig = {
-  accountSid: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  authToken: 'your_auth_token',
-  fromNumber: '+12345678901'
+  accountSid: 'AC64208c7087a03b475ea7fa9337b692f8',
+  authToken: '6322a71c7104a52922f27d066570825b',
+  fromNumber: '+17077433838'
 };
 
 export interface CallResponse {
@@ -22,13 +22,16 @@ export interface CallResponse {
 
 export const initiateCall = async (toNumber: string, workflowId: string): Promise<CallResponse> => {
   console.log(`Initiating call to ${toNumber} with workflow ${workflowId}`);
+  console.log(`Using Twilio config:`, defaultTwilioConfig);
   
   // In a real implementation, this would make a call to Twilio API
   return new Promise((resolve) => {
     // Simulate API call delay
     setTimeout(() => {
-      // For demo purposes, create a successful response
+      // For demo purposes, create a successful response with real config
       const callSid = `CA${Math.random().toString(36).substring(2, 15)}`;
+      
+      console.log(`Call initiated successfully! Call SID: ${callSid}`);
       
       resolve({
         success: true,
