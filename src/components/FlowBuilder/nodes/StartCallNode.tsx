@@ -5,8 +5,7 @@ import { initiateCall, defaultTwilioConfig } from '../../../services/twilioServi
 import { StartCallNodeData } from '../../../types/flowTypes';
 import { Input } from '@/components/ui/input';
 
-const StartCallNode: React.FC<NodeProps<{ data: StartCallNodeData }>> = ({ data: nodeData }) => {
-  const data = nodeData.data;
+const StartCallNode: React.FC<NodeProps<StartCallNodeData>> = ({ data }) => {
   const [showConfig, setShowConfig] = useState(false);
   const [isCallInProgress, setIsCallInProgress] = useState(false);
 
@@ -29,25 +28,25 @@ const StartCallNode: React.FC<NodeProps<{ data: StartCallNodeData }>> = ({ data:
     if (data.onChange) {
       data.onChange({ phoneNumber: e.target.value });
     }
-  }, [data.onChange]);
+  }, [data]);
 
   const handleAccountSidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ accountSid: e.target.value });
     }
-  }, [data.onChange]);
+  }, [data]);
 
   const handleAuthTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ authToken: e.target.value });
     }
-  }, [data.onChange]);
+  }, [data]);
 
   const handleFromNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (data.onChange) {
       data.onChange({ fromNumber: e.target.value });
     }
-  }, [data.onChange]);
+  }, [data]);
 
   return (
     <div className="rounded-md border border-gray-300 bg-white p-4 shadow-md">

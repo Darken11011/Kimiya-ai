@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { PlayAudioNodeData } from '../../../types/flowTypes';
 
-const PlayAudioNode: React.FC<NodeProps<{ data: PlayAudioNodeData }>> = ({ data: nodeData }) => {
-  const data = nodeData.data;
+const PlayAudioNode: React.FC<NodeProps<PlayAudioNodeData>> = ({ data }) => {
   const [audioMessage, setAudioMessage] = useState(data?.audioMessage || 'Welcome to our service. How can I help you today?');
 
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
