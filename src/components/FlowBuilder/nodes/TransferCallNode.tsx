@@ -6,7 +6,7 @@ import { TransferCallNodeData } from '../../../types/flowTypes';
 
 const TransferCallNode: React.FC<NodeProps<TransferCallNodeData>> = ({ data }) => {
   const handlePhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ phoneNumber: e.target.value });
     }
   }, [data]);
@@ -28,7 +28,7 @@ const TransferCallNode: React.FC<NodeProps<TransferCallNodeData>> = ({ data }) =
       
       <Input
         type="tel"
-        value={data.phoneNumber || ""}
+        value={data?.phoneNumber || ""}
         onChange={handlePhoneNumberChange}
         placeholder="Enter phone number"
         className="w-full"

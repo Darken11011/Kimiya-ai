@@ -9,7 +9,7 @@ const PlayAudioNode: React.FC<NodeProps<PlayAudioNodeData>> = ({ data }) => {
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setAudioMessage(e.target.value);
     // Update node data
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ audioMessage: e.target.value });
     }
   };

@@ -9,7 +9,7 @@ const GatherNode: React.FC<NodeProps<GatherNodeData>> = ({ data }) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
-    if (data.onChange) {
+    if (data?.onChange) {
       data.onChange({ input: e.target.value });
     }
   };

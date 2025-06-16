@@ -3,23 +3,10 @@ import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import { useReactFlow, Edge } from '@xyflow/react';
-
-interface LogicNodeData {
-  logicType?: string;
-  value?: string;
-  onChange?: (params: { logicType: string; value: string }) => void;
-}
-
-interface BranchNodeData {
-  title?: string;
-  conditionType?: string;
-  conditionValue?: string;
-  onChange?: (params: { conditionType: string; conditionValue: string }) => void;
-}
+import { LogicNodeData, BranchNodeData } from '../../../types/flowTypes';
 
 // Create a custom branch node content component for if/else nodes
-export const BranchNode: React.FC<NodeProps<{ data: BranchNodeData }>> = ({ id, data: nodeData }) => {
-  const data = nodeData.data;
+export const BranchNode: React.FC<NodeProps<BranchNodeData>> = ({ id, data }) => {
   const [conditionType, setConditionType] = useState(data?.conditionType || "equals");
   const [conditionValue, setConditionValue] = useState(data?.conditionValue || "");
 
@@ -82,8 +69,7 @@ export const BranchNode: React.FC<NodeProps<{ data: BranchNodeData }>> = ({ id, 
   );
 };
 
-const LogicNode: React.FC<NodeProps<{ data: LogicNodeData }>> = ({ id, data: nodeData }) => {
-  const data = nodeData.data;
+const LogicNode: React.FC<NodeProps<LogicNodeData>> = ({ id, data }) => {
   const [logicType, setLogicType] = useState(data?.logicType || '');
   const [value, setValue] = useState(data?.value || '');
   const { setNodes, setEdges } = useReactFlow();
@@ -96,7 +82,7 @@ const LogicNode: React.FC<NodeProps<{ data: LogicNodeData }>> = ({ id, data: nod
       // Create nodes for if/else branches with proper condition UI
       const ifNode = {
         id: `${id}-if`,
-        type: 'default', // We'll handle this with the nodeTypes in FlowEditor
+        type: 'branch',
         data: { 
           title: "If Condition",
           conditionType: "equals",
@@ -123,7 +109,7 @@ const LogicNode: React.FC<NodeProps<{ data: LogicNodeData }>> = ({ id, data: nod
 
       const elseNode = {
         id: `${id}-else`,
-        type: 'default', // We'll handle this with the nodeTypes in FlowEditor
+        type: 'branch',
         data: { 
           title: "Else Condition",
           conditionType: "equals",
