@@ -136,8 +136,13 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
 
   // Fetch Twilio config from backend when modal opens
   useEffect(() => {
+    console.log('useEffect triggered - isOpen:', isOpen, 'isBackendAvailable:', isBackendAvailable(), 'workflowConfig?.twilio:', !!workflowConfig?.twilio);
+
     if (isOpen && isBackendAvailable() && !workflowConfig?.twilio) {
+      console.log('Conditions met, calling fetchTwilioConfigFromBackend');
       fetchTwilioConfigFromBackend();
+    } else {
+      console.log('Conditions not met for fetching config');
     }
   }, [isOpen]);
 
@@ -542,18 +547,30 @@ Conversation turns in this node: ${conversationTurns}`
 
   // Fetch Twilio configuration from backend
   const fetchTwilioConfigFromBackend = async () => {
-    if (!isBackendAvailable()) return;
+    console.log('fetchTwilioConfigFromBackend called');
+    console.log('isBackendAvailable():', isBackendAvailable());
+
+    if (!isBackendAvailable()) {
+      console.log('Backend not available, skipping fetch');
+      return;
+    }
 
     setIsLoadingTwilioConfig(true);
     try {
       const API_BASE_URL = `${window.location.protocol}//${window.location.host}`;
+      console.log('Fetching from:', `${API_BASE_URL}/api/twilio-config`);
+
       const response = await fetch(`${API_BASE_URL}/api/twilio-config`);
+      console.log('Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Received data:', data);
+
         if (data.success && data.config) {
           // Only update if we don't have workflow-specific config
           if (!workflowConfig?.twilio) {
+            console.log('Updating Twilio config with backend data');
             setTwilioConfig({
               accountSid: data.config.accountSid || 'AC64208c7087a03b475ea7fa9337b692f8',
               authToken: data.config.authToken || '587e27a4553570edb09656c15a03d0e8',
@@ -561,8 +578,12 @@ Conversation turns in this node: ${conversationTurns}`
               recordCalls: data.config.recordCalls ?? true,
               callTimeout: data.config.callTimeout ?? 30
             });
+          } else {
+            console.log('Workflow config exists, not updating with backend data');
           }
         }
+      } else {
+        console.error('Failed to fetch config, status:', response.status);
       }
     } catch (error) {
       console.error('Failed to fetch Twilio config from backend:', error);
