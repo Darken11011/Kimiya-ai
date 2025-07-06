@@ -21,8 +21,13 @@ app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-frontend-domain.vercel.app', 'https://your-custom-domain.com']
+  origin: process.env.NODE_ENV === 'production'
+    ? [
+        'https://kimiya-ai.vercel.app',
+        'https://kimiya-ai-darkens-projects-f907d385.vercel.app',
+        'https://kimiya-ai-git-main-darkens-projects-f907d385.vercel.app',
+        'https://kimiya-35a7vcw0g-darkens-projects-f907d385.vercel.app'
+      ]
     : ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:8081'],
   credentials: true
 }));
