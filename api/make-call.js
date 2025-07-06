@@ -1,4 +1,4 @@
-const twilio = require('twilio');
+import twilio from 'twilio';
 
 // Utility function to normalize phone numbers
 function normalizePhoneNumber(phone) {
@@ -85,6 +85,17 @@ export default async function handler(req, res) {
     }
 
     // Initialize Twilio client
+    console.log('Initializing Twilio client...');
+    console.log('Account SID exists:', !!process.env.TWILIO_ACCOUNT_SID);
+    console.log('Auth Token exists:', !!process.env.TWILIO_AUTH_TOKEN);
+
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      return res.status(500).json({
+        success: false,
+        error: 'Twilio credentials not configured properly'
+      });
+    }
+
     const twilioClient = twilio(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
