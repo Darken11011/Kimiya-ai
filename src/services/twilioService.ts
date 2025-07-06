@@ -167,9 +167,8 @@ export class TwilioService {
         // Local development - assume backend is running on port 3000
         return 'http://localhost:3000';
       } else {
-        // Production - assume backend is deployed on Vercel
-        // You should replace this with your actual Vercel deployment URL
-        return 'https://your-project.vercel.app';
+        // Production - use the same domain as the frontend for the API
+        return `${window.location.protocol}//${window.location.host}`;
       }
     }
 
