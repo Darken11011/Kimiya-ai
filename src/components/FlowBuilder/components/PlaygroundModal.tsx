@@ -72,6 +72,7 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   // Twilio configuration editing state
   const [isEditingTwilio, setIsEditingTwilio] = useState(false);
   const [isSavingTwilio, setIsSavingTwilio] = useState(false);
+  const [isLoadingTwilioConfig, setIsLoadingTwilioConfig] = useState(false);
   const [twilioConfig, setTwilioConfig] = useState({
     accountSid: workflowConfig?.twilio?.accountSid || 'AC64208c7087a03b475ea7fa9337b692f8',
     authToken: workflowConfig?.twilio?.authToken || '587e27a4553570edb09656c15a03d0e8',
@@ -132,6 +133,13 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
       });
     }
   }, [workflowConfig, isEditingTwilio]);
+
+  // Fetch Twilio config from backend when modal opens
+  useEffect(() => {
+    if (isOpen && isBackendAvailable() && !workflowConfig?.twilio) {
+      fetchTwilioConfigFromBackend();
+    }
+  }, [isOpen]);
 
   const initializeConversation = () => {
     // Find the start node
@@ -530,6 +538,37 @@ Conversation turns in this node: ${conversationTurns}`
     const hostname = window.location.hostname;
     return hostname === 'localhost' || hostname === '127.0.0.1' ||
            hostname.includes('vercel.app') || (window as any).CALL_FLOW_API_URL?.includes('vercel.app');
+  };
+
+  // Fetch Twilio configuration from backend
+  const fetchTwilioConfigFromBackend = async () => {
+    if (!isBackendAvailable()) return;
+
+    setIsLoadingTwilioConfig(true);
+    try {
+      const API_BASE_URL = `${window.location.protocol}//${window.location.host}`;
+      const response = await fetch(`${API_BASE_URL}/api/twilio-config`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.config) {
+          // Only update if we don't have workflow-specific config
+          if (!workflowConfig?.twilio) {
+            setTwilioConfig({
+              accountSid: data.config.accountSid || 'AC64208c7087a03b475ea7fa9337b692f8',
+              authToken: data.config.authToken || '587e27a4553570edb09656c15a03d0e8',
+              phoneNumber: data.config.phoneNumber || '+17077433838',
+              recordCalls: data.config.recordCalls ?? true,
+              callTimeout: data.config.callTimeout ?? 30
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch Twilio config from backend:', error);
+    } finally {
+      setIsLoadingTwilioConfig(false);
+    }
   };
 
   // Handle Twilio configuration save
@@ -953,10 +992,23 @@ Conversation turns in this node: ${conversationTurns}`
 
                       {!isEditingTwilio ? (
                         <div className="space-y-1">
-                          <p>Account SID: {workflowConfig?.twilio?.accountSid || 'AC64208c7087a03b475ea7fa9337b692f8'}</p>
-                          <p>From Number: {workflowConfig?.twilio?.phoneNumber || '+17077433838'}</p>
-                          <p>Recording: {(workflowConfig?.twilio?.recordCalls ?? true) ? 'Enabled' : 'Disabled'}</p>
-                          <p>Timeout: {workflowConfig?.twilio?.callTimeout ?? 30} seconds</p>
+                          {isLoadingTwilioConfig ? (
+                            <p className="text-blue-600">Loading configuration from backend...</p>
+                          ) : (
+                            <>
+                              <p>Account SID: {twilioConfig.accountSid}</p>
+                              <p>From Number: {twilioConfig.phoneNumber}</p>
+                              <p>Recording: {twilioConfig.recordCalls ? 'Enabled' : 'Disabled'}</p>
+                              <p>Timeout: {twilioConfig.callTimeout} seconds</p>
+                              {workflowConfig?.twilio ? (
+                                <p className="text-green-600 text-xs">Using workflow-specific configuration</p>
+                              ) : (
+                                <p className="text-blue-600 text-xs">
+                                  {isBackendAvailable() ? 'Using backend environment configuration' : 'Using default configuration'}
+                                </p>
+                              )}
+                            </>
+                          )}
                           <p className="text-orange-600 mt-2">
                             <strong>Mode:</strong> {isBackendAvailable() ? 'Real calls via backend API' : 'Demo mode - calls are simulated'}
                           </p>
