@@ -1,4 +1,4 @@
-import twilio from 'twilio';
+const twilio = require('twilio');
 
 // Utility function to normalize phone numbers
 function normalizePhoneNumber(phone) {
@@ -40,7 +40,7 @@ function normalizePhoneNumber(phone) {
   return null;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -55,6 +55,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Starting make-call handler...');
+    console.log('Environment check:', {
+      hasAccountSid: !!process.env.TWILIO_ACCOUNT_SID,
+      hasAuthToken: !!process.env.TWILIO_AUTH_TOKEN,
+      hasPhoneNumber: !!process.env.TWILIO_PHONE_NUMBER,
+      nodeEnv: process.env.NODE_ENV
+    });
     console.log('Received make-call request:', req.body);
     const { to, from, twimlUrl, record, timeout, workflowId, nodes, edges, config, globalPrompt } = req.body;
 
@@ -90,16 +97,27 @@ export default async function handler(req, res) {
     console.log('Auth Token exists:', !!process.env.TWILIO_AUTH_TOKEN);
 
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      console.error('Missing Twilio credentials');
       return res.status(500).json({
         success: false,
         error: 'Twilio credentials not configured properly'
       });
     }
 
-    const twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
+    let twilioClient;
+    try {
+      twilioClient = twilio(
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+      );
+      console.log('Twilio client initialized successfully');
+    } catch (twilioError) {
+      console.error('Error initializing Twilio client:', twilioError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to initialize Twilio client: ' + twilioError.message
+      });
+    }
 
     // Get host and protocol for URLs
     const host = req.headers.host;

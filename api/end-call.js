@@ -1,6 +1,6 @@
-import twilio from 'twilio';
+const twilio = require('twilio');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -15,6 +15,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('End call handler started');
+
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      console.error('Missing Twilio credentials in end-call');
+      return res.status(500).json({
+        success: false,
+        error: 'Twilio credentials not configured properly'
+      });
+    }
     const { callSid } = req.query;
     
     if (!callSid) {

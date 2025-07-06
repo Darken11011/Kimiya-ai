@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
   // Set content type for TwiML
   res.setHeader('Content-Type', 'text/xml');
 
