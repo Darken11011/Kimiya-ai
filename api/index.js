@@ -92,6 +92,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint to check environment variables
+app.get('/api/debug', (req, res) => {
+  res.json({
+    nodeEnv: process.env.NODE_ENV,
+    hasTwilioSid: !!process.env.TWILIO_ACCOUNT_SID,
+    hasAuthToken: !!process.env.TWILIO_AUTH_TOKEN,
+    hasPhoneNumber: !!process.env.TWILIO_PHONE_NUMBER,
+    twilioSidPrefix: process.env.TWILIO_ACCOUNT_SID ? process.env.TWILIO_ACCOUNT_SID.substring(0, 5) + '...' : 'undefined'
+  });
+});
+
 // Upload workflow for call processing
 app.post('/api/upload-workflow', (req, res) => {
   try {
