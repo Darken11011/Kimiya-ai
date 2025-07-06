@@ -529,7 +529,7 @@ Conversation turns in this node: ${conversationTurns}`
 
     const hostname = window.location.hostname;
     return hostname === 'localhost' || hostname === '127.0.0.1' ||
-           (window as any).CALL_FLOW_API_URL?.includes('vercel.app');
+           hostname.includes('vercel.app') || (window as any).CALL_FLOW_API_URL?.includes('vercel.app');
   };
 
   // Handle Twilio configuration save
