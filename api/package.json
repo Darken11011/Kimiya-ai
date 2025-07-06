@@ -1,7 +1,6 @@
 {
   "name": "call-flow-weaver-api",
   "version": "1.0.0",
-  "type": "module",
   "description": "Backend API for Call Flow Weaver with Twilio integration",
   "main": "index.js",
   "scripts": {
