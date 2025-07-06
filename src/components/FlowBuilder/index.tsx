@@ -1,11 +1,11 @@
 
 import React from 'react';
-import FlowEditor from './FlowEditor';
+import NewFlowEditor from './NewFlowEditor';
 
 const FlowBuilder: React.FC = () => {
   return (
     <div className="w-full h-screen">
-      <FlowEditor />
+      <NewFlowEditor />
     </div>
   );
 };

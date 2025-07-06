@@ -1,125 +1,228 @@
 
-# AI Call Flow Builder
+# Kimiyi Call Flow Builder
 
-A drag-and-drop workflow builder for AI calling agents, similar to Vapi AI. This project allows users to create, edit, and execute call workflows with AI-powered interactions.
+A powerful visual workflow builder for creating voice agent conversation flows, specifically designed for real-time call conversations via Twilio. Build sophisticated voice agents with conditional logic, AI-powered conversations, and seamless service integrations.
 
-## Features
+## ✨ Features
 
-- **Drag-and-Drop Interface**: Create call flows visually using React Flow
-- **Custom Node Types**: Start Call, Play Audio, AI Node (Langflow integration), End Call
-- **Real-time Updates**: WebSocket support for live node execution status
-- **Voice Integrations**: Placeholder endpoints for Twilio, Deepgram, and ElevenLabs
-- **Backend API**: FastAPI for workflow storage and execution
-- **Database Integration**: MongoDB for workflow storage, Redis for caching
+### 🎨 **Visual Flow Builder**
+- Drag-and-drop interface for creating conversation flows
+- Real-time visual feedback and validation
+- Conditional edge routing with AI-based and logical conditions
+- Variable extraction and management system
 
-## Architecture
+### 📞 **Real-time Call Integration**
+- Built specifically for Twilio voice calls
+- Comprehensive service configuration on workflow creation
+- Support for call recording, timeouts, and webhooks
 
-### Frontend
-- React with TypeScript
-- React Flow for drag-and-drop interface
-- Tailwind CSS for styling
-- WebSocket client for real-time updates
+### 🤖 **AI-Powered Conversations**
+- **OpenAI**: GPT-4, GPT-4 Turbo, GPT-3.5 Turbo
+- **Anthropic**: Claude 3 Opus, Sonnet, Haiku
+- Configurable system prompts and model parameters
 
-### Backend
-- Python FastAPI
-- MongoDB for workflow storage
-- Redis for session caching
-- WebSockets for real-time updates
-- Integration with Langflow for AI-driven workflow logic
+### 🔊 **Voice & Speech Services**
+- **Voice Synthesis**: ElevenLabs, Azure Speech, Google Cloud TTS
+- **Speech Recognition**: Deepgram, AssemblyAI, OpenAI Whisper
+- Popular voice selections and quality settings
 
-## Prerequisites
+### 🧠 **Smart Conditional Logic**
+- AI-based conditions (natural language)
+- Logical conditions (variable comparisons)
+- Combined conditions (mixed logic)
+- Variable extraction from conversations
 
-- Node.js 16+
-- Python 3.9+
-- MongoDB
-- Redis
-- Docker and Docker Compose (for containerized deployment)
-- Langflow instance (running locally or remotely)
+### 💾 **Workflow Management**
+- Complete import/export functionality
+- Secure API key storage and management
+- Workflow templates and sharing
+- Version control and backup support
 
-## Installation and Setup
+## 🚀 Quick Start
 
-### Running with Docker Compose (Recommended)
-
+### 1. Installation
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/call-flow-builder.git
-cd call-flow-builder
-
-# Start all services
-docker-compose up -d
+git clone <repository-url>
+cd call-flow-weaver
+npm install
 ```
 
-### Manual Setup
-
-#### Frontend
-
+### 2. Development
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
 npm run dev
 ```
+Navigate to `http://localhost:5173`
 
-#### Backend
-
+### 3. Production Build
 ```bash
-# Create and activate virtual environment
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the API server
-uvicorn main:app --reload
+npm run build
 ```
 
-#### Required Services
+## 📋 Creating Your First Workflow
 
-- Start MongoDB: `mongod --dbpath /path/to/data/db`
-- Start Redis: `redis-server`
-- Start Langflow: Follow the [Langflow documentation](https://docs.langflow.org/getting-started/installation)
+### Step 1: Initialize Workflow
+1. Click **"New Workflow"** in the toolbar
+2. Enter workflow name and description
 
-## Usage
+### Step 2: Configure Services
+**Twilio Configuration:**
+- Account SID (ACxxxxxxxx...)
+- Auth Token
+- Phone Number (+1234567890)
+- Optional webhook URL
 
-1. Access the web interface at http://localhost:3000
-2. Create a new workflow or edit an existing one
-3. Drag nodes from the sidebar onto the canvas
-4. Connect nodes to create a workflow
-5. Configure node parameters (messages, Langflow flow IDs)
-6. Save the workflow
-7. Execute the workflow via the API or UI
+**AI Model Setup:**
+- Choose provider (OpenAI/Anthropic)
+- Enter API key
+- Select model and parameters
 
-## API Documentation
+**Voice & Speech:**
+- Voice provider and API key
+- Voice selection from popular options
+- Transcription provider and settings
 
-After starting the backend, access the API documentation at:
-http://localhost:8000/docs
+**Global Settings:**
+- Call duration limits
+- Silence timeouts
+- Feature toggles
 
-## Development
+### Step 3: Build Your Flow
+1. **Drag components** from sidebar to canvas
+2. **Connect nodes** to create conversation paths
+3. **Add conditions** to edges for smart routing
+4. **Extract variables** from conversation nodes
+5. **Test and validate** your workflow
 
-### Adding New Node Types
+## 🏗️ Architecture
 
-1. Create a new node component in `src/components/FlowBuilder/nodes/`
-2. Register the node type in `src/components/FlowBuilder/FlowEditor.tsx`
-3. Add the node to the sidebar in `src/components/FlowBuilder/Sidebar.tsx`
+### Frontend Stack
+- **React 18** with TypeScript
+- **React Flow** for visual flow building
+- **Zustand** for state management
+- **Tailwind CSS** + **shadcn/ui** for styling
+- **Vite** for development and building
 
-### WebSocket Events
+### Core Systems
+- **Flow Builder**: Visual workflow editor with drag-and-drop
+- **Node System**: Modular conversation components
+- **Conditional Edges**: Smart routing with multiple condition types
+- **Configuration Management**: Comprehensive service setup
+- **Variable System**: Extract and use data throughout flows
+- **Validation Engine**: Real-time flow and configuration validation
 
-The system uses the following WebSocket events:
+## 📁 Project Structure
 
-- `node_execution_start`: When a node begins execution
-- `node_execution_complete`: When a node completes execution
-- `node_execution_error`: When a node encounters an error
-- `call_status_update`: Call status changes
-- `audio_streaming`: Audio streaming events
-- `transcript_update`: Real-time transcript updates
+```
+src/
+├── components/
+│   ├── FlowBuilder/           # Main flow builder interface
+│   │   ├── components/        # Flow-specific components
+│   │   │   ├── nodes/         # Node type definitions and components
+│   │   │   ├── BaseNode.tsx   # Base node wrapper component
+│   │   │   ├── DynamicNode.tsx # Dynamic node renderer
+│   │   │   ├── ConditionalEdge.tsx
+│   │   │   ├── EdgeConditionModal.tsx
+│   │   │   ├── PlaygroundModal.tsx # Workflow testing interface
+│   │   │   ├── WorkflowSetupModal.tsx
+│   │   │   └── VariableExtractor.tsx
+│   │   ├── hooks/             # Custom hooks for flow management
+│   │   ├── NewFlowCanvas.tsx  # Main canvas component
+│   │   ├── NewFlowEditor.tsx  # Editor container
+│   │   ├── NewSidebar.tsx     # Component sidebar
+│   │   ├── FlowToolbar.tsx    # Toolbar with actions
+│   │   └── ConfigPanel.tsx    # Node configuration
+│   └── ui/                    # Reusable UI components
+├── stores/
+│   └── flowStore.ts           # Zustand state management
+├── types/
+│   ├── flowTypes.ts           # Flow and condition types
+│   ├── workflowConfig.ts      # Service configuration types
+│   └── componentTypes.ts      # Component definitions
+├── utils/
+│   ├── flowValidation.ts      # Flow validation logic
+│   └── configValidation.ts    # Configuration validation
+└── lib/
+    └── componentRegistry.ts   # Component registration system
+```
 
-## Monitoring and Error Tracking
+## 🔧 Supported Services
 
-- Prometheus metrics available at http://localhost:9090
-- Sentry integration for error tracking
+### AI Models
+| Provider | Models | Features |
+|----------|--------|----------|
+| **OpenAI** | GPT-4, GPT-4 Turbo, GPT-3.5 | Temperature, max tokens, system prompts |
+| **Anthropic** | Claude 3 Opus, Sonnet, Haiku | Advanced reasoning, large context |
+
+### Voice Synthesis
+| Provider | Features | Quality |
+|----------|----------|---------|
+| **ElevenLabs** | AI voices, emotion control | Premium |
+| **Azure Speech** | Neural voices, SSML | High |
+| **Google Cloud** | WaveNet, multiple languages | High |
+
+### Speech Recognition
+| Provider | Features | Use Case |
+|----------|----------|----------|
+| **Deepgram** | Real-time, low latency | Live calls |
+| **AssemblyAI** | Advanced features, sentiment | Analysis |
+| **Whisper** | High accuracy, multilingual | Quality |
+
+## 📚 Documentation
+
+- **[Conditional Edges](./CONDITIONAL_EDGES.md)** - Complete guide to conditional logic
+- **[Workflow Setup](./WORKFLOW_SETUP.md)** - Service configuration and API keys
+- **[Import/Export](./IMPORT_EXPORT.md)** - Backup, sharing, and migration
+
+## 🛠️ Development
+
+### Available Scripts
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+```
+
+### Key Technologies
+- **React Flow**: Visual programming interface
+- **Zustand**: Lightweight state management
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first styling
+- **shadcn/ui**: Modern component library
+
+### Component Development
+1. Create component in `src/components/FlowBuilder/components/nodes/`
+2. Define TypeScript interfaces
+3. Register in component registry
+4. Add to node types in canvas
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Use existing UI components when possible
+- Add proper error handling and validation
+- Update documentation for new features
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+- **Issues**: Open a GitHub issue for bugs or feature requests
+- **Documentation**: Check the docs folder for detailed guides
+- **Community**: Join our discussions for help and ideas
+
+---
+
+**Built with ❤️ for creating amazing voice agent experiences**
 
 ## License
 
