@@ -90,15 +90,15 @@ export default async function handler(req, res) {
       process.env.TWILIO_AUTH_TOKEN
     );
 
+    // Get host and protocol for URLs
+    const host = req.headers.host;
+    const protocol = req.headers['x-forwarded-proto'] || req.headers['x-forwarded-protocol'] || 'https';
+
     // Default TwiML URL if not provided
     let defaultTwiML;
     if (twimlUrl) {
       defaultTwiML = twimlUrl;
     } else {
-      // Check if we're using a public URL
-      const host = req.headers.host;
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      
       if (workflowId && nodes && edges) {
         // Use our workflow-specific endpoint for production
         defaultTwiML = `${protocol}://${host}/api/twiml/workflow/${workflowId}`;
