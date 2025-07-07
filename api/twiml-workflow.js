@@ -93,30 +93,43 @@ export default async function handler(req, res) {
   }
 }
 
-// Simple in-memory storage for workflow data (in production, use a database)
-const workflowStorage = new Map();
-
 // Load workflow configuration
 async function loadWorkflowConfig(workflowId, req) {
   try {
-    // First, try to get from storage
-    if (workflowStorage.has(workflowId)) {
-      console.log(`Loading workflow ${workflowId} from storage`);
-      return workflowStorage.get(workflowId);
-    }
-
-    // Try to get workflow data from query parameters (for initial call)
-    const workflowData = req.query.workflowData || req.body.workflowData;
-    if (workflowData) {
+    // Try to get compact workflow data from query parameters
+    const compactData = req.query.wd || req.body.wd;
+    if (compactData) {
       try {
-        const parsedWorkflow = JSON.parse(decodeURIComponent(workflowData));
-        console.log(`Storing workflow ${workflowId} in memory`);
-        workflowStorage.set(workflowId, parsedWorkflow);
-        return parsedWorkflow;
+        const compact = JSON.parse(decodeURIComponent(compactData));
+        console.log(`Loading compact workflow data for ${workflowId}`);
+
+        // Expand the compact workflow data back to full format
+        const workflow = {
+          id: compact.id || workflowId,
+          globalPrompt: compact.gp || 'You are a professional and friendly AI assistant. Speak naturally and conversationally.',
+          nodes: compact.ns || [],
+          edges: compact.es || [],
+          config: compact.cfg || {
+            llm: {
+              provider: 'azure_openai',
+              azure: {
+                apiKey: 'f6d564a83af3498c9beb46d7d3e3da96',
+                endpoint: 'https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview',
+                model: 'gpt-4o-mini',
+                temperature: 0.7,
+                maxTokens: 1000
+              }
+            }
+          }
+        };
+
+        return workflow;
       } catch (e) {
-        console.error('Error parsing workflow data:', e);
+        console.error('Error parsing compact workflow data:', e);
       }
     }
+
+    console.log(`No workflow data found for ${workflowId}, using default`);
 
     // Fallback to default workflow
     console.log(`Using default workflow for ${workflowId}`);
@@ -170,7 +183,6 @@ async function loadWorkflowConfig(workflowId, req) {
       }
     };
 
-    workflowStorage.set(workflowId, defaultWorkflow);
     return defaultWorkflow;
   } catch (error) {
     console.error('Error loading workflow config:', error);

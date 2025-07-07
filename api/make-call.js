@@ -106,20 +106,38 @@ export default async function handler(req, res) {
       defaultTwiML = twimlUrl;
     } else {
       if (workflowId && nodes && edges) {
-        // Prepare workflow data to pass to TwiML endpoint
-        const workflowData = {
+        // Create a compact representation of essential workflow data
+        const compactWorkflow = {
           id: workflowId,
-          nodes: nodes,
-          edges: edges,
-          config: config,
-          globalPrompt: globalPrompt
+          gp: globalPrompt || '', // global prompt
+          ns: nodes.map(n => ({ // nodes simplified
+            id: n.id,
+            type: n.type,
+            label: n.data?.label || '',
+            prompt: n.data?.prompt || '',
+            instructions: n.data?.instructions || ''
+          })),
+          es: edges.map(e => ({ // edges simplified
+            id: e.id,
+            source: e.source,
+            target: e.target
+          })),
+          cfg: config || {} // config
         };
 
-        const encodedWorkflowData = encodeURIComponent(JSON.stringify(workflowData));
+        // Encode the compact workflow data
+        const encodedData = encodeURIComponent(JSON.stringify(compactWorkflow));
 
-        // Use our workflow-specific endpoint for production
-        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}&workflowData=${encodedWorkflowData}`;
-        console.log(`Using workflow TwiML endpoint: ${defaultTwiML}`);
+        // Check if URL would be too long
+        const baseUrl = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}&wd=`;
+        if ((baseUrl + encodedData).length > 3500) { // Leave some buffer
+          console.log('Workflow data too large, using default workflow');
+          defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
+        } else {
+          defaultTwiML = baseUrl + encodedData;
+        }
+
+        console.log(`Using workflow TwiML endpoint: ${defaultTwiML.substring(0, 100)}...`);
       } else {
         // No workflow data - use default
         defaultTwiML = `${protocol}://${host}/api/twiml-default`;
