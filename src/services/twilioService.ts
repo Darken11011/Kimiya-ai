@@ -60,7 +60,7 @@ export class TwilioService {
         const API_BASE_URL = this.getApiBaseUrl();
 
         // If we have a backend API available, use real calls
-        if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('onrender.com')) {
+        if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('vercel.app')) {
           return this.makeRealCall(normalizedNumber, options);
         } else {
           // Demo mode - simulate a successful call for testing purposes
@@ -167,8 +167,8 @@ export class TwilioService {
         // Local development - assume backend is running on port 3001
         return 'http://localhost:3001';
       } else {
-        // Production - use Render backend URL
-        return 'https://kimiyi.onrender.com';
+        // Production - use the same domain as the frontend for the API
+        return `${window.location.protocol}//${window.location.host}`;
       }
     }
 
@@ -232,7 +232,7 @@ export class TwilioService {
         // Check if we should use real API or demo mode
         const API_BASE_URL = this.getApiBaseUrl();
 
-        if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('onrender.com')) {
+        if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('vercel.app')) {
           // Use real backend API
           const response = await fetch(`${API_BASE_URL}/api/call-status?callSid=${callSid}`);
 
@@ -273,7 +273,7 @@ export class TwilioService {
       if (typeof window !== 'undefined') {
         const API_BASE_URL = this.getApiBaseUrl();
 
-        if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('onrender.com')) {
+        if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('vercel.app')) {
           // Use real backend API
           const response = await fetch(`${API_BASE_URL}/api/end-call?callSid=${callSid}`, {
             method: 'POST',
