@@ -77,18 +77,37 @@ app.get('/api/test', (req, res) => {
 });
 
 // Import route handlers
-const makeCallRoute = require('./routes/make-call');
-const callStatusRoute = require('./routes/call-status');
-const endCallRoute = require('./routes/end-call');
-const twilioConfigRoute = require('./routes/twilio-config');
-const twimlRoutes = require('./routes/twiml');
+console.log('📁 Loading route handlers...');
+let makeCallRoute, callStatusRoute, endCallRoute, twilioConfigRoute, twimlRoutes;
+
+try {
+  makeCallRoute = require('./routes/make-call');
+  console.log('✅ make-call route loaded');
+  callStatusRoute = require('./routes/call-status');
+  console.log('✅ call-status route loaded');
+  endCallRoute = require('./routes/end-call');
+  console.log('✅ end-call route loaded');
+  twilioConfigRoute = require('./routes/twilio-config');
+  console.log('✅ twilio-config route loaded');
+  twimlRoutes = require('./routes/twiml');
+  console.log('✅ twiml routes loaded');
+} catch (error) {
+  console.error('❌ Error loading routes:', error);
+  process.exit(1);
+}
 
 // API routes
+console.log('🛣️ Registering API routes...');
 app.use('/api/make-call', makeCallRoute);
+console.log('✅ Registered: POST /api/make-call');
 app.use('/api/call-status', callStatusRoute);
+console.log('✅ Registered: GET /api/call-status');
 app.use('/api/end-call', endCallRoute);
+console.log('✅ Registered: POST /api/end-call');
 app.use('/api/twilio-config', twilioConfigRoute);
+console.log('✅ Registered: GET /api/twilio-config');
 app.use('/api/twiml', twimlRoutes);
+console.log('✅ Registered: POST /api/twiml/*');
 
 // Error handling middleware
 app.use((err, req, res, next) => {
