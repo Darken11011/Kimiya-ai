@@ -47,8 +47,9 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    service: 'Call Flow Weaver Backend',
-    version: '1.0.0'
+    service: 'Call Flow Weaver Backend - Production',
+    version: '1.1.0',
+    mode: 'REAL_CALLS_ENABLED'
   });
 });
 
