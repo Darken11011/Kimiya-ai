@@ -224,17 +224,54 @@ app.post('/api/test-call', (req, res) => {
 });
 console.log('✅ Registered: POST /api/test-call');
 
-// Inline make-call route for testing
-app.post('/api/make-call-test', async (req, res) => {
-  console.log('🧪 Inline make-call test endpoint hit');
-  res.json({
-    success: true,
-    message: 'Inline make-call test endpoint working',
-    body: req.body,
-    timestamp: new Date().toISOString()
-  });
+// Direct inline make-call route (bypassing route loading issues)
+app.post('/api/make-call', async (req, res) => {
+  try {
+    console.log('📞 Direct make-call endpoint hit');
+    console.log('Request body:', req.body);
+
+    const { to } = req.body;
+
+    if (!to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Phone number (to) is required'
+      });
+    }
+
+    // Check credentials
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      return res.status(500).json({
+        success: false,
+        error: 'Twilio credentials not configured'
+      });
+    }
+
+    // Initialize Twilio client
+    const twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+
+    console.log('Twilio client initialized successfully');
+
+    // For now, return success without making actual call (test mode)
+    res.json({
+      success: true,
+      message: 'Direct make-call endpoint working',
+      to: to,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error in direct make-call:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
-console.log('✅ Registered: POST /api/make-call-test');
+console.log('✅ Registered: POST /api/make-call (direct)');
 
 // Error handling middleware
 app.use((err, req, res, next) => {
