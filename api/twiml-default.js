@@ -1,11 +1,12 @@
 export default function handler(req, res) {
-  // Set content type for TwiML
-  res.setHeader('Content-Type', 'text/xml');
-
   // Allow both GET and POST requests from Twilio
   if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).send('Method not allowed');
   }
+
+  // Set proper headers for TwiML
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
 
   console.log('TwiML endpoint called:', {
     method: req.method,
@@ -23,5 +24,7 @@ export default function handler(req, res) {
 </Response>`;
 
   console.log('Sending TwiML response:', twiml);
-  res.send(twiml);
+
+  // Send the TwiML response
+  res.status(200).end(twiml);
 }

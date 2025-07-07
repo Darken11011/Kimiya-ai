@@ -131,6 +131,16 @@ export default async function handler(req, res) {
     formData.append('StatusCallback', `${protocol}://${host}/api/call-status`);
     formData.append('StatusCallbackMethod', 'POST');
 
+    console.log('Twilio API call parameters:', {
+      To: normalizedTo,
+      From: fromNumber,
+      Url: defaultTwiML,
+      Method: 'POST',
+      Record: record !== undefined ? record.toString() : 'true',
+      Timeout: callTimeout.toString(),
+      StatusCallback: `${protocol}://${host}/api/call-status`
+    });
+
     // Create Basic Auth header
     const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
 
