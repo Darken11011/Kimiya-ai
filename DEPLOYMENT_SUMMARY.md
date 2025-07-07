@@ -28,7 +28,7 @@ call-flow-weaver/
 - **Purpose:** User interface and flow builder
 
 ### Backend (Render)
-- **URL:** `https://call-flow-weaver-backend.onrender.com`
+- **URL:** `https://kimiyi.onrender.com`
 - **Technology:** Node.js + Express
 - **Purpose:** Twilio integration and API endpoints
 
@@ -85,13 +85,9 @@ Your frontend is already deployed on Vercel and configured to use the Render bac
 Once your Render service is deployed, update the backend URL in the frontend:
 
 **File:** `src/services/twilioService.ts`
-**Line 171:** Change from:
+**Line 171:** ✅ **Already Updated** to:
 ```typescript
-return 'https://call-flow-weaver-backend.onrender.com';
-```
-To your actual Render URL:
-```typescript
-return 'https://YOUR-ACTUAL-RENDER-URL.onrender.com';
+return 'https://kimiyi.onrender.com';
 ```
 
 ## 🧪 Testing Your Deployment
@@ -100,13 +96,13 @@ return 'https://YOUR-ACTUAL-RENDER-URL.onrender.com';
 
 ```bash
 # Health check
-curl https://YOUR-RENDER-URL.onrender.com/health
+curl https://kimiyi.onrender.com/health
 
 # Environment test
-curl https://YOUR-RENDER-URL.onrender.com/api/test
+curl https://kimiyi.onrender.com/api/test
 
 # Twilio config
-curl https://YOUR-RENDER-URL.onrender.com/api/twilio-config
+curl https://kimiyi.onrender.com/api/twilio-config
 ```
 
 ### 2. Test Frontend Integration

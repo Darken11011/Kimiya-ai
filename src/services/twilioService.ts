@@ -168,7 +168,7 @@ export class TwilioService {
         return 'http://localhost:3001';
       } else {
         // Production - use Render backend URL
-        return 'https://call-flow-weaver-backend.onrender.com';
+        return 'https://kimiyi.onrender.com';
       }
     }
 
