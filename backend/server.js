@@ -175,16 +175,43 @@ try {
 
 // API routes
 console.log('🛣️ Registering API routes...');
-app.use('/api/make-call', makeCallRoute);
-console.log('✅ Registered: POST /api/make-call');
-app.use('/api/call-status', callStatusRoute);
-console.log('✅ Registered: GET /api/call-status');
-app.use('/api/end-call', endCallRoute);
-console.log('✅ Registered: POST /api/end-call');
-app.use('/api/twilio-config', twilioConfigRoute);
-console.log('✅ Registered: GET /api/twilio-config');
-app.use('/api/twiml', twimlRoutes);
-console.log('✅ Registered: POST /api/twiml/*');
+console.log('makeCallRoute type:', typeof makeCallRoute);
+console.log('makeCallRoute:', makeCallRoute);
+
+if (makeCallRoute) {
+  app.use('/api/make-call', makeCallRoute);
+  console.log('✅ Registered: POST /api/make-call');
+} else {
+  console.error('❌ makeCallRoute is undefined');
+}
+
+if (callStatusRoute) {
+  app.use('/api/call-status', callStatusRoute);
+  console.log('✅ Registered: GET /api/call-status');
+} else {
+  console.error('❌ callStatusRoute is undefined');
+}
+
+if (endCallRoute) {
+  app.use('/api/end-call', endCallRoute);
+  console.log('✅ Registered: POST /api/end-call');
+} else {
+  console.error('❌ endCallRoute is undefined');
+}
+
+if (twilioConfigRoute) {
+  app.use('/api/twilio-config', twilioConfigRoute);
+  console.log('✅ Registered: GET /api/twilio-config');
+} else {
+  console.error('❌ twilioConfigRoute is undefined');
+}
+
+if (twimlRoutes) {
+  app.use('/api/twiml', twimlRoutes);
+  console.log('✅ Registered: POST /api/twiml/*');
+} else {
+  console.error('❌ twimlRoutes is undefined');
+}
 
 // Test route to verify routing is working
 app.post('/api/test-call', (req, res) => {
