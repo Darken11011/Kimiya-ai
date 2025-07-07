@@ -106,8 +106,19 @@ export default async function handler(req, res) {
       defaultTwiML = twimlUrl;
     } else {
       if (workflowId && nodes && edges) {
+        // Prepare workflow data to pass to TwiML endpoint
+        const workflowData = {
+          id: workflowId,
+          nodes: nodes,
+          edges: edges,
+          config: config,
+          globalPrompt: globalPrompt
+        };
+
+        const encodedWorkflowData = encodeURIComponent(JSON.stringify(workflowData));
+
         // Use our workflow-specific endpoint for production
-        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
+        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}&workflowData=${encodedWorkflowData}`;
         console.log(`Using workflow TwiML endpoint: ${defaultTwiML}`);
       } else {
         // No workflow data - use default
