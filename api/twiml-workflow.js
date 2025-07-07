@@ -19,7 +19,14 @@ export default async function handler(req, res) {
   try {
     // Get workflow ID from query parameters
     const workflowId = req.query.id;
-    
+
+    console.log('TwiML Workflow Request Details:', {
+      method: req.method,
+      query: req.query,
+      body: req.body,
+      workflowId
+    });
+
     // Get call state from Twilio parameters
     const callSid = req.body.CallSid || req.query.CallSid;
     const from = req.body.From || req.query.From;
@@ -27,18 +34,18 @@ export default async function handler(req, res) {
     const speechResult = req.body.SpeechResult;
     const digits = req.body.Digits;
     const callStatus = req.body.CallStatus;
-    
+
     // Get current node from session or start with first node
     let currentNodeId = req.body.currentNodeId || req.query.currentNodeId;
     let conversationHistory = [];
-    
+
     try {
       const historyParam = req.body.conversationHistory || req.query.conversationHistory;
       if (historyParam) {
         conversationHistory = JSON.parse(decodeURIComponent(historyParam));
       }
     } catch (e) {
-      console.log('No conversation history found, starting fresh');
+      console.log('No conversation history found, starting fresh:', e.message);
     }
 
     console.log('Call state:', {
@@ -51,23 +58,40 @@ export default async function handler(req, res) {
     });
 
     // Load workflow configuration
+    console.log('Loading workflow configuration...');
     const workflow = await loadWorkflowConfig(workflowId, req);
     if (!workflow) {
-      const errorTwiML = generateErrorTwiML('Workflow not found');
+      console.error('Failed to load workflow configuration');
+      const errorTwiML = generateErrorTwiML('Workflow configuration not found');
       return res.status(200).send(errorTwiML);
     }
+
+    console.log('Workflow loaded:', {
+      id: workflow.id,
+      nodeCount: workflow.nodes?.length || 0,
+      edgeCount: workflow.edges?.length || 0,
+      hasGlobalPrompt: !!workflow.globalPrompt
+    });
 
     // If no current node, start with the first node
     if (!currentNodeId) {
       currentNodeId = findStartNode(workflow.nodes);
+      console.log('Starting with node:', currentNodeId);
     }
 
     // Find current node
     const currentNode = workflow.nodes.find(node => node.id === currentNodeId);
     if (!currentNode) {
-      const errorTwiML = generateErrorTwiML('Invalid workflow state');
+      console.error('Current node not found:', currentNodeId, 'Available nodes:', workflow.nodes.map(n => n.id));
+      const errorTwiML = generateErrorTwiML('Invalid workflow state - node not found');
       return res.status(200).send(errorTwiML);
     }
+
+    console.log('Processing current node:', {
+      id: currentNode.id,
+      type: currentNode.type,
+      label: currentNode.data?.label
+    });
 
     // Process the current node and generate TwiML
     const twimlResponse = await processWorkflowNode(
@@ -87,8 +111,15 @@ export default async function handler(req, res) {
     res.status(200).send(twimlResponse);
 
   } catch (error) {
-    console.error('Error processing workflow TwiML:', error);
-    const errorTwiML = generateErrorTwiML('Sorry, there was a technical issue. Please try again later.');
+    console.error('Error processing workflow TwiML:', {
+      message: error.message,
+      stack: error.stack,
+      workflowId: req.query.id,
+      method: req.method,
+      query: req.query,
+      body: req.body
+    });
+    const errorTwiML = generateErrorTwiML('Hello! I\'m experiencing some technical difficulties, but I\'m here to help. How can I assist you today?');
     res.status(200).send(errorTwiML);
   }
 }
@@ -288,29 +319,38 @@ async function processEndNode(node, workflow, context) {
 // Generate AI response using Azure OpenAI
 async function generateAIResponse(node, workflow, messages, isStart = false, isEnd = false) {
   try {
+    console.log('Generating AI response for node:', node.id, 'isStart:', isStart, 'isEnd:', isEnd);
+
     const config = workflow.config?.llm?.azure;
     if (!config) {
+      console.error('Azure OpenAI configuration not found in workflow config');
       throw new Error('Azure OpenAI configuration not found');
     }
 
+    console.log('Azure config found:', {
+      hasApiKey: !!config.apiKey,
+      hasEndpoint: !!config.endpoint,
+      model: config.model
+    });
+
     // Build system prompt
     let systemPrompt = workflow.globalPrompt || 'You are a helpful AI assistant.';
-    
+
     if (node.data?.prompt) {
       systemPrompt += `\n\nCurrent context: ${node.data.prompt}`;
     }
-    
+
     if (node.data?.instructions) {
       systemPrompt += `\n\nInstructions: ${node.data.instructions}`;
     }
 
     // Add call-specific instructions
     systemPrompt += `\n\nYou are in a phone conversation. Be natural, conversational, and human-like. Keep responses concise but engaging. Don't mention technical details about workflows or nodes.`;
-    
+
     if (isStart) {
       systemPrompt += ' This is the beginning of the call - greet the caller warmly.';
     }
-    
+
     if (isEnd) {
       systemPrompt += ' This is the end of the call - provide a warm closing.';
     }
@@ -326,7 +366,22 @@ async function generateAIResponse(node, workflow, messages, isStart = false, isE
       apiMessages.push({ role: 'user', content: 'Hello' });
     }
 
-    console.log('Calling Azure OpenAI with messages:', apiMessages.length);
+    console.log('Calling Azure OpenAI with:', {
+      messageCount: apiMessages.length,
+      endpoint: config.endpoint,
+      systemPromptLength: systemPrompt.length
+    });
+
+    const requestBody = {
+      messages: apiMessages,
+      max_tokens: config.maxTokens || 1000,
+      temperature: config.temperature || 0.7,
+      top_p: 0.95,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    };
+
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(config.endpoint, {
       method: 'POST',
@@ -334,29 +389,28 @@ async function generateAIResponse(node, workflow, messages, isStart = false, isE
         'Content-Type': 'application/json',
         'api-key': config.apiKey,
       },
-      body: JSON.stringify({
-        messages: apiMessages,
-        max_tokens: config.maxTokens || 1000,
-        temperature: config.temperature || 0.7,
-        top_p: 0.95,
-        frequency_penalty: 0,
-        presence_penalty: 0,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log('Azure OpenAI response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`Azure OpenAI API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Azure OpenAI API error response:', errorText);
+      throw new Error(`Azure OpenAI API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Azure OpenAI response data:', JSON.stringify(data, null, 2));
+
     const aiResponse = data.choices[0]?.message?.content || 'I apologize, but I\'m having trouble responding right now.';
-    
-    console.log('AI Response generated:', aiResponse.substring(0, 100) + '...');
+
+    console.log('AI Response generated successfully:', aiResponse.substring(0, 100) + '...');
     return aiResponse;
 
   } catch (error) {
-    console.error('Error generating AI response:', error);
-    return 'I apologize, but I\'m having some technical difficulties. How can I help you today?';
+    console.error('Error generating AI response:', error.message, error.stack);
+    return 'Hello! I\'m here to help you today. How can I assist you?';
   }
 }
 
