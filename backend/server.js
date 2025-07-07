@@ -248,17 +248,37 @@ app.post('/api/make-call', async (req, res) => {
     }
 
     // Initialize Twilio client
+    console.log('Initializing Twilio with credentials...');
+    console.log('Account SID:', process.env.TWILIO_ACCOUNT_SID);
+    console.log('Auth Token length:', process.env.TWILIO_AUTH_TOKEN ? process.env.TWILIO_AUTH_TOKEN.length : 0);
+
     const twilioClient = twilio(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
     );
 
-    console.log('Twilio client initialized successfully');
+    console.log('Twilio client initialized, testing authentication...');
+
+    // Test Twilio authentication by fetching account info
+    try {
+      const account = await twilioClient.api.accounts(process.env.TWILIO_ACCOUNT_SID).fetch();
+      console.log('✅ Twilio authentication successful');
+      console.log('Account status:', account.status);
+      console.log('Account type:', account.type);
+    } catch (authError) {
+      console.error('❌ Twilio authentication failed:', authError);
+      return res.status(500).json({
+        success: false,
+        error: 'Twilio authentication failed',
+        code: authError.code,
+        details: authError.message
+      });
+    }
 
     // For now, return success without making actual call (test mode)
     res.json({
       success: true,
-      message: 'Direct make-call endpoint working',
+      message: 'Direct make-call endpoint working - authentication verified',
       to: to,
       timestamp: new Date().toISOString()
     });
