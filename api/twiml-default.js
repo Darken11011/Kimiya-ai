@@ -16,19 +16,16 @@ export default function handler(req, res) {
   });
 
   // Generate basic TwiML response
-  const twiml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    '<Response>\n' +
-    '    <Say voice="alice">Hello! This is a test call from Kimiyi AI. The call is working successfully. Thank you for testing!</Say>\n' +
-    '    <Pause length="1"/>\n' +
-    '    <Say voice="alice">This call will now end. Goodbye!</Say>\n' +
-    '</Response>';
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Hello! This is a test call from Kimiyi AI. The call is working successfully. Thank you for testing!</Say>
+    <Pause length="1"/>
+    <Say voice="alice">This call will now end. Goodbye!</Say>
+</Response>`;
 
   console.log('Sending TwiML response:', twiml);
 
-  // Send the TwiML response with explicit content type
-  res.writeHead(200, {
-    'Content-Type': 'application/xml; charset=utf-8',
-    'Content-Length': Buffer.byteLength(twiml, 'utf8')
-  });
-  res.end(twiml);
+  // Send the TwiML response
+  res.setHeader('Content-Type', 'text/xml; charset=utf-8');
+  res.status(200).send(twiml);
 }
