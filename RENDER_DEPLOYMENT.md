@@ -35,9 +35,9 @@ git push origin main
 In the Render dashboard, add these environment variables:
 
 ```bash
-TWILIO_ACCOUNT_SID=AC64208c7087a03b475ea7fa9337b692f8
-TWILIO_AUTH_TOKEN=587e27a4553570edb09656c15a03d0e8
-TWILIO_PHONE_NUMBER=+17077433838
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=your_twilio_phone_number
 NODE_ENV=production
 ```
 
