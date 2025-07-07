@@ -146,79 +146,28 @@ export default async function handler(req, res) {
 // Load workflow configuration
 async function loadWorkflowConfig(workflowId, req) {
   try {
-    // Try to get compact workflow data from query parameters
-    const compactData = req.query.wd || req.body.wd;
-    if (compactData) {
-      try {
-        const compact = JSON.parse(decodeURIComponent(compactData));
-        console.log(`Loading compact workflow data for ${workflowId}`);
+    console.log(`Loading workflow configuration for ${workflowId}`);
 
-        // Expand the compact workflow data back to full format
-        const workflow = {
-          id: compact.id || workflowId,
-          globalPrompt: compact.gp || 'You are a professional and friendly AI assistant. Speak naturally and conversationally.',
-          nodes: compact.ns || [],
-          edges: compact.es || [],
-          config: compact.cfg || {
-            llm: {
-              provider: 'azure_openai',
-              azure: {
-                apiKey: 'f6d564a83af3498c9beb46d7d3e3da96',
-                endpoint: 'https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview',
-                model: 'gpt-4o-mini',
-                temperature: 0.7,
-                maxTokens: 1000
-              }
-            }
-          }
-        };
+    // For now, always use a simple default workflow to test basic functionality
+    // This eliminates URL length and data parsing issues
 
-        return workflow;
-      } catch (e) {
-        console.error('Error parsing compact workflow data:', e);
-      }
-    }
-
-    console.log(`No workflow data found for ${workflowId}, using default`);
-
-    // Fallback to default workflow
-    console.log(`Using default workflow for ${workflowId}`);
-    const defaultWorkflow = {
-      id: workflowId || 'default',
-      globalPrompt: 'You are a professional and friendly AI assistant. Speak naturally and conversationally.',
+    // Use a simple working workflow for testing
+    console.log(`Creating simple test workflow for ${workflowId}`);
+    const testWorkflow = {
+      id: workflowId || 'test',
+      globalPrompt: 'You are a helpful and friendly AI assistant. Keep responses short and conversational for phone calls.',
       nodes: [
         {
-          id: 'start-1',
+          id: 'start',
           type: 'startNode',
           data: {
-            label: 'Welcome Call',
-            prompt: 'Welcome the caller warmly and ask how you can help them today.',
-            instructions: 'Be friendly and professional. Listen to their needs.'
-          }
-        },
-        {
-          id: 'conversation-1',
-          type: 'conversationNode',
-          data: {
-            label: 'Main Conversation',
-            prompt: 'Have a natural conversation based on the caller\'s needs. Provide helpful information and assistance.',
-            instructions: 'Be conversational and helpful. Ask follow-up questions when appropriate.'
-          }
-        },
-        {
-          id: 'end-1',
-          type: 'endNode',
-          data: {
-            label: 'Call End',
-            prompt: 'Thank the caller and end the conversation politely.',
-            instructions: 'Provide a warm closing and thank them for calling.'
+            label: 'Start',
+            prompt: 'Greet the caller warmly and ask how you can help.',
+            instructions: 'Be friendly and brief.'
           }
         }
       ],
-      edges: [
-        { id: 'e1', source: 'start-1', target: 'conversation-1' },
-        { id: 'e2', source: 'conversation-1', target: 'end-1' }
-      ],
+      edges: [],
       config: {
         llm: {
           provider: 'azure_openai',
@@ -227,13 +176,13 @@ async function loadWorkflowConfig(workflowId, req) {
             endpoint: 'https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview',
             model: 'gpt-4o-mini',
             temperature: 0.7,
-            maxTokens: 1000
+            maxTokens: 150
           }
         }
       }
     };
 
-    return defaultWorkflow;
+    return testWorkflow;
   } catch (error) {
     console.error('Error loading workflow config:', error);
     return null;
@@ -242,8 +191,11 @@ async function loadWorkflowConfig(workflowId, req) {
 
 // Find the start node in the workflow
 function findStartNode(nodes) {
+  console.log('Finding start node from nodes:', nodes.map(n => ({ id: n.id, type: n.type })));
   const startNode = nodes.find(node => node.type === 'startNode');
-  return startNode ? startNode.id : nodes[0]?.id;
+  const startNodeId = startNode ? startNode.id : nodes[0]?.id;
+  console.log('Selected start node:', startNodeId);
+  return startNodeId;
 }
 
 // Process a workflow node and generate appropriate TwiML

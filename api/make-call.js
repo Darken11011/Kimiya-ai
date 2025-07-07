@@ -109,48 +109,21 @@ export default async function handler(req, res) {
     if (twimlUrl) {
       defaultTwiML = twimlUrl;
     } else {
+      // Always use the simple workflow endpoint for now to avoid URL length issues
+      // The workflow data will be handled differently
       if (workflowId && nodes && edges) {
-        // Create a compact representation of essential workflow data
-        const compactWorkflow = {
-          id: workflowId,
-          gp: globalPrompt || '', // global prompt
-          ns: nodes.map(n => ({ // nodes simplified
-            id: n.id,
-            type: n.type,
-            label: n.data?.label || '',
-            prompt: n.data?.prompt || '',
-            instructions: n.data?.instructions || ''
-          })),
-          es: edges.map(e => ({ // edges simplified
-            id: e.id,
-            source: e.source,
-            target: e.target
-          })),
-          cfg: config || {} // config
-        };
+        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
+        console.log(`Using simple workflow TwiML endpoint: ${defaultTwiML}`);
 
-        // Encode the compact workflow data
-        const encodedData = encodeURIComponent(JSON.stringify(compactWorkflow));
-
-        // Check if URL would be too long
-        const baseUrl = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}&wd=`;
-        const fullUrl = baseUrl + encodedData;
-
-        console.log('TwiML URL length check:', {
-          baseUrlLength: baseUrl.length,
-          encodedDataLength: encodedData.length,
-          totalLength: fullUrl.length,
-          isOverLimit: fullUrl.length > 3500
+        // Log the workflow data for debugging
+        console.log('Workflow data that would be processed:', {
+          workflowId,
+          nodeCount: nodes.length,
+          edgeCount: edges.length,
+          hasGlobalPrompt: !!globalPrompt,
+          firstNodeId: nodes[0]?.id,
+          firstNodeType: nodes[0]?.type
         });
-
-        if (fullUrl.length > 3500) { // Leave some buffer
-          console.log('Workflow data too large, using default workflow');
-          defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
-        } else {
-          defaultTwiML = fullUrl;
-        }
-
-        console.log(`Using workflow TwiML endpoint (${defaultTwiML.length} chars):`, defaultTwiML);
       } else {
         // No workflow data - use default
         defaultTwiML = `${protocol}://${host}/api/twiml-default`;
