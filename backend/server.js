@@ -313,7 +313,7 @@ app.post('/api/make-call', async (req, res) => {
     });
 
     // Store workflow data if provided
-    const { workflowId, nodes, edges, config, globalPrompt } = req.body;
+    const { nodes, edges, config, globalPrompt } = req.body;
     if (workflowId && (nodes || edges || config || globalPrompt)) {
       console.log(`📝 Storing workflow data for call to ${normalizedTo}`);
       workflowStore.set(workflowId, {
