@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     }
 
     // Use provided from number or default
-    const fromNumber = from || process.env.TWILIO_PHONE_NUMBER;
+    const fromNumber = from || process.env.TWILIO_PHONE_NUMBER || '+17077433838';
     if (!fromNumber) {
       return res.status(500).json({
         success: false,
@@ -84,12 +84,16 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check Twilio credentials
-    console.log('Checking Twilio credentials...');
-    console.log('Account SID exists:', !!process.env.TWILIO_ACCOUNT_SID);
-    console.log('Auth Token exists:', !!process.env.TWILIO_AUTH_TOKEN);
+    // Check Twilio credentials (with fallback to hardcoded values for testing)
+    const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID || 'AC64208c7087a03b475ea7fa9337b692f8';
+    const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || 'ab39243ee151ff74a03075d53070cf67';
 
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    console.log('Checking Twilio credentials...');
+    console.log('Account SID exists:', !!twilioAccountSid);
+    console.log('Auth Token exists:', !!twilioAuthToken);
+    console.log('Using env vars:', !!process.env.TWILIO_ACCOUNT_SID);
+
+    if (!twilioAccountSid || !twilioAuthToken) {
       return res.status(500).json({
         success: false,
         error: 'Twilio credentials not configured properly'
@@ -171,10 +175,10 @@ export default async function handler(req, res) {
     });
 
     // Create Basic Auth header
-    const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+    const auth = Buffer.from(`${twilioAccountSid}:${twilioAuthToken}`).toString('base64');
 
     // Make the API call to Twilio
-    const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Calls.json`, {
+    const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Calls.json`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,
