@@ -112,6 +112,7 @@ export default async function handler(req, res) {
       } else {
         // No workflow data - use default
         defaultTwiML = `${protocol}://${host}/api/twiml/default`;
+        console.log(`Using default TwiML endpoint: ${defaultTwiML}`);
       }
     }
 
