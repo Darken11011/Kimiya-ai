@@ -109,6 +109,29 @@ console.log('✅ Registered: GET /api/twilio-config');
 app.use('/api/twiml', twimlRoutes);
 console.log('✅ Registered: POST /api/twiml/*');
 
+// Test route to verify routing is working
+app.post('/api/test-call', (req, res) => {
+  console.log('🧪 Test call endpoint hit');
+  res.json({
+    success: true,
+    message: 'Test call endpoint working',
+    timestamp: new Date().toISOString()
+  });
+});
+console.log('✅ Registered: POST /api/test-call');
+
+// Inline make-call route for testing
+app.post('/api/make-call-test', async (req, res) => {
+  console.log('🧪 Inline make-call test endpoint hit');
+  res.json({
+    success: true,
+    message: 'Inline make-call test endpoint working',
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
+});
+console.log('✅ Registered: POST /api/make-call-test');
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
