@@ -1,7 +1,14 @@
 // Workflow-based TwiML endpoint for dynamic call conversations
 export default async function handler(req, res) {
+  // IMPORTANT: Log immediately to ensure we can see if this endpoint is called
+  console.log('=== TWIML WORKFLOW ENDPOINT CALLED ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+
   // Allow both GET and POST requests from Twilio
   if (req.method !== 'POST' && req.method !== 'GET') {
+    console.log('Method not allowed:', req.method);
     return res.status(405).send('Method not allowed');
   }
 
@@ -113,6 +120,7 @@ export default async function handler(req, res) {
     res.status(200).send(twimlResponse);
 
   } catch (error) {
+    console.error('=== ERROR IN TWIML WORKFLOW ===');
     console.error('Error processing workflow TwiML:', {
       message: error.message,
       stack: error.stack,
@@ -121,8 +129,17 @@ export default async function handler(req, res) {
       query: req.query,
       body: req.body
     });
-    const errorTwiML = generateErrorTwiML('Hello! I\'m experiencing some technical difficulties, but I\'m here to help. How can I assist you today?');
-    res.status(200).send(errorTwiML);
+
+    // Return a simple working TwiML response for debugging
+    const simpleTwiML = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Hello! This is a test from the workflow endpoint. I can hear you and the system is working. Let me know how I can help you today.</Say>
+    <Pause length="2"/>
+    <Say voice="alice">If you can hear this message, the TwiML endpoint is working correctly.</Say>
+</Response>`;
+
+    console.log('Sending simple TwiML response due to error');
+    res.status(200).send(simpleTwiML);
   }
 }
 

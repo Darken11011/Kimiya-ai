@@ -134,14 +134,23 @@ export default async function handler(req, res) {
 
         // Check if URL would be too long
         const baseUrl = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}&wd=`;
-        if ((baseUrl + encodedData).length > 3500) { // Leave some buffer
+        const fullUrl = baseUrl + encodedData;
+
+        console.log('TwiML URL length check:', {
+          baseUrlLength: baseUrl.length,
+          encodedDataLength: encodedData.length,
+          totalLength: fullUrl.length,
+          isOverLimit: fullUrl.length > 3500
+        });
+
+        if (fullUrl.length > 3500) { // Leave some buffer
           console.log('Workflow data too large, using default workflow');
           defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
         } else {
-          defaultTwiML = baseUrl + encodedData;
+          defaultTwiML = fullUrl;
         }
 
-        console.log(`Using workflow TwiML endpoint: ${defaultTwiML.substring(0, 100)}...`);
+        console.log(`Using workflow TwiML endpoint (${defaultTwiML.length} chars):`, defaultTwiML);
       } else {
         // No workflow data - use default
         defaultTwiML = `${protocol}://${host}/api/twiml-default`;
