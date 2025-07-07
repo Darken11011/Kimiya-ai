@@ -2,10 +2,10 @@
   "name": "call-flow-weaver-backend",
   "version": "1.0.0",
   "description": "Express backend for Call Flow Weaver with Twilio integration",
-  "main": "server.js",
+  "main": "server-simple.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node server-simple.js",
+    "dev": "nodemon server-simple.js",
     "build": "echo 'No build step required for Express server'"
   },
   "dependencies": {
