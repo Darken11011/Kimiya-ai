@@ -1,4 +1,6 @@
+const express = require('express');
 const twilio = require('twilio');
+const router = express.Router();
 
 // Utility function to normalize phone numbers
 function normalizePhoneNumber(phone) {
@@ -32,7 +34,7 @@ function normalizePhoneNumber(phone) {
     return `+${cleaned}`;
   }
 
-  // For other international numbers, add + if it looks valid
+  // For international numbers, add + if not present and validate basic format
   if (cleaned.length >= 7 && cleaned.length <= 15) {
     return `+${cleaned}`;
   }
@@ -40,33 +42,19 @@ function normalizePhoneNumber(phone) {
   return null;
 }
 
-module.exports = async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+router.post('/', async (req, res) => {
   try {
-    console.log('Starting make-call handler...');
-    console.log('Environment check:', {
-      hasAccountSid: !!process.env.TWILIO_ACCOUNT_SID,
-      hasAuthToken: !!process.env.TWILIO_AUTH_TOKEN,
-      hasPhoneNumber: !!process.env.TWILIO_PHONE_NUMBER,
-      nodeEnv: process.env.NODE_ENV
+    console.log('🔥 Make call request received:', {
+      body: req.body,
+      headers: req.headers,
+      timestamp: new Date().toISOString()
     });
-    console.log('Received make-call request:', req.body);
+
     const { to, from, twimlUrl, record, timeout, workflowId, nodes, edges, config, globalPrompt } = req.body;
 
     // Validate required fields
     if (!to) {
+      console.log('❌ Missing phone number');
       return res.status(400).json({
         success: false,
         error: 'Phone number (to) is required'
@@ -76,43 +64,47 @@ module.exports = async function handler(req, res) {
     // Normalize phone number
     const normalizedTo = normalizePhoneNumber(to);
     if (!normalizedTo) {
+      console.log('❌ Invalid phone number format:', to);
       return res.status(400).json({
         success: false,
         error: 'Invalid phone number format'
       });
     }
 
+    console.log('📞 Normalized phone number:', normalizedTo);
+
     // Use provided from number or default
     const fromNumber = from || process.env.TWILIO_PHONE_NUMBER;
     if (!fromNumber) {
+      console.log('❌ No Twilio phone number configured');
       return res.status(500).json({
         success: false,
         error: 'No Twilio phone number configured'
       });
     }
 
-    // Initialize Twilio client
-    console.log('Initializing Twilio client...');
-    console.log('Account SID exists:', !!process.env.TWILIO_ACCOUNT_SID);
-    console.log('Auth Token exists:', !!process.env.TWILIO_AUTH_TOKEN);
+    console.log('📱 Using from number:', fromNumber);
 
+    // Validate Twilio credentials
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      console.error('Missing Twilio credentials');
+      console.log('❌ Missing Twilio credentials');
       return res.status(500).json({
         success: false,
         error: 'Twilio credentials not configured properly'
       });
     }
 
+    // Initialize Twilio client
+    console.log('🔧 Initializing Twilio client...');
     let twilioClient;
     try {
       twilioClient = twilio(
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_AUTH_TOKEN
       );
-      console.log('Twilio client initialized successfully');
+      console.log('✅ Twilio client initialized successfully');
     } catch (twilioError) {
-      console.error('Error initializing Twilio client:', twilioError);
+      console.error('❌ Error initializing Twilio client:', twilioError);
       return res.status(500).json({
         success: false,
         error: 'Failed to initialize Twilio client: ' + twilioError.message
@@ -120,8 +112,11 @@ module.exports = async function handler(req, res) {
     }
 
     // Get host and protocol for URLs
-    const host = req.headers.host;
-    const protocol = req.headers['x-forwarded-proto'] || req.headers['x-forwarded-protocol'] || 'https';
+    const host = req.get('host');
+    const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    const baseUrl = `${protocol}://${host}`;
+
+    console.log('🌐 Base URL:', baseUrl);
 
     // Default TwiML URL if not provided
     let defaultTwiML;
@@ -129,18 +124,26 @@ module.exports = async function handler(req, res) {
       defaultTwiML = twimlUrl;
     } else {
       if (workflowId && nodes && edges) {
-        // Use our workflow-specific endpoint for production
-        defaultTwiML = `${protocol}://${host}/api/twiml/workflow/${workflowId}`;
-        console.log(`Using workflow TwiML endpoint: ${defaultTwiML}`);
+        // Use our workflow-specific endpoint
+        defaultTwiML = `${baseUrl}/api/twiml/workflow/${workflowId}`;
+        console.log('🔄 Using workflow TwiML endpoint:', defaultTwiML);
       } else {
         // No workflow data - use default
-        defaultTwiML = `${protocol}://${host}/api/twiml/default`;
+        defaultTwiML = `${baseUrl}/api/twiml/default`;
+        console.log('📋 Using default TwiML endpoint:', defaultTwiML);
       }
     }
 
     // Make the call
-    // Twilio timeout must be between 5 and 600 seconds
     const callTimeout = Math.min(Math.max(timeout || 30, 5), 600);
+    
+    console.log('📞 Making Twilio call with params:', {
+      to: normalizedTo,
+      from: fromNumber,
+      url: defaultTwiML,
+      timeout: callTimeout,
+      record: record !== undefined ? record : true
+    });
 
     const call = await twilioClient.calls.create({
       to: normalizedTo,
@@ -149,19 +152,27 @@ module.exports = async function handler(req, res) {
       method: 'POST',
       record: record !== undefined ? record : true,
       timeout: callTimeout,
-      statusCallback: `${protocol}://${host}/api/call-status`,
+      statusCallback: `${baseUrl}/api/call-status`,
       statusCallbackMethod: 'POST'
+    });
+
+    console.log('✅ Call created successfully:', {
+      callSid: call.sid,
+      status: call.status,
+      to: call.to,
+      from: call.from
     });
 
     res.json({
       success: true,
       callSid: call.sid,
       message: `Call initiated successfully to ${normalizedTo}`,
-      status: call.status
+      status: call.status,
+      twimlUrl: defaultTwiML
     });
 
   } catch (error) {
-    console.error('Error making call:', error);
+    console.error('❌ Error making call:', error);
 
     // Handle specific Twilio errors
     if (error.code === 21208) {
@@ -178,9 +189,19 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (error.code === 21614) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid TwiML URL. Please check the URL and try again.'
+      });
+    }
+
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to initiate call'
+      error: error.message || 'Failed to initiate call',
+      code: error.code || 'UNKNOWN_ERROR'
     });
   }
-}
+});
+
+module.exports = router;

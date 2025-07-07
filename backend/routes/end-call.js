@@ -1,29 +1,9 @@
+const express = require('express');
 const twilio = require('twilio');
+const router = express.Router();
 
-module.exports = async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+router.post('/', async (req, res) => {
   try {
-    console.log('End call handler started');
-
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      console.error('Missing Twilio credentials in end-call');
-      return res.status(500).json({
-        success: false,
-        error: 'Twilio credentials not configured properly'
-      });
-    }
     const { callSid } = req.query;
     
     if (!callSid) {
@@ -33,7 +13,15 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Initialize Twilio client
+    console.log('🛑 Ending call with SID:', callSid);
+
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      return res.status(500).json({
+        success: false,
+        error: 'Twilio credentials not configured properly'
+      });
+    }
+
     const twilioClient = twilio(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
@@ -44,6 +32,11 @@ module.exports = async function handler(req, res) {
       status: 'completed'
     });
 
+    console.log('✅ Call ended successfully:', {
+      callSid: call.sid,
+      status: call.status
+    });
+
     res.json({
       success: true,
       message: 'Call ended successfully',
@@ -52,7 +45,7 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error ending call:', error);
+    console.error('❌ Error ending call:', error);
     
     if (error.code === 20404) {
       return res.status(404).json({
@@ -61,9 +54,18 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (error.code === 21220) {
+      return res.status(400).json({
+        success: false,
+        error: 'Call cannot be modified in its current state'
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to end call'
     });
   }
-}
+});
+
+module.exports = router;
