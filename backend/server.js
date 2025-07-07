@@ -312,6 +312,20 @@ app.post('/api/make-call', async (req, res) => {
       twimlUrl: twimlUrl
     });
 
+    // Store workflow data if provided
+    const { workflowId, nodes, edges, config, globalPrompt } = req.body;
+    if (workflowId && (nodes || edges || config || globalPrompt)) {
+      console.log(`📝 Storing workflow data for call to ${normalizedTo}`);
+      workflowStore.set(workflowId, {
+        nodes,
+        edges,
+        config,
+        globalPrompt,
+        timestamp: new Date().toISOString(),
+        callTo: normalizedTo
+      });
+    }
+
     // Make the actual Twilio call
     const callTimeout = Math.min(Math.max(req.body.timeout || 30, 5), 600);
 
@@ -351,6 +365,67 @@ app.post('/api/make-call', async (req, res) => {
   }
 });
 console.log('✅ Registered: POST /api/make-call (direct)');
+
+// Store workflow data for AI processing
+const workflowStore = new Map();
+
+// Endpoint to store workflow data for calls
+app.post('/api/workflow/:workflowId/store', (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    const { nodes, edges, config, globalPrompt } = req.body;
+
+    console.log(`📝 Storing workflow data for ${workflowId}`);
+
+    workflowStore.set(workflowId, {
+      nodes,
+      edges,
+      config,
+      globalPrompt,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Workflow data stored successfully',
+      workflowId
+    });
+  } catch (error) {
+    console.error('Error storing workflow data:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+console.log('✅ Registered: POST /api/workflow/:workflowId/store');
+
+// Endpoint to retrieve workflow data
+app.get('/api/workflow/:workflowId', (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    const workflowData = workflowStore.get(workflowId);
+
+    if (!workflowData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Workflow not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      workflow: workflowData
+    });
+  } catch (error) {
+    console.error('Error retrieving workflow data:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+console.log('✅ Registered: GET /api/workflow/:workflowId');
 
 // Error handling middleware
 app.use((err, req, res, next) => {
