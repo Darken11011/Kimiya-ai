@@ -98,13 +98,57 @@ try {
   // Create inline routes as fallback
   makeCallRoute = express.Router();
   makeCallRoute.post('/', async (req, res) => {
-    console.log('📞 Inline make-call route hit');
-    res.json({
-      success: true,
-      message: 'Inline make-call route working',
-      body: req.body,
-      timestamp: new Date().toISOString()
-    });
+    try {
+      console.log('📞 Inline make-call route hit');
+      console.log('Request body:', req.body);
+
+      const { to } = req.body;
+
+      // Basic validation
+      if (!to) {
+        return res.status(400).json({
+          success: false,
+          error: 'Phone number (to) is required'
+        });
+      }
+
+      // Check environment variables
+      const hasCredentials = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+      console.log('Has Twilio credentials:', hasCredentials);
+
+      if (!hasCredentials) {
+        return res.status(500).json({
+          success: false,
+          error: 'Twilio credentials not configured'
+        });
+      }
+
+      // Try to initialize Twilio
+      const twilio = require('twilio');
+      const twilioClient = twilio(
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+      );
+
+      console.log('Twilio client initialized');
+
+      // For now, just return success without making actual call
+      res.json({
+        success: true,
+        message: 'Make-call endpoint working (test mode)',
+        to: to,
+        hasCredentials: hasCredentials,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Error in make-call route:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Internal server error',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
   });
 
   callStatusRoute = express.Router();
