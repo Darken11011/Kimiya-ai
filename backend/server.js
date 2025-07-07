@@ -114,13 +114,22 @@ app.listen(port, () => {
   console.log(`🚀 Call Flow Weaver Backend running on port ${port}`);
   console.log(`📊 Health check: http://localhost:${port}/health`);
   console.log(`🧪 Test endpoint: http://localhost:${port}/api/test`);
+  console.log(`📞 Make call endpoint: http://localhost:${port}/api/make-call`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
+
   // Log Twilio configuration status
   console.log('📞 Twilio Configuration:');
   console.log(`   Account SID: ${process.env.TWILIO_ACCOUNT_SID ? '✅ Set' : '❌ Missing'}`);
   console.log(`   Auth Token: ${process.env.TWILIO_AUTH_TOKEN ? '✅ Set' : '❌ Missing'}`);
   console.log(`   Phone Number: ${process.env.TWILIO_PHONE_NUMBER ? '✅ Set' : '❌ Missing'}`);
+
+  // Log loaded routes
+  console.log('🛣️ Loaded routes:');
+  console.log('   POST /api/make-call');
+  console.log('   GET /api/call-status');
+  console.log('   POST /api/end-call');
+  console.log('   GET /api/twilio-config');
+  console.log('   POST /api/twiml/*');
 });
 
 module.exports = app;
