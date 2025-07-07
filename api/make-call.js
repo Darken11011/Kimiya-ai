@@ -1,4 +1,4 @@
-import twilio from 'twilio';
+// Using fetch instead of Twilio SDK to avoid serverless function size limits
 
 // Utility function to normalize phone numbers
 function normalizePhoneNumber(phone) {
@@ -84,22 +84,17 @@ export default async function handler(req, res) {
       });
     }
 
-    // Initialize Twilio client
-    console.log('Initializing Twilio client...');
+    // Check Twilio credentials
+    console.log('Checking Twilio credentials...');
     console.log('Account SID exists:', !!process.env.TWILIO_ACCOUNT_SID);
     console.log('Auth Token exists:', !!process.env.TWILIO_AUTH_TOKEN);
-    
+
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
       return res.status(500).json({
         success: false,
         error: 'Twilio credentials not configured properly'
       });
     }
-
-    const twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
 
     // Get host and protocol for URLs
     const host = req.headers.host;
@@ -120,20 +115,40 @@ export default async function handler(req, res) {
       }
     }
 
-    // Make the call
+    // Make the call using Twilio REST API
     // Twilio timeout must be between 5 and 600 seconds
     const callTimeout = Math.min(Math.max(timeout || 30, 5), 600);
 
-    const call = await twilioClient.calls.create({
-      to: normalizedTo,
-      from: fromNumber,
-      url: defaultTwiML,
+    // Prepare form data for Twilio API
+    const formData = new URLSearchParams();
+    formData.append('To', normalizedTo);
+    formData.append('From', fromNumber);
+    formData.append('Url', defaultTwiML);
+    formData.append('Method', 'POST');
+    formData.append('Record', record !== undefined ? record.toString() : 'true');
+    formData.append('Timeout', callTimeout.toString());
+    formData.append('StatusCallback', `${protocol}://${host}/api/call-status`);
+    formData.append('StatusCallbackMethod', 'POST');
+
+    // Create Basic Auth header
+    const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+
+    // Make the API call to Twilio
+    const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Calls.json`, {
       method: 'POST',
-      record: record !== undefined ? record : true,
-      timeout: callTimeout,
-      statusCallback: `${protocol}://${host}/api/call-status`,
-      statusCallbackMethod: 'POST'
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData
     });
+
+    if (!twilioResponse.ok) {
+      const errorData = await twilioResponse.json();
+      throw new Error(errorData.message || `Twilio API error: ${twilioResponse.status}`);
+    }
+
+    const call = await twilioResponse.json();
 
     res.json({
       success: true,

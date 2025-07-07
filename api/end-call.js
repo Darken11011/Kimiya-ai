@@ -1,5 +1,3 @@
-import twilio from 'twilio';
-
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,7 +14,7 @@ export default async function handler(req, res) {
 
   try {
     const { callSid } = req.query;
-    
+
     if (!callSid) {
       return res.status(400).json({
         success: false,
@@ -24,16 +22,37 @@ export default async function handler(req, res) {
       });
     }
 
-    // Initialize Twilio client
-    const twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
+    // Check Twilio credentials
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      return res.status(500).json({
+        success: false,
+        error: 'Twilio credentials not configured properly'
+      });
+    }
+
+    // Create Basic Auth header
+    const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+
+    // Prepare form data for Twilio API
+    const formData = new URLSearchParams();
+    formData.append('Status', 'completed');
 
     // End the call by updating its status to 'completed'
-    const call = await twilioClient.calls(callSid).update({
-      status: 'completed'
+    const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Calls/${callSid}.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData
     });
+
+    if (!twilioResponse.ok) {
+      const errorData = await twilioResponse.json();
+      throw new Error(errorData.message || `Twilio API error: ${twilioResponse.status}`);
+    }
+
+    const call = await twilioResponse.json();
 
     res.json({
       success: true,
