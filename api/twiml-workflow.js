@@ -24,7 +24,9 @@ export default async function handler(req, res) {
       method: req.method,
       query: req.query,
       body: req.body,
-      workflowId
+      workflowId,
+      hasWorkflowData: !!(req.query.wd || req.body.wd),
+      workflowDataLength: (req.query.wd || req.body.wd || '').length
     });
 
     // Get call state from Twilio parameters

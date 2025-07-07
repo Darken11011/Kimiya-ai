@@ -76,27 +76,27 @@ export default async function handler(req, res) {
     }
 
     // Use provided from number or default
-    const fromNumber = from || process.env.TWILIO_PHONE_NUMBER || '+17077433838';
+    const fromNumber = from || process.env.TWILIO_PHONE_NUMBER;
     if (!fromNumber) {
       return res.status(500).json({
         success: false,
-        error: 'No Twilio phone number configured'
+        error: 'No Twilio phone number provided'
       });
     }
 
-    // Check Twilio credentials (with fallback to hardcoded values for testing)
-    const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID || 'AC64208c7087a03b475ea7fa9337b692f8';
-    const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || 'ab39243ee151ff74a03075d53070cf67';
+    // Check Twilio credentials from request body (provided by frontend)
+    const twilioAccountSid = req.body.twilioAccountSid || process.env.TWILIO_ACCOUNT_SID;
+    const twilioAuthToken = req.body.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN;
 
     console.log('Checking Twilio credentials...');
     console.log('Account SID exists:', !!twilioAccountSid);
     console.log('Auth Token exists:', !!twilioAuthToken);
-    console.log('Using env vars:', !!process.env.TWILIO_ACCOUNT_SID);
+    console.log('Using request credentials:', !!req.body.twilioAccountSid);
 
     if (!twilioAccountSid || !twilioAuthToken) {
       return res.status(500).json({
         success: false,
-        error: 'Twilio credentials not configured properly'
+        error: 'Twilio credentials not provided'
       });
     }
 
