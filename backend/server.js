@@ -259,27 +259,85 @@ app.post('/api/make-call', async (req, res) => {
 
     console.log('Twilio client initialized, testing authentication...');
 
-    // Test Twilio authentication by fetching account info
-    try {
-      const account = await twilioClient.api.accounts(process.env.TWILIO_ACCOUNT_SID).fetch();
-      console.log('✅ Twilio authentication successful');
-      console.log('Account status:', account.status);
-      console.log('Account type:', account.type);
-    } catch (authError) {
-      console.error('❌ Twilio authentication failed:', authError);
-      return res.status(500).json({
+    // Normalize phone number
+    function normalizePhoneNumber(phone) {
+      if (!phone || typeof phone !== 'string') return null;
+      let cleaned = phone.replace(/[^\d+]/g, '');
+      if (cleaned.startsWith('+') && /^\+[1-9]\d{1,14}$/.test(cleaned)) return cleaned;
+      cleaned = cleaned.replace(/^\+/, '');
+      if (!cleaned) return null;
+      if (cleaned.length === 10 && /^[2-9]\d{9}$/.test(cleaned)) return `+1${cleaned}`;
+      if (cleaned.length === 11 && cleaned.startsWith('1') && /^1[2-9]\d{9}$/.test(cleaned)) return `+${cleaned}`;
+      if (cleaned.length >= 7 && cleaned.length <= 15) return `+${cleaned}`;
+      return null;
+    }
+
+    const normalizedTo = normalizePhoneNumber(to);
+    if (!normalizedTo) {
+      return res.status(400).json({
         success: false,
-        error: 'Twilio authentication failed',
-        code: authError.code,
-        details: authError.message
+        error: 'Invalid phone number format'
       });
     }
 
-    // For now, return success without making actual call (test mode)
+    const fromNumber = req.body.from || process.env.TWILIO_PHONE_NUMBER;
+    if (!fromNumber) {
+      return res.status(500).json({
+        success: false,
+        error: 'No Twilio phone number configured'
+      });
+    }
+
+    // Get host and protocol for TwiML URLs
+    const host = req.get('host');
+    const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    const baseUrl = `${protocol}://${host}`;
+
+    // Determine TwiML URL
+    let twimlUrl;
+    const { workflowId, twimlUrl: customTwimlUrl } = req.body;
+
+    if (customTwimlUrl) {
+      twimlUrl = customTwimlUrl;
+    } else if (workflowId) {
+      twimlUrl = `${baseUrl}/api/twiml/workflow/${workflowId}`;
+    } else {
+      twimlUrl = `${baseUrl}/api/twiml/default`;
+    }
+
+    console.log('📞 Making Twilio call:', {
+      to: normalizedTo,
+      from: fromNumber,
+      twimlUrl: twimlUrl
+    });
+
+    // Make the actual Twilio call
+    const callTimeout = Math.min(Math.max(req.body.timeout || 30, 5), 600);
+
+    const call = await twilioClient.calls.create({
+      to: normalizedTo,
+      from: fromNumber,
+      url: twimlUrl,
+      method: 'POST',
+      record: req.body.record !== undefined ? req.body.record : true,
+      timeout: callTimeout,
+      statusCallback: `${baseUrl}/api/call-status`,
+      statusCallbackMethod: 'POST'
+    });
+
+    console.log('✅ Call created successfully:', {
+      callSid: call.sid,
+      status: call.status,
+      to: call.to,
+      from: call.from
+    });
+
     res.json({
       success: true,
-      message: 'Direct make-call endpoint working - authentication verified',
-      to: to,
+      callSid: call.sid,
+      message: `Call initiated successfully to ${normalizedTo}`,
+      status: call.status,
+      twimlUrl: twimlUrl,
       timestamp: new Date().toISOString()
     });
 
