@@ -107,11 +107,11 @@ export default async function handler(req, res) {
     } else {
       if (workflowId && nodes && edges) {
         // Use our workflow-specific endpoint for production
-        defaultTwiML = `${protocol}://${host}/api/twiml/workflow/${workflowId}`;
+        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
         console.log(`Using workflow TwiML endpoint: ${defaultTwiML}`);
       } else {
         // No workflow data - use default
-        defaultTwiML = `${protocol}://${host}/api/twiml/default`;
+        defaultTwiML = `${protocol}://${host}/api/twiml-default`;
         console.log(`Using default TwiML endpoint: ${defaultTwiML}`);
       }
     }
