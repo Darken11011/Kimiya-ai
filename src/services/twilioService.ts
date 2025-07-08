@@ -97,6 +97,23 @@ export class TwilioService {
   }
 
   /**
+   * Wake up the backend (for Render free tier)
+   */
+  private async wakeUpBackend(): Promise<void> {
+    try {
+      const API_BASE_URL = this.getApiBaseUrl();
+      console.log('Waking up backend...');
+      await fetch(`${API_BASE_URL}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+      console.log('Backend is awake');
+    } catch (error) {
+      console.warn('Failed to wake up backend:', error);
+    }
+  }
+
+  /**
    * Make a real call using backend API
    */
   private async makeRealCall(normalizedNumber: string, options: CallOptions): Promise<CallResponse> {
@@ -104,6 +121,8 @@ export class TwilioService {
     const API_BASE_URL = this.getApiBaseUrl();
 
     try {
+      // Wake up backend first (important for Render free tier)
+      await this.wakeUpBackend();
       const response = await fetch(`${API_BASE_URL}/api/make-call`, {
         method: 'POST',
         headers: {
@@ -129,6 +148,47 @@ export class TwilioService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // If it's a 500 error, try to wake up backend and retry once
+        if (response.status === 500) {
+          console.log('Got 500 error, trying to wake up backend and retry...');
+          await this.wakeUpBackend();
+
+          // Wait a moment for backend to fully wake up
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Retry the call
+          const retryResponse = await fetch(`${API_BASE_URL}/api/make-call`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: normalizedNumber,
+              from: options.from || this.config.phoneNumber,
+              record: options.record ?? this.config.recordCalls,
+              timeout: options.timeout || this.config.callTimeout || 30,
+              twimlUrl: options.url,
+              twilioAccountSid: this.config.accountSid,
+              twilioAuthToken: this.config.authToken,
+              workflowId: options.workflowId,
+              nodes: options.nodes,
+              edges: options.edges,
+              config: options.config,
+              globalPrompt: options.globalPrompt
+            })
+          });
+
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            return {
+              success: true,
+              callSid: retryData.callSid,
+              message: retryData.message + ' (retry successful)'
+            };
+          }
+        }
+
         return {
           success: false,
           error: errorData.error || `HTTP error! status: ${response.status}`
