@@ -67,7 +67,13 @@ module.exports = async function handler(req, res) {
       aiResponse = `I think I heard you say "${speechResult}" but I'm not completely sure. Could you please repeat that or rephrase it? I want to make sure I understand you correctly.`;
     } else {
       // Clear speech detected - generate AI response
-      aiResponse = await callAzureOpenAI(systemPrompt, speechResult);
+      try {
+        aiResponse = await callAzureOpenAI(systemPrompt, speechResult);
+      } catch (aiError) {
+        console.error('Azure OpenAI error:', aiError.message);
+        // Fallback to simple response if AI fails
+        aiResponse = `Thank you for telling me about ${speechResult}. I understand your request and I'm here to help you with that. What specific information would you like me to provide?`;
+      }
     }
 
     // Clean the AI response for TwiML (remove quotes, special characters)
@@ -78,26 +84,14 @@ module.exports = async function handler(req, res) {
       .replace(/>/g, 'greater than')
       .substring(0, 500); // Limit length for phone calls
 
-    // Generate TwiML with AI response and optimized speech recognition
+    // Generate TwiML with AI response and reliable speech recognition
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">${cleanResponse}</Say>
-    <Gather
-        input="speech"
-        timeout="15"
-        speechTimeout="auto"
-        speechModel="phone_call"
-        enhanced="true"
-        profanityFilter="false"
-        language="en-US"
-        hints="help,support,question,problem,issue,account,billing,service,information,yes,no"
-        action="/api/twiml-ai?id=${workflowId}&retry=${retryCount + 1}"
-        method="POST">
-        <Say voice="alice">Please speak clearly and tell me what you need.</Say>
-        <Pause length="2"/>
-        <Say voice="alice">I'm ready to listen...</Say>
+    <Gather input="speech" timeout="8" speechTimeout="3" action="/api/twiml-ai?id=${workflowId}&retry=${retryCount + 1}" method="POST">
+        <Say voice="alice">Please tell me what you need.</Say>
     </Gather>
-    <Say voice="alice">I'm having difficulty hearing you clearly. This might be due to connection issues. Please try calling back or speak a bit louder and clearer. Thank you for your patience!</Say>
+    <Say voice="alice">I didn't hear anything. Thank you for calling!</Say>
     <Hangup/>
 </Response>`;
 
@@ -107,29 +101,27 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('=== ERROR IN AI TWIML ===');
-    console.error('Error:', error.message);
-    
-    // Simple fallback with improved speech recognition
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Request details:', {
+      method: req.method,
+      query: req.query,
+      body: req.body,
+      headers: req.headers
+    });
+
+    // Ultra-simple fallback TwiML that should always work
     const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello! Thank you for calling. I'm here to help you. How can I assist you today?</Say>
-    <Gather
-        input="speech"
-        timeout="10"
-        speechTimeout="auto"
-        speechModel="phone_call"
-        enhanced="true"
-        action="/api/twiml-ai?id=${req.query.id || 'fallback'}"
-        method="POST">
-        <Say voice="alice">Please tell me what you need help with.</Say>
-        <Pause length="1"/>
-        <Say voice="alice">Take your time, I'm listening...</Say>
+    <Say voice="alice">Hello! I'm your assistant. How can I help you today?</Say>
+    <Gather input="speech" timeout="5" action="/api/twiml-ai?id=fallback" method="POST">
+        <Say voice="alice">Please tell me what you need.</Say>
     </Gather>
-    <Say voice="alice">I'm having trouble hearing you. Please try calling back. Thank you!</Say>
+    <Say voice="alice">Thank you for calling!</Say>
     <Hangup/>
 </Response>`;
-    
-    console.log('Sending fallback TwiML due to AI error');
+
+    console.log('Sending ultra-simple fallback TwiML due to error');
     res.status(200).send(fallbackTwiML);
   }
 };
