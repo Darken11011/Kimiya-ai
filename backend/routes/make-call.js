@@ -110,13 +110,23 @@ module.exports = async function makeCallHandler(req, res) {
     if (twimlUrl) {
       defaultTwiML = twimlUrl;
     } else {
-      // Use the simple conversational endpoint (bypasses complex AI processing)
+      // Use the workflow endpoint for dynamic conversations based on actual workflow
       if (workflowId && nodes && edges) {
-        defaultTwiML = `${protocol}://${host}/api/twiml-simple?id=${workflowId}`;
-        console.log(`Using simple conversational TwiML endpoint: ${defaultTwiML}`);
+        // Store workflow data in a simple way that can be retrieved by the TwiML endpoint
+        global.workflowData = global.workflowData || {};
+        global.workflowData[workflowId] = {
+          nodes,
+          edges,
+          globalPrompt,
+          config: req.body.config,
+          timestamp: Date.now()
+        };
+
+        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
+        console.log(`Using workflow TwiML endpoint: ${defaultTwiML}`);
 
         // Log the workflow data for debugging
-        console.log('Workflow data that would be processed:', {
+        console.log('Workflow data stored for processing:', {
           workflowId,
           nodeCount: nodes.length,
           edgeCount: edges.length,
@@ -125,9 +135,9 @@ module.exports = async function makeCallHandler(req, res) {
           firstNodeType: nodes[0]?.type
         });
       } else {
-        // No workflow data - use test endpoint as fallback
-        defaultTwiML = `${protocol}://${host}/api/twiml-test`;
-        console.log(`Using test TwiML endpoint as fallback: ${defaultTwiML}`);
+        // No workflow data - use simple endpoint as fallback
+        defaultTwiML = `${protocol}://${host}/api/twiml-simple`;
+        console.log(`Using simple TwiML endpoint as fallback: ${defaultTwiML}`);
       }
     }
 

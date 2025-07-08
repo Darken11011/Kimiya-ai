@@ -49,7 +49,7 @@ app.get('/ping', (req, res) => {
 
 // Import route handlers
 const makeCallHandler = require('./routes/make-call');
-const twimlWorkflowHandler = require('./routes/twiml-workflow');
+const twimlWorkflowHandler = require('./routes/twiml-workflow-clean');
 const twimlDefaultHandler = require('./routes/twiml-default');
 const callStatusHandler = require('./routes/call-status');
 const endCallHandler = require('./routes/end-call');
