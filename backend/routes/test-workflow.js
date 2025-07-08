@@ -1,14 +1,5 @@
 // Test endpoint to verify workflow processing
-export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+module.exports = async function testWorkflowHandler(req, res) {
   try {
     console.log('Test workflow endpoint called:', {
       method: req.method,
@@ -77,4 +68,4 @@ export default async function handler(req, res) {
       stack: error.stack
     });
   }
-}
+};

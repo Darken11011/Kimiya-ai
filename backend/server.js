@@ -26,6 +26,7 @@ const twimlDefaultHandler = require('./routes/twiml-default');
 const callStatusHandler = require('./routes/call-status');
 const endCallHandler = require('./routes/end-call');
 const twilioConfigHandler = require('./routes/twilio-config');
+const testWorkflowHandler = require('./routes/test-workflow');
 
 // API Routes
 app.post('/api/make-call', makeCallHandler);
@@ -34,6 +35,7 @@ app.all('/api/twiml-default', twimlDefaultHandler);
 app.all('/api/call-status', callStatusHandler);
 app.post('/api/end-call', endCallHandler);
 app.get('/api/twilio-config', twilioConfigHandler);
+app.all('/api/test-workflow', testWorkflowHandler);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -47,7 +49,8 @@ app.get('/', (req, res) => {
       'GET|POST /api/twiml-default',
       'GET|POST /api/call-status',
       'POST /api/end-call',
-      'GET /api/twilio-config'
+      'GET /api/twilio-config',
+      'GET|POST /api/test-workflow'
     ]
   });
 });
