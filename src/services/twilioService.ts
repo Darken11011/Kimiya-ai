@@ -115,6 +115,9 @@ export class TwilioService {
           record: options.record ?? this.config.recordCalls,
           timeout: options.timeout || this.config.callTimeout || 30,
           twimlUrl: options.url,
+          // Include Twilio credentials
+          twilioAccountSid: this.config.accountSid,
+          twilioAuthToken: this.config.authToken,
           // Include workflow data for dynamic call processing
           workflowId: options.workflowId,
           nodes: options.nodes,

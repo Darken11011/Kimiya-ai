@@ -74,16 +74,23 @@ module.exports = async function makeCallHandler(req, res) {
     // Check Twilio credentials from request body (provided by frontend)
     const twilioAccountSid = req.body.twilioAccountSid || process.env.TWILIO_ACCOUNT_SID;
     const twilioAuthToken = req.body.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN;
-    
+
     console.log('Checking Twilio credentials...');
     console.log('Account SID exists:', !!twilioAccountSid);
     console.log('Auth Token exists:', !!twilioAuthToken);
     console.log('Using request credentials:', !!req.body.twilioAccountSid);
+    console.log('Using env credentials:', !!process.env.TWILIO_ACCOUNT_SID);
 
     if (!twilioAccountSid || !twilioAuthToken) {
-      return res.status(500).json({
+      console.error('Missing Twilio credentials:', {
+        hasRequestSid: !!req.body.twilioAccountSid,
+        hasRequestToken: !!req.body.twilioAuthToken,
+        hasEnvSid: !!process.env.TWILIO_ACCOUNT_SID,
+        hasEnvToken: !!process.env.TWILIO_AUTH_TOKEN
+      });
+      return res.status(400).json({
         success: false,
-        error: 'Twilio credentials not provided'
+        error: 'Twilio credentials not provided. Please check your configuration.'
       });
     }
 
@@ -156,8 +163,15 @@ module.exports = async function makeCallHandler(req, res) {
     });
 
     if (!twilioResponse.ok) {
-      const errorData = await twilioResponse.json();
-      throw new Error(errorData.message || `Twilio API error: ${twilioResponse.status}`);
+      const errorText = await twilioResponse.text();
+      console.error('Twilio API error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText };
+      }
+      throw new Error(errorData.message || `Twilio API error: ${twilioResponse.status} - ${errorText}`);
     }
 
     const call = await twilioResponse.json();
