@@ -15,7 +15,13 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    service: 'Call Flow Weaver Backend'
+    service: 'Call Flow Weaver Backend',
+    environment: {
+      nodeEnv: process.env.NODE_ENV || 'not set',
+      port: process.env.PORT || 'not set',
+      hasTwilioConfig: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+      hasAzureConfig: !!(process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT)
+    }
   });
 });
 

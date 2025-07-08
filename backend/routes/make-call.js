@@ -42,7 +42,14 @@ function normalizePhoneNumber(phone) {
 
 module.exports = async function makeCallHandler(req, res) {
   try {
-    console.log('Received make-call request:', req.body);
+    console.log('=== MAKE CALL REQUEST ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Environment check:', {
+      hasEnvSid: !!process.env.TWILIO_ACCOUNT_SID,
+      hasEnvToken: !!process.env.TWILIO_AUTH_TOKEN,
+      hasEnvPhone: !!process.env.TWILIO_PHONE_NUMBER
+    });
     const { to, from, twimlUrl, record, timeout, workflowId, nodes, edges, globalPrompt } = req.body;
 
     // Validate required fields

@@ -15,7 +15,12 @@ module.exports = async function testWorkflowHandler(req, res) {
       hasTwilioPhone: !!process.env.TWILIO_PHONE_NUMBER,
       twilioSidLength: process.env.TWILIO_ACCOUNT_SID?.length || 0,
       twilioTokenLength: process.env.TWILIO_AUTH_TOKEN?.length || 0,
-      twilioPhone: process.env.TWILIO_PHONE_NUMBER || 'not set'
+      twilioPhone: process.env.TWILIO_PHONE_NUMBER || 'not set',
+      // Show first/last few chars for debugging (safe)
+      twilioSidPreview: process.env.TWILIO_ACCOUNT_SID ?
+        `${process.env.TWILIO_ACCOUNT_SID.substring(0, 6)}...${process.env.TWILIO_ACCOUNT_SID.slice(-4)}` : 'not set',
+      nodeEnv: process.env.NODE_ENV || 'not set',
+      port: process.env.PORT || 'not set'
     };
 
     // Test workflow data parsing
