@@ -50,29 +50,27 @@ module.exports = async function handler(req, res) {
 
     let aiResponse;
 
-    // Check if we need to handle speech recognition issues
+    // Simplified AI response logic with better error handling
     if (!speechResult || speechResult.trim().length < 2) {
-      if (retryCount === 0) {
-        // First interaction or first retry - use system prompt to generate greeting
+      // First interaction or no speech detected
+      try {
         aiResponse = await callAzureOpenAI(systemPrompt, 'Hello, start the conversation.');
-      } else if (retryCount < 3) {
-        // Retry with encouragement
-        aiResponse = "I'm having a bit of trouble hearing you clearly. This might be due to background noise or connection issues. Could you please speak a bit louder and more clearly? I'm here to help you.";
-      } else {
-        // Too many retries - offer alternative
-        aiResponse = "I'm having persistent difficulty hearing you clearly. This might be due to a poor connection. Would you like to try calling back, or I can provide you with our main number for better assistance?";
+      } catch (aiError) {
+        console.error('AI error on greeting:', aiError.message);
+        aiResponse = 'Hello! Welcome to our service. I\'m here to help you with any questions you might have. What can I assist you with today?';
       }
-    } else if (confidence && parseFloat(confidence) < 0.5) {
-      // Low confidence in speech recognition
-      aiResponse = `I think I heard you say "${speechResult}" but I'm not completely sure. Could you please repeat that or rephrase it? I want to make sure I understand you correctly.`;
     } else {
-      // Clear speech detected - generate AI response
+      // User provided speech input
       try {
         aiResponse = await callAzureOpenAI(systemPrompt, speechResult);
       } catch (aiError) {
-        console.error('Azure OpenAI error:', aiError.message);
-        // Fallback to simple response if AI fails
-        aiResponse = `Thank you for telling me about ${speechResult}. I understand your request and I'm here to help you with that. What specific information would you like me to provide?`;
+        console.error('AI error on user input:', aiError.message);
+        // Intelligent fallback based on user input
+        if (speechResult.toLowerCase().includes('help')) {
+          aiResponse = 'I understand you need help. I\'m here to assist you. Could you please tell me more specifically what you need help with?';
+        } else {
+          aiResponse = `Thank you for telling me about ${speechResult}. I understand your request and I'm here to help you with that. What would you like me to explain or assist you with?`;
+        }
       }
     }
 
@@ -126,11 +124,18 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Call Azure OpenAI API
+// Call Azure OpenAI API with robust error handling
 async function callAzureOpenAI(systemPrompt, userMessage) {
   try {
     console.log('Calling Azure OpenAI...');
-    
+    console.log('Endpoint:', process.env.AZURE_OPENAI_ENDPOINT ? 'Set' : 'Missing');
+    console.log('API Key:', process.env.AZURE_OPENAI_API_KEY ? 'Set' : 'Missing');
+
+    // Check if environment variables are set
+    if (!process.env.AZURE_OPENAI_ENDPOINT || !process.env.AZURE_OPENAI_API_KEY) {
+      throw new Error('Azure OpenAI environment variables not configured');
+    }
+
     const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -148,37 +153,46 @@ async function callAzureOpenAI(systemPrompt, userMessage) {
             content: userMessage
           }
         ],
-        max_tokens: 150,
-        temperature: 0.7,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0
-      })
+        max_tokens: 100,
+        temperature: 0.7
+      }),
+      timeout: 10000 // 10 second timeout
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Azure OpenAI API error:', response.status, errorText);
-      throw new Error(`Azure OpenAI API error: ${response.status}`);
+      throw new Error(`Azure OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Azure OpenAI response received');
-    
+    console.log('Azure OpenAI response received successfully');
+
     if (data.choices && data.choices[0] && data.choices[0].message) {
-      return data.choices[0].message.content.trim();
+      const aiResponse = data.choices[0].message.content.trim();
+      console.log('AI Response:', aiResponse.substring(0, 100) + '...');
+      return aiResponse;
     } else {
       console.error('Unexpected Azure OpenAI response format:', data);
       throw new Error('Invalid response format from Azure OpenAI');
     }
 
   } catch (error) {
-    console.error('Error calling Azure OpenAI:', error.message);
-    // Return a fallback response
-    if (userMessage.toLowerCase().includes('hello') || userMessage === 'Hello, start the conversation.') {
+    console.error('Azure OpenAI Error Details:', {
+      message: error.message,
+      stack: error.stack,
+      userMessage: userMessage
+    });
+
+    // Return intelligent fallback responses
+    if (userMessage === 'Hello, start the conversation.' || !userMessage) {
       return 'Hello! Welcome to our service. I\'m here to help you with any questions you might have. What can I assist you with today?';
+    } else if (userMessage.toLowerCase().includes('help')) {
+      return 'I understand you need help. I\'m here to assist you. Could you please tell me more specifically what you need help with?';
+    } else if (userMessage.toLowerCase().includes('problem') || userMessage.toLowerCase().includes('issue')) {
+      return 'I understand you\'re experiencing an issue. I\'d like to help you resolve it. Can you describe the problem in more detail?';
     } else {
-      return `Thank you for telling me about ${userMessage}. I understand your request and I'm here to help. What specific information would you like me to provide?`;
+      return `Thank you for telling me about ${userMessage}. I understand your request and I'm here to help you with that. What specific information would you like me to provide?`;
     }
   }
 }

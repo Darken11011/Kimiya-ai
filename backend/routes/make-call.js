@@ -122,8 +122,8 @@ module.exports = async function makeCallHandler(req, res) {
           timestamp: Date.now()
         };
 
-        defaultTwiML = `${protocol}://${host}/api/twiml-minimal`;
-        console.log(`Using minimal TwiML endpoint for debugging: ${defaultTwiML}`);
+        defaultTwiML = `${protocol}://${host}/api/twiml-ai?id=${workflowId}`;
+        console.log(`Using AI-powered TwiML endpoint with robust error handling: ${defaultTwiML}`);
 
         // Log the workflow data for debugging
         console.log('Workflow data stored for processing:', {
