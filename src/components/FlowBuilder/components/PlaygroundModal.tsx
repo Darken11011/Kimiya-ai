@@ -73,6 +73,7 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   const [isEditingTwilio, setIsEditingTwilio] = useState(false);
   const [isSavingTwilio, setIsSavingTwilio] = useState(false);
   const [isLoadingTwilioConfig, setIsLoadingTwilioConfig] = useState(false);
+  const [configLoadFailed, setConfigLoadFailed] = useState(false);
   const [twilioConfig, setTwilioConfig] = useState({
     accountSid: workflowConfig?.twilio?.accountSid || 'AC64208c7087a03b475ea7fa9337b692f8',
     authToken: workflowConfig?.twilio?.authToken || '587e27a4553570edb09656c15a03d0e8',
@@ -118,6 +119,7 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
       setIsEditingTwilio(false);
       setIsSavingTwilio(false);
       setShowAuthToken(false);
+      setConfigLoadFailed(false);
     }
   }, [isOpen]);
 
@@ -593,21 +595,16 @@ Conversation turns in this node: ${conversationTurns}`
             recordCalls: data.config.recordCalls ?? true,
             callTimeout: data.config.callTimeout ?? 30
           });
+          setConfigLoadFailed(false); // Reset failed state on success
         }
       } else {
         console.error('Failed to fetch config, status:', response.status);
       }
     } catch (error) {
       console.error('Failed to fetch Twilio config from backend:', error);
-      // Use fallback config if backend is slow/unavailable
-      console.log('Using fallback Twilio config');
-      setTwilioConfig({
-        accountSid: 'AC64208c7087a03b475ea7fa9337b692f8',
-        authToken: 'ab39243ee151ff74a03075d53070cf67',
-        phoneNumber: '+17077433838',
-        recordCalls: true,
-        callTimeout: 30
-      });
+      // Don't use fallback - let user manually configure
+      console.log('Backend config fetch failed - user will need to manually edit config');
+      setConfigLoadFailed(true);
     } finally {
       setIsLoadingTwilioConfig(false);
     }
@@ -1038,6 +1035,12 @@ Conversation turns in this node: ${conversationTurns}`
                             <div className="text-blue-600">
                               <p>Loading configuration from backend...</p>
                               <p className="text-xs text-gray-500">This may take a moment if the backend is sleeping</p>
+                            </div>
+                          ) : configLoadFailed ? (
+                            <div className="text-orange-600 bg-orange-50 p-3 rounded border">
+                              <p className="font-medium">⚠️ Backend configuration unavailable</p>
+                              <p className="text-sm mt-1">The backend is taking too long to respond. Please click "Edit" below to manually enter your Twilio credentials.</p>
+                              <p className="text-xs text-gray-600 mt-2">This ensures you can make calls even when the backend is slow.</p>
                             </div>
                           ) : (
                             <>
