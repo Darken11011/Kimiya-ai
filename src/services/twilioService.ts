@@ -164,16 +164,16 @@ export class TwilioService {
       const hostname = window.location.hostname;
 
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        // Local development - assume backend is running on port 3001
-        return 'http://localhost:3001';
+        // Local development - assume backend is running on port 3000
+        return 'http://localhost:3000';
       } else {
-        // Production - use the same domain as the frontend for the API
-        return `${window.location.protocol}//${window.location.host}`;
+        // Production - use Render backend URL
+        return 'https://kimiyi.onrender.com';
       }
     }
 
     // Server environment fallback
-    return process.env.API_BASE_URL || 'http://localhost:3001';
+    return process.env.API_BASE_URL || 'https://kimiyi.onrender.com';
   }
 
 

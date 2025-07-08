@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: call-flow-weaver-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TWILIO_ACCOUNT_SID
+        value: AC64208c7087a03b475ea7fa9337b692f8
+      - key: TWILIO_AUTH_TOKEN
+        value: ab39243ee151ff74a03075d53070cf67
+      - key: TWILIO_PHONE_NUMBER
+        value: +17077433838
+      - key: AZURE_OPENAI_API_KEY
+        value: f6d564a83af3498c9beb46d7d3e3da96
+      - key: AZURE_OPENAI_ENDPOINT
+        value: https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview
