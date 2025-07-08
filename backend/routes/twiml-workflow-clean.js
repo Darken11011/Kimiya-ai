@@ -1,158 +1,107 @@
-// Clean workflow-based TwiML endpoint for dynamic call conversations
-module.exports = async function handler(req, res) {
-  console.log('=== WORKFLOW TWIML ENDPOINT CALLED ===');
+// Simplified workflow-based TwiML endpoint that Twilio can reliably process
+module.exports = function handler(req, res) {
+  console.log('=== SIMPLE WORKFLOW TWIML ENDPOINT ===');
   console.log('Timestamp:', new Date().toISOString());
   console.log('Method:', req.method);
-  console.log('URL:', req.url);
+  console.log('Query:', req.query);
+  console.log('Body:', req.body);
 
   try {
     // Set proper headers for TwiML
     res.setHeader('Content-Type', 'text/xml; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
 
-    const workflowId = req.query.id;
-    const callSid = req.body.CallSid || req.query.CallSid;
-    const speechResult = req.body.SpeechResult;
-    const digits = req.body.Digits;
-    let currentNodeId = req.body.currentNodeId || req.query.currentNodeId;
+    const workflowId = req.query.id || 'default';
+    const speechResult = req.body.SpeechResult || '';
+    const step = parseInt(req.query.step || '0'); // Track conversation step
 
-    console.log('Processing workflow call:', {
+    console.log('Processing simple workflow:', {
       workflowId,
-      callSid,
-      currentNodeId,
-      hasUserInput: !!(speechResult || digits)
+      step,
+      hasUserInput: !!speechResult
     });
 
-    // Get workflow data from global storage
+    // Get workflow data from global storage (simplified)
     const workflowData = global.workflowData && global.workflowData[workflowId];
-    
-    if (!workflowData) {
-      console.log('No workflow data found for ID:', workflowId);
-      const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="alice">Hello! I'm your AI assistant. How can I help you today?</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${workflowId}" method="POST">
-        <Say voice="alice">Please tell me what you need.</Say>
-    </Gather>
-    <Say voice="alice">Thank you for calling!</Say>
-    <Hangup/>
-</Response>`;
-      return res.status(200).send(fallbackTwiML);
-    }
+    let startMessage = 'Hello! Welcome to our service. How can I help you today?';
 
-    console.log('Found workflow data:', {
-      nodeCount: workflowData.nodes.length,
-      edgeCount: workflowData.edges.length,
-      hasGlobalPrompt: !!workflowData.globalPrompt
-    });
-
-    // Find start node if no current node
-    if (!currentNodeId) {
-      const startNode = workflowData.nodes.find(node => 
-        node.type === 'startNode' || 
-        node.type === 'start' || 
-        node.data?.label?.toLowerCase().includes('start')
+    // Extract simple start message from workflow if available
+    if (workflowData && workflowData.nodes) {
+      const startNode = workflowData.nodes.find(node =>
+        node.type === 'startNode' || node.type === 'start'
       );
-      
-      currentNodeId = startNode ? startNode.id : workflowData.nodes[0]?.id;
-      console.log('Starting with node:', currentNodeId);
+      if (startNode && startNode.data && startNode.data.prompt) {
+        startMessage = startNode.data.prompt;
+      } else if (workflowData.globalPrompt) {
+        startMessage = workflowData.globalPrompt;
+      }
     }
 
-    // Find the current node
-    const currentNode = workflowData.nodes.find(node => node.id === currentNodeId);
-    
-    if (!currentNode) {
-      console.log('Current node not found:', currentNodeId);
-      const errorTwiML = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="alice">I'm sorry, there was an issue with the workflow. Please try again later.</Say>
-    <Hangup/>
-</Response>`;
-      return res.status(200).send(errorTwiML);
-    }
+    console.log('Using start message:', startMessage);
 
-    console.log('Processing node:', {
-      id: currentNode.id,
-      type: currentNode.type,
-      label: currentNode.data?.label
-    });
-
-    // Generate TwiML based on the current node and user input
+    // Simple step-based conversation flow (much more reliable for Twilio)
     let twiml;
-    const userInput = speechResult || digits;
-    
-    if (!userInput) {
-      // First interaction - use node's prompt
-      const nodePrompt = currentNode.data?.prompt || 
-                        currentNode.data?.message || 
-                        currentNode.data?.label || 
-                        workflowData.globalPrompt ||
-                        'Hello! How can I help you?';
-      
+
+    if (step === 0 && !speechResult) {
+      // Step 0: Initial greeting
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">${nodePrompt}</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${workflowId}&currentNodeId=${currentNodeId}" method="POST">
-        <Say voice="alice">Please tell me what you need.</Say>
+    <Say voice="alice">${startMessage}</Say>
+    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${workflowId}&step=1" method="POST">
+        <Say voice="alice">Please tell me what you need help with.</Say>
     </Gather>
     <Say voice="alice">I didn't hear anything. Thank you for calling!</Say>
     <Hangup/>
 </Response>`;
-    } else {
-      // User provided input - find next node
-      console.log('User input received:', userInput);
-      
-      const outgoingEdges = workflowData.edges.filter(edge => edge.source === currentNodeId);
-      let nextNode = null;
-      
-      if (outgoingEdges.length > 0) {
-        const nextNodeId = outgoingEdges[0].target;
-        nextNode = workflowData.nodes.find(node => node.id === nextNodeId);
-      }
-      
-      if (nextNode) {
-        const nextPrompt = nextNode.data?.prompt || 
-                          nextNode.data?.message || 
-                          nextNode.data?.label || 
-                          'Thank you for that information.';
-        
-        twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    } else if (step === 1) {
+      // Step 1: Acknowledge user input and ask follow-up
+      const userInput = speechResult || 'your request';
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">I understand you said: ${userInput}. ${nextPrompt}</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${workflowId}&currentNodeId=${nextNode.id}" method="POST">
-        <Say voice="alice">What would you like to do next?</Say>
+    <Say voice="alice">I understand you need help with ${userInput}. Let me assist you with that.</Say>
+    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${workflowId}&step=2" method="POST">
+        <Say voice="alice">Is there anything specific about ${userInput} that you'd like me to explain or help you with?</Say>
     </Gather>
     <Say voice="alice">Thank you for calling!</Say>
     <Hangup/>
 </Response>`;
-      } else {
-        // No next node - end conversation
-        twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    } else if (step === 2) {
+      // Step 2: Provide helpful response and offer more help
+      const userInput = speechResult || 'that topic';
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Thank you for telling me: ${userInput}. I've noted that information. Have a great day!</Say>
+    <Say voice="alice">Thank you for clarifying about ${userInput}. I've noted your request and our team will follow up with you soon.</Say>
+    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${workflowId}&step=3" method="POST">
+        <Say voice="alice">Is there anything else I can help you with today?</Say>
+    </Gather>
+    <Say voice="alice">Thank you for calling! Have a great day!</Say>
     <Hangup/>
 </Response>`;
-      }
+    } else {
+      // Step 3+: End conversation
+      const userInput = speechResult || 'your feedback';
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Thank you for ${userInput}. We appreciate your call and will be in touch soon. Have a wonderful day!</Say>
+    <Hangup/>
+</Response>`;
     }
 
-    console.log('Sending workflow-based TwiML response');
+    console.log('Sending simple workflow TwiML response');
     res.status(200).send(twiml);
 
   } catch (error) {
-    console.error('=== ERROR IN WORKFLOW TWIML ===');
+    console.error('=== ERROR IN SIMPLE WORKFLOW ===');
     console.error('Error:', error.message);
-    
+
+    // Ultra-simple fallback that always works
     const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello! I'm your AI assistant. There was a small technical issue, but I'm here to help you. How can I assist you today?</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${req.query.id || 'fallback'}" method="POST">
-        <Say voice="alice">Please tell me what you need help with.</Say>
-    </Gather>
-    <Say voice="alice">I didn't hear anything. Thank you for calling, goodbye!</Say>
+    <Say voice="alice">Hello! Thank you for calling. We're experiencing a small technical issue, but we've received your call. Our team will contact you shortly. Have a great day!</Say>
     <Hangup/>
 </Response>`;
-    
-    console.log('Sending fallback TwiML response due to error');
+
+    console.log('Sending ultra-simple fallback TwiML');
     res.status(200).send(fallbackTwiML);
   }
 };
