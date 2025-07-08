@@ -53,10 +53,29 @@ npm run dev
 ```
 Navigate to `http://localhost:5173`
 
-### 3. Production Build
+### 3. Backend Setup
+```bash
+cd backend
+npm install
+npm start
+```
+Backend runs on `http://localhost:3000`
+
+### 4. Production Build
 ```bash
 npm run build
 ```
+
+### 5. Backend Deployment (Render)
+1. Create new Web Service on [Render](https://render.com)
+2. Connect your GitHub repository
+3. Set root directory to `backend`
+4. Configure environment variables:
+   - `TWILIO_ACCOUNT_SID`
+   - `TWILIO_AUTH_TOKEN`
+   - `TWILIO_PHONE_NUMBER`
+   - `AZURE_OPENAI_API_KEY`
+   - `AZURE_OPENAI_ENDPOINT`
 
 ## 📋 Creating Your First Workflow
 
@@ -102,6 +121,13 @@ npm run build
 - **Tailwind CSS** + **shadcn/ui** for styling
 - **Vite** for development and building
 
+### Backend Stack
+- **Node.js** with Express
+- **Twilio REST API** for call management
+- **Azure OpenAI** for AI conversations
+- **TwiML** for call flow control
+- **Render** deployment for reliable webhooks
+
 ### Core Systems
 - **Flow Builder**: Visual workflow editor with drag-and-drop
 - **Node System**: Modular conversation components
@@ -109,40 +135,54 @@ npm run build
 - **Configuration Management**: Comprehensive service setup
 - **Variable System**: Extract and use data throughout flows
 - **Validation Engine**: Real-time flow and configuration validation
+- **Call Management**: Real-time Twilio integration with AI conversations
 
 ## 📁 Project Structure
 
 ```
-src/
-├── components/
-│   ├── FlowBuilder/           # Main flow builder interface
-│   │   ├── components/        # Flow-specific components
-│   │   │   ├── nodes/         # Node type definitions and components
-│   │   │   ├── BaseNode.tsx   # Base node wrapper component
-│   │   │   ├── DynamicNode.tsx # Dynamic node renderer
-│   │   │   ├── ConditionalEdge.tsx
-│   │   │   ├── EdgeConditionModal.tsx
-│   │   │   ├── PlaygroundModal.tsx # Workflow testing interface
-│   │   │   ├── WorkflowSetupModal.tsx
-│   │   │   └── VariableExtractor.tsx
-│   │   ├── hooks/             # Custom hooks for flow management
-│   │   ├── NewFlowCanvas.tsx  # Main canvas component
-│   │   ├── NewFlowEditor.tsx  # Editor container
-│   │   ├── NewSidebar.tsx     # Component sidebar
-│   │   ├── FlowToolbar.tsx    # Toolbar with actions
-│   │   └── ConfigPanel.tsx    # Node configuration
-│   └── ui/                    # Reusable UI components
-├── stores/
-│   └── flowStore.ts           # Zustand state management
-├── types/
-│   ├── flowTypes.ts           # Flow and condition types
-│   ├── workflowConfig.ts      # Service configuration types
-│   └── componentTypes.ts      # Component definitions
-├── utils/
-│   ├── flowValidation.ts      # Flow validation logic
-│   └── configValidation.ts    # Configuration validation
-└── lib/
-    └── componentRegistry.ts   # Component registration system
+├── src/                       # Frontend React application
+│   ├── components/
+│   │   ├── FlowBuilder/       # Main flow builder interface
+│   │   │   ├── components/    # Flow-specific components
+│   │   │   │   ├── nodes/     # Node type definitions and components
+│   │   │   │   ├── BaseNode.tsx   # Base node wrapper component
+│   │   │   │   ├── DynamicNode.tsx # Dynamic node renderer
+│   │   │   │   ├── ConditionalEdge.tsx
+│   │   │   │   ├── EdgeConditionModal.tsx
+│   │   │   │   ├── PlaygroundModal.tsx # Workflow testing interface
+│   │   │   │   ├── WorkflowSetupModal.tsx
+│   │   │   │   └── VariableExtractor.tsx
+│   │   │   ├── hooks/         # Custom hooks for flow management
+│   │   │   ├── NewFlowCanvas.tsx  # Main canvas component
+│   │   │   ├── NewFlowEditor.tsx  # Editor container
+│   │   │   ├── NewSidebar.tsx     # Component sidebar
+│   │   │   ├── FlowToolbar.tsx    # Toolbar with actions
+│   │   │   └── ConfigPanel.tsx    # Node configuration
+│   │   └── ui/                # Reusable UI components
+│   ├── stores/
+│   │   └── flowStore.ts       # Zustand state management
+│   ├── types/
+│   │   ├── flowTypes.ts       # Flow and condition types
+│   │   ├── workflowConfig.ts  # Service configuration types
+│   │   └── componentTypes.ts  # Component definitions
+│   ├── utils/
+│   │   ├── flowValidation.ts  # Flow validation logic
+│   │   └── configValidation.ts # Configuration validation
+│   └── lib/
+│       └── componentRegistry.ts # Component registration system
+├── backend/                   # Express.js backend server
+│   ├── routes/                # API route handlers
+│   │   ├── make-call.js       # Twilio call initiation
+│   │   ├── twiml-workflow.js  # Dynamic TwiML generation
+│   │   ├── twiml-default.js   # Default TwiML responses
+│   │   ├── call-status.js     # Call status tracking
+│   │   ├── end-call.js        # Call termination
+│   │   ├── twilio-config.js   # Twilio configuration
+│   │   └── test-workflow.js   # Testing and debugging
+│   ├── server.js              # Main Express server
+│   ├── package.json           # Backend dependencies
+│   ├── .env                   # Environment variables
+│   └── render.yaml            # Render deployment config
 ```
 
 ## 🔧 Supported Services
