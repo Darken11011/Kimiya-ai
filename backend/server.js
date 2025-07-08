@@ -5,10 +5,27 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS configuration to allow Vercel frontend
+const corsOptions = {
+  origin: [
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'https://kimiya-ai.vercel.app',
+    'https://kimiyi-ai.onrender.com'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
