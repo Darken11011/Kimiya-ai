@@ -3,8 +3,10 @@ module.exports = function twilioConfigHandler(req, res) {
     // Return Twilio configuration
     const config = {
       accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+      authToken: process.env.TWILIO_AUTH_TOKEN || '', // Include for frontend compatibility
       phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
-      // Don't expose auth token for security
+      recordCalls: true,
+      callTimeout: 30,
       hasAuthToken: !!process.env.TWILIO_AUTH_TOKEN
     };
 

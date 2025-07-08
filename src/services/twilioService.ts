@@ -60,7 +60,7 @@ export class TwilioService {
         const API_BASE_URL = this.getApiBaseUrl();
 
         // If we have a backend API available, use real calls
-        if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('vercel.app')) {
+        if (API_BASE_URL.includes('kimiyi-ai.onrender.com') || API_BASE_URL.includes('localhost')) {
           return this.makeRealCall(normalizedNumber, options);
         } else {
           // Demo mode - simulate a successful call for testing purposes

@@ -540,9 +540,21 @@ Conversation turns in this node: ${conversationTurns}`
   const isBackendAvailable = () => {
     if (typeof window === 'undefined') return false;
 
-    const hostname = window.location.hostname;
-    return hostname === 'localhost' || hostname === '127.0.0.1' ||
-           hostname.includes('vercel.app') || (window as any).CALL_FLOW_API_URL?.includes('vercel.app');
+    // Backend is always available since we're using Render deployment
+    return true;
+  };
+
+  // Get API base URL (same logic as TwilioService)
+  const getApiBaseUrl = (): string => {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'https://kimiyi-ai.onrender.com';
+      } else {
+        return 'https://kimiyi-ai.onrender.com';
+      }
+    }
+    return 'https://kimiyi-ai.onrender.com';
   };
 
   // Fetch Twilio configuration from backend
@@ -557,7 +569,8 @@ Conversation turns in this node: ${conversationTurns}`
 
     setIsLoadingTwilioConfig(true);
     try {
-      const API_BASE_URL = `${window.location.protocol}//${window.location.host}`;
+      // Use the same API base URL logic as TwilioService
+      const API_BASE_URL = getApiBaseUrl();
       console.log('Fetching from:', `${API_BASE_URL}/api/twilio-config`);
 
       const response = await fetch(`${API_BASE_URL}/api/twilio-config`);
