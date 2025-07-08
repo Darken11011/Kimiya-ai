@@ -123,6 +123,16 @@ export class TwilioService {
     try {
       // Wake up backend first (important for Render free tier)
       await this.wakeUpBackend();
+
+      // Debug: Log what credentials we're sending
+      console.log('Making call with credentials:', {
+        hasAccountSid: !!this.config.accountSid,
+        hasAuthToken: !!this.config.authToken,
+        accountSidLength: this.config.accountSid?.length || 0,
+        authTokenLength: this.config.authToken?.length || 0,
+        phoneNumber: this.config.phoneNumber
+      });
+
       const response = await fetch(`${API_BASE_URL}/api/make-call`, {
         method: 'POST',
         headers: {
@@ -147,11 +157,20 @@ export class TwilioService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText };
+        }
 
         // If it's a 500 error, try to wake up backend and retry once
         if (response.status === 500) {
-          console.log('Got 500 error, trying to wake up backend and retry...');
+          console.log('Got 500 error:', errorData.error || errorText);
+          console.log('Trying to wake up backend and retry...');
           await this.wakeUpBackend();
 
           // Wait a moment for backend to fully wake up
