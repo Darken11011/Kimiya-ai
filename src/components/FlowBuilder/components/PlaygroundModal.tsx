@@ -138,11 +138,11 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   useEffect(() => {
     console.log('useEffect triggered - isOpen:', isOpen, 'isBackendAvailable:', isBackendAvailable(), 'workflowConfig?.twilio:', !!workflowConfig?.twilio);
 
-    if (isOpen && isBackendAvailable() && !workflowConfig?.twilio) {
+    if (isOpen && isBackendAvailable()) {
       console.log('Conditions met, calling fetchTwilioConfigFromBackend');
       fetchTwilioConfigFromBackend();
     } else {
-      console.log('Conditions not met for fetching config');
+      console.log('Conditions not met for fetching config - isOpen:', isOpen, 'isBackendAvailable:', isBackendAvailable());
     }
   }, [isOpen]);
 
@@ -581,19 +581,15 @@ Conversation turns in this node: ${conversationTurns}`
         console.log('Received data:', data);
 
         if (data.success && data.config) {
-          // Only update if we don't have workflow-specific config
-          if (!workflowConfig?.twilio) {
-            console.log('Updating Twilio config with backend data');
-            setTwilioConfig({
-              accountSid: data.config.accountSid || 'AC64208c7087a03b475ea7fa9337b692f8',
-              authToken: data.config.authToken || '587e27a4553570edb09656c15a03d0e8',
-              phoneNumber: data.config.phoneNumber || '+17077433838',
-              recordCalls: data.config.recordCalls ?? true,
-              callTimeout: data.config.callTimeout ?? 30
-            });
-          } else {
-            console.log('Workflow config exists, not updating with backend data');
-          }
+          // Always use backend config when available (it has the real environment variables)
+          console.log('Updating Twilio config with backend data (overriding any workflow config)');
+          setTwilioConfig({
+            accountSid: data.config.accountSid || 'AC64208c7087a03b475ea7fa9337b692f8',
+            authToken: data.config.authToken || '587e27a4553570edb09656c15a03d0e8',
+            phoneNumber: data.config.phoneNumber || '+17077433838',
+            recordCalls: data.config.recordCalls ?? true,
+            callTimeout: data.config.callTimeout ?? 30
+          });
         }
       } else {
         console.error('Failed to fetch config, status:', response.status);
