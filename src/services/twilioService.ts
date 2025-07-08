@@ -167,13 +167,13 @@ export class TwilioService {
         // Local development - assume backend is running on port 3000
         return 'http://localhost:3000';
       } else {
-        // Production - use Render backend URL (replace with your actual Render URL)
-        return 'https://call-flow-weaver-backend-xxx.onrender.com';
+        // Production - use Render backend URL
+        return 'https://kimiyi-ai.onrender.com';
       }
     }
 
     // Server environment fallback
-    return process.env.API_BASE_URL || 'https://call-flow-weaver-backend-xxx.onrender.com';
+    return process.env.API_BASE_URL || 'https://kimiyi-ai.onrender.com';
   }
 
 

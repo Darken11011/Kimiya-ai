@@ -174,8 +174,8 @@ async function loadWorkflowConfig(workflowId, req) {
         llm: {
           provider: 'azure_openai',
           azure: {
-            apiKey: 'f6d564a83af3498c9beb46d7d3e3da96',
-            endpoint: 'https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview',
+            apiKey: process.env.AZURE_OPENAI_API_KEY || 'f6d564a83af3498c9beb46d7d3e3da96',
+            endpoint: process.env.AZURE_OPENAI_ENDPOINT || 'https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview',
             model: 'gpt-4o-mini',
             temperature: 0.7,
             maxTokens: 150
