@@ -44,12 +44,13 @@ module.exports = async function handler(req, res) {
     }
 
     let aiResponse;
-
+    
     if (!speechResult) {
       // First interaction - use system prompt to generate greeting
       aiResponse = await callAzureOpenAI(systemPrompt, 'Hello, start the conversation.');
     } else {
       // User provided input - generate AI response
+      const conversationPrompt = `${systemPrompt}\n\nUser said: "${speechResult}"\n\nRespond helpfully and ask a follow-up question.`;
       aiResponse = await callAzureOpenAI(systemPrompt, speechResult);
     }
 
@@ -78,27 +79,20 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('=== ERROR IN AI TWIML ===');
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Request details:', {
-      method: req.method,
-      query: req.query,
-      body: req.body,
-      headers: req.headers
-    });
-
-    // Ultra-simple fallback TwiML that should always work
+    console.error('Error:', error.message);
+    
+    // Simple fallback that always works
     const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello! I'm your assistant. How can I help you today?</Say>
-    <Gather input="speech" timeout="5" action="/api/twiml-ai?id=fallback" method="POST">
+    <Say voice="alice">Hello! Thank you for calling. I'm here to help you. How can I assist you today?</Say>
+    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-ai?id=${req.query.id || 'fallback'}" method="POST">
         <Say voice="alice">Please tell me what you need.</Say>
     </Gather>
     <Say voice="alice">Thank you for calling!</Say>
     <Hangup/>
 </Response>`;
-
-    console.log('Sending ultra-simple fallback TwiML due to error');
+    
+    console.log('Sending fallback TwiML due to AI error');
     res.status(200).send(fallbackTwiML);
   }
 };
@@ -107,7 +101,7 @@ module.exports = async function handler(req, res) {
 async function callAzureOpenAI(systemPrompt, userMessage) {
   try {
     console.log('Calling Azure OpenAI...');
-
+    
     const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -141,7 +135,7 @@ async function callAzureOpenAI(systemPrompt, userMessage) {
 
     const data = await response.json();
     console.log('Azure OpenAI response received');
-
+    
     if (data.choices && data.choices[0] && data.choices[0].message) {
       return data.choices[0].message.content.trim();
     } else {

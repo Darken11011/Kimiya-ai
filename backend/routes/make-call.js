@@ -123,7 +123,7 @@ module.exports = async function makeCallHandler(req, res) {
         };
 
         defaultTwiML = `${protocol}://${host}/api/twiml-ai?id=${workflowId}`;
-        console.log(`Using AI-powered TwiML endpoint with robust error handling: ${defaultTwiML}`);
+        console.log(`Using AI-powered TwiML endpoint: ${defaultTwiML}`);
 
         // Log the workflow data for debugging
         console.log('Workflow data stored for processing:', {
