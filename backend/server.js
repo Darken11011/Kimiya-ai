@@ -49,27 +49,21 @@ app.get('/ping', (req, res) => {
 
 // Import route handlers
 const makeCallHandler = require('./routes/make-call');
-const twimlWorkflowHandler = require('./routes/twiml-workflow-clean');
 const twimlDefaultHandler = require('./routes/twiml-default');
 const callStatusHandler = require('./routes/call-status');
 const endCallHandler = require('./routes/end-call');
 const twilioConfigHandler = require('./routes/twilio-config');
 const testWorkflowHandler = require('./routes/test-workflow');
-const twimlTestHandler = require('./routes/twiml-test');
-const twimlSimpleHandler = require('./routes/twiml-simple');
 const twimlAiHandler = require('./routes/twiml-ai');
 const chatHandler = require('./routes/chat');
 
 // API Routes
 app.post('/api/make-call', makeCallHandler);
-app.all('/api/twiml-workflow', twimlWorkflowHandler);
 app.all('/api/twiml-default', twimlDefaultHandler);
 app.all('/api/call-status', callStatusHandler);
 app.post('/api/end-call', endCallHandler);
 app.get('/api/twilio-config', twilioConfigHandler);
 app.all('/api/test-workflow', testWorkflowHandler);
-app.all('/api/twiml-test', twimlTestHandler);
-app.all('/api/twiml-simple', twimlSimpleHandler);
 app.all('/api/twiml-ai', twimlAiHandler);
 app.post('/api/chat', chatHandler);
 
