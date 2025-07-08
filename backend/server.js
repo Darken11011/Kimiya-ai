@@ -55,6 +55,7 @@ const endCallHandler = require('./routes/end-call');
 const twilioConfigHandler = require('./routes/twilio-config');
 const testWorkflowHandler = require('./routes/test-workflow');
 const twimlAiHandler = require('./routes/twiml-ai');
+const twimlMinimalHandler = require('./routes/twiml-minimal');
 const chatHandler = require('./routes/chat');
 
 // API Routes
@@ -65,6 +66,7 @@ app.post('/api/end-call', endCallHandler);
 app.get('/api/twilio-config', twilioConfigHandler);
 app.all('/api/test-workflow', testWorkflowHandler);
 app.all('/api/twiml-ai', twimlAiHandler);
+app.all('/api/twiml-minimal', twimlMinimalHandler);
 app.post('/api/chat', chatHandler);
 
 // Root endpoint
