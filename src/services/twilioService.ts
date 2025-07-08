@@ -138,6 +138,7 @@ export class TwilioService {
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(15000), // 15 second timeout
         body: JSON.stringify({
           to: normalizedNumber,
           from: options.from || this.config.phoneNumber,

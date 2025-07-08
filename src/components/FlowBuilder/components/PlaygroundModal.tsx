@@ -573,7 +573,10 @@ Conversation turns in this node: ${conversationTurns}`
       const API_BASE_URL = getApiBaseUrl();
       console.log('Fetching from:', `${API_BASE_URL}/api/twilio-config`);
 
-      const response = await fetch(`${API_BASE_URL}/api/twilio-config`);
+      const response = await fetch(`${API_BASE_URL}/api/twilio-config`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
       console.log('Response status:', response.status);
 
       if (response.ok) {
@@ -596,6 +599,15 @@ Conversation turns in this node: ${conversationTurns}`
       }
     } catch (error) {
       console.error('Failed to fetch Twilio config from backend:', error);
+      // Use fallback config if backend is slow/unavailable
+      console.log('Using fallback Twilio config');
+      setTwilioConfig({
+        accountSid: 'AC64208c7087a03b475ea7fa9337b692f8',
+        authToken: 'ab39243ee151ff74a03075d53070cf67',
+        phoneNumber: '+17077433838',
+        recordCalls: true,
+        callTimeout: 30
+      });
     } finally {
       setIsLoadingTwilioConfig(false);
     }
@@ -1023,7 +1035,10 @@ Conversation turns in this node: ${conversationTurns}`
                       {!isEditingTwilio ? (
                         <div className="space-y-1">
                           {isLoadingTwilioConfig ? (
-                            <p className="text-blue-600">Loading configuration from backend...</p>
+                            <div className="text-blue-600">
+                              <p>Loading configuration from backend...</p>
+                              <p className="text-xs text-gray-500">This may take a moment if the backend is sleeping</p>
+                            </div>
                           ) : (
                             <>
                               <p>Account SID: {twilioConfig.accountSid}</p>

@@ -42,6 +42,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Quick ping endpoint for fast wake-up
+app.get('/ping', (req, res) => {
+  res.json({ pong: true, timestamp: Date.now() });
+});
+
 // Import route handlers
 const makeCallHandler = require('./routes/make-call');
 const twimlWorkflowHandler = require('./routes/twiml-workflow');
