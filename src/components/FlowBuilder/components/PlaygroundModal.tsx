@@ -36,12 +36,7 @@ interface ChatMessage {
   nodeName?: string;
 }
 
-interface AzureOpenAIConfig {
-  deploymentName: string;
-  modelName: string;
-  endpoint: string;
-  apiKey: string;
-}
+// Azure OpenAI config is now handled on the backend
 
 const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   isOpen,
@@ -942,7 +937,7 @@ Conversation turns in this node: ${conversationTurns}`
 
               <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
                 <span>
-                  Using Azure OpenAI ({azureConfig.modelName}) • {nodes.length} nodes in workflow
+                  Using Azure OpenAI (gpt-4o-mini) • {nodes.length} nodes in workflow
                 </span>
                 {isSimulating && currentNode && (
                   <div className="flex items-center space-x-3">
