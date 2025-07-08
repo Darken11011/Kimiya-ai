@@ -110,12 +110,12 @@ module.exports = async function makeCallHandler(req, res) {
     if (twimlUrl) {
       defaultTwiML = twimlUrl;
     } else {
-      // Use the workflow endpoint for dynamic conversations
+      // Temporarily use test endpoint to verify TwiML routing works
+      defaultTwiML = `${protocol}://${host}/api/twiml-test`;
+      console.log(`Using test TwiML endpoint: ${defaultTwiML}`);
+
+      // Log the workflow data for debugging
       if (workflowId && nodes && edges) {
-        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
-        console.log(`Using workflow TwiML endpoint: ${defaultTwiML}`);
-        
-        // Log the workflow data for debugging
         console.log('Workflow data that would be processed:', {
           workflowId,
           nodeCount: nodes.length,
@@ -124,10 +124,6 @@ module.exports = async function makeCallHandler(req, res) {
           firstNodeId: nodes[0]?.id,
           firstNodeType: nodes[0]?.type
         });
-      } else {
-        // No workflow data - use default
-        defaultTwiML = `${protocol}://${host}/api/twiml-default`;
-        console.log(`Using default TwiML endpoint: ${defaultTwiML}`);
       }
     }
 
