@@ -132,16 +132,19 @@ module.exports = async function handler(req, res) {
       body: req.body
     });
 
-    // Return a simple working TwiML response for debugging
-    const simpleTwiML = `<?xml version="1.0" encoding="UTF-8"?>
+    // Return a working TwiML response that starts a basic conversation
+    const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello! This is a test from the workflow endpoint. I can hear you and the system is working. Let me know how I can help you today.</Say>
-    <Pause length="2"/>
-    <Say voice="alice">If you can hear this message, the TwiML endpoint is working correctly.</Say>
+    <Say voice="alice">Hello! I'm your AI assistant. There was a small technical issue, but I'm here to help you. How can I assist you today?</Say>
+    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-workflow?id=${req.query.id || 'fallback'}" method="POST">
+        <Say voice="alice">Please tell me what you need help with.</Say>
+    </Gather>
+    <Say voice="alice">I didn't hear anything. Thank you for calling, goodbye!</Say>
+    <Hangup/>
 </Response>`;
 
-    console.log('Sending simple TwiML response due to error');
-    res.status(200).send(simpleTwiML);
+    console.log('Sending fallback TwiML response due to error');
+    res.status(200).send(fallbackTwiML);
   }
 }
 
@@ -153,19 +156,19 @@ async function loadWorkflowConfig(workflowId, req) {
     // For now, always use a simple default workflow to test basic functionality
     // This eliminates URL length and data parsing issues
 
-    // Use a simple working workflow for testing
+    // Use a simple working workflow that doesn't require AI for initial testing
     console.log(`Creating simple test workflow for ${workflowId}`);
     const testWorkflow = {
       id: workflowId || 'test',
-      globalPrompt: 'You are a helpful and friendly AI assistant. Keep responses short and conversational for phone calls.',
+      globalPrompt: 'You are a helpful and friendly AI assistant.',
       nodes: [
         {
           id: 'start',
           type: 'startNode',
           data: {
             label: 'Start',
-            prompt: 'Greet the caller warmly and ask how you can help.',
-            instructions: 'Be friendly and brief.'
+            prompt: 'Welcome the caller and provide assistance.',
+            instructions: 'Be friendly and helpful.'
           }
         }
       ],
@@ -178,7 +181,7 @@ async function loadWorkflowConfig(workflowId, req) {
             endpoint: process.env.AZURE_OPENAI_ENDPOINT || 'https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview',
             model: 'gpt-4o-mini',
             temperature: 0.7,
-            maxTokens: 150
+            maxTokens: 100
           }
         }
       }
