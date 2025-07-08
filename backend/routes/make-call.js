@@ -110,10 +110,10 @@ module.exports = async function makeCallHandler(req, res) {
     if (twimlUrl) {
       defaultTwiML = twimlUrl;
     } else {
-      // Use the workflow endpoint for dynamic conversations
+      // Use the simple conversational endpoint (bypasses complex AI processing)
       if (workflowId && nodes && edges) {
-        defaultTwiML = `${protocol}://${host}/api/twiml-workflow?id=${workflowId}`;
-        console.log(`Using workflow TwiML endpoint: ${defaultTwiML}`);
+        defaultTwiML = `${protocol}://${host}/api/twiml-simple?id=${workflowId}`;
+        console.log(`Using simple conversational TwiML endpoint: ${defaultTwiML}`);
 
         // Log the workflow data for debugging
         console.log('Workflow data that would be processed:', {
