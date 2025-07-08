@@ -164,8 +164,9 @@ export class TwilioService {
       const hostname = window.location.hostname;
 
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        // Local development - assume backend is running on port 3000
-        return 'http://localhost:3000';
+        // Local development - use Render backend for reliable TwiML endpoints
+        // (You can change this to 'http://localhost:3000' if running backend locally)
+        return 'https://kimiyi-ai.onrender.com';
       } else {
         // Production - use Render backend URL
         return 'https://kimiyi-ai.onrender.com';
