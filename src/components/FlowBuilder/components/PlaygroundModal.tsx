@@ -83,13 +83,7 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   });
   const [showAuthToken, setShowAuthToken] = useState(false);
 
-  // Azure OpenAI Configuration
-  const azureConfig: AzureOpenAIConfig = {
-    deploymentName: 'gpt4omini',
-    modelName: 'gpt-4o-mini',
-    endpoint: 'https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview',
-    apiKey: 'f6d564a83af3498c9beb46d7d3e3da96'
-  };
+  // Chat now uses backend API instead of direct Azure OpenAI calls
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -180,32 +174,33 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
     }
   };
 
-  const callAzureOpenAI = async (messages: any[]): Promise<string> => {
+  const callBackendChatAPI = async (messages: any[]): Promise<string> => {
     try {
-      const response = await fetch(azureConfig.endpoint, {
+      const API_BASE_URL = getApiBaseUrl();
+
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': azureConfig.apiKey,
         },
+        signal: AbortSignal.timeout(15000), // 15 second timeout
         body: JSON.stringify({
           messages: messages,
-          max_tokens: 1000,
-          temperature: 0.7,
-          top_p: 0.95,
-          frequency_penalty: 0,
-          presence_penalty: 0,
+          workflowId: workflowConfig?.id || `workflow-${Date.now()}`,
+          globalPrompt: globalPrompt,
+          currentNodeId: currentNodeId
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Azure OpenAI API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Backend API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      return data.choices[0]?.message?.content || 'No response generated';
+      return data.response || 'No response generated';
     } catch (error) {
-      console.error('Azure OpenAI API error:', error);
+      console.error('Backend chat API error:', error);
       throw error;
     }
   };
@@ -231,7 +226,7 @@ ${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
 You are in a phone conversation. Be natural and conversational. Stay in character for this node until the conversation naturally progresses or the user indicates they want to move forward. Don't immediately jump to the next step - have a proper conversation first.`;
 
       try {
-        const aiResponse = await callAzureOpenAI([
+        const aiResponse = await callBackendChatAPI([
           { role: 'system', content: systemPrompt },
           { role: 'user', content: 'Hello' }
         ]);
@@ -320,7 +315,7 @@ Consider:
 Respond with only "YES" if we should move to the next node, or "NO" if we should continue the conversation in this node.`;
 
     try {
-      const evaluation = await callAzureOpenAI([
+      const evaluation = await callBackendChatAPI([
         { role: 'system', content: evaluationPrompt }
       ]);
 
@@ -373,7 +368,7 @@ Conversation turns in this node: ${conversationTurns}`
       ];
 
       try {
-        const aiResponse = await callAzureOpenAI(conversationMessages);
+        const aiResponse = await callBackendChatAPI(conversationMessages);
 
         const aiMessage: ChatMessage = {
           id: `ai-${Date.now()}`,

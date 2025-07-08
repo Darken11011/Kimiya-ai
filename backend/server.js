@@ -58,6 +58,7 @@ const testWorkflowHandler = require('./routes/test-workflow');
 const twimlTestHandler = require('./routes/twiml-test');
 const twimlSimpleHandler = require('./routes/twiml-simple');
 const twimlAiHandler = require('./routes/twiml-ai');
+const chatHandler = require('./routes/chat');
 
 // API Routes
 app.post('/api/make-call', makeCallHandler);
@@ -70,6 +71,7 @@ app.all('/api/test-workflow', testWorkflowHandler);
 app.all('/api/twiml-test', twimlTestHandler);
 app.all('/api/twiml-simple', twimlSimpleHandler);
 app.all('/api/twiml-ai', twimlAiHandler);
+app.post('/api/chat', chatHandler);
 
 // Root endpoint
 app.get('/', (req, res) => {
