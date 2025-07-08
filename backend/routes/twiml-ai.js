@@ -17,12 +17,17 @@ module.exports = async function handler(req, res) {
     const speechResult = req.body.SpeechResult || '';
     const callSid = req.body.CallSid || 'unknown';
     const from = req.body.From || 'unknown';
+    const confidence = req.body.Confidence || 0;
+    const retryCount = parseInt(req.query.retry || '0');
 
     console.log('Processing AI call:', {
       workflowId,
       callSid,
       from,
-      hasUserInput: !!speechResult
+      hasUserInput: !!speechResult,
+      speechLength: speechResult.length,
+      confidence: confidence,
+      retryCount: retryCount
     });
 
     // Get workflow data for context
@@ -44,13 +49,24 @@ module.exports = async function handler(req, res) {
     }
 
     let aiResponse;
-    
-    if (!speechResult) {
-      // First interaction - use system prompt to generate greeting
-      aiResponse = await callAzureOpenAI(systemPrompt, 'Hello, start the conversation.');
+
+    // Check if we need to handle speech recognition issues
+    if (!speechResult || speechResult.trim().length < 2) {
+      if (retryCount === 0) {
+        // First interaction or first retry - use system prompt to generate greeting
+        aiResponse = await callAzureOpenAI(systemPrompt, 'Hello, start the conversation.');
+      } else if (retryCount < 3) {
+        // Retry with encouragement
+        aiResponse = "I'm having a bit of trouble hearing you clearly. This might be due to background noise or connection issues. Could you please speak a bit louder and more clearly? I'm here to help you.";
+      } else {
+        // Too many retries - offer alternative
+        aiResponse = "I'm having persistent difficulty hearing you clearly. This might be due to a poor connection. Would you like to try calling back, or I can provide you with our main number for better assistance?";
+      }
+    } else if (confidence && parseFloat(confidence) < 0.5) {
+      // Low confidence in speech recognition
+      aiResponse = `I think I heard you say "${speechResult}" but I'm not completely sure. Could you please repeat that or rephrase it? I want to make sure I understand you correctly.`;
     } else {
-      // User provided input - generate AI response
-      const conversationPrompt = `${systemPrompt}\n\nUser said: "${speechResult}"\n\nRespond helpfully and ask a follow-up question.`;
+      // Clear speech detected - generate AI response
       aiResponse = await callAzureOpenAI(systemPrompt, speechResult);
     }
 
@@ -62,14 +78,26 @@ module.exports = async function handler(req, res) {
       .replace(/>/g, 'greater than')
       .substring(0, 500); // Limit length for phone calls
 
-    // Generate TwiML with AI response
+    // Generate TwiML with AI response and optimized speech recognition
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">${cleanResponse}</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
-        <Say voice="alice">Please go ahead.</Say>
+    <Gather
+        input="speech"
+        timeout="15"
+        speechTimeout="auto"
+        speechModel="phone_call"
+        enhanced="true"
+        profanityFilter="false"
+        language="en-US"
+        hints="help,support,question,problem,issue,account,billing,service,information,yes,no"
+        action="/api/twiml-ai?id=${workflowId}&retry=${retryCount + 1}"
+        method="POST">
+        <Say voice="alice">Please speak clearly and tell me what you need.</Say>
+        <Pause length="2"/>
+        <Say voice="alice">I'm ready to listen...</Say>
     </Gather>
-    <Say voice="alice">Thank you for calling! Have a great day!</Say>
+    <Say voice="alice">I'm having difficulty hearing you clearly. This might be due to connection issues. Please try calling back or speak a bit louder and clearer. Thank you for your patience!</Say>
     <Hangup/>
 </Response>`;
 
@@ -81,14 +109,23 @@ module.exports = async function handler(req, res) {
     console.error('=== ERROR IN AI TWIML ===');
     console.error('Error:', error.message);
     
-    // Simple fallback that always works
+    // Simple fallback with improved speech recognition
     const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">Hello! Thank you for calling. I'm here to help you. How can I assist you today?</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-ai?id=${req.query.id || 'fallback'}" method="POST">
-        <Say voice="alice">Please tell me what you need.</Say>
+    <Gather
+        input="speech"
+        timeout="10"
+        speechTimeout="auto"
+        speechModel="phone_call"
+        enhanced="true"
+        action="/api/twiml-ai?id=${req.query.id || 'fallback'}"
+        method="POST">
+        <Say voice="alice">Please tell me what you need help with.</Say>
+        <Pause length="1"/>
+        <Say voice="alice">Take your time, I'm listening...</Say>
     </Gather>
-    <Say voice="alice">Thank you for calling!</Say>
+    <Say voice="alice">I'm having trouble hearing you. Please try calling back. Thank you!</Say>
     <Hangup/>
 </Response>`;
     
