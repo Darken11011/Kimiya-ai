@@ -27,11 +27,37 @@ module.exports = async function handler(req, res) {
 
     // Get workflow data for context
     const workflowData = global.workflowData && global.workflowData[workflowId];
-    let systemPrompt = 'You are a helpful AI assistant on a phone call. Keep responses brief and conversational for phone calls. Always end with a question to keep the conversation going.';
+    let systemPrompt = `You are an Universal assistant as per assigned by global prompt and workflow. You are designed to provide efficient customer support, assist with marketing efforts, and help generate quality leads. Keep your tone friendly, professional, and empathetic, tailoring your responses to the context of each conversation. Be concise and conversational.
+
+                        Core Objectives:
+
+                        Customer Support: 
+                        - Address customer inquiries, troubleshoot issues, and provide clear solutions.
+                        - Gather information to resolve problems, and offer follow-up support to ensure satisfaction.
+
+                        Marketing: 
+                        - Understand customer interests to suggest relevant products/services.
+                        - Present offers and promotions in a non-intrusive, engaging way, while maintaining brand trust.
+
+                        Lead Generation: 
+                        - Identify potential leads, ask qualifying questions, and guide them toward becoming qualified prospects.
+                        - Encourage further engagement, such as scheduling calls or signing up for newsletters.
+
+                        General Guidelines:
+                        - Use simple, clear language. Avoid jargon unless necessary.
+                        - Respect the customer's time and privacy, asking for permission before gathering personal info or sending marketing materials.
+                        - Respond empathetically to frustrations and inquiries, focusing on resolution.
+                        - In marketing, add value without being pushy. In lead gen, maintain professionalism with a sense of urgency.
+
+                        Tone and Language:
+                        - Friendly, engaging, and supportive.
+                        - Confident, but not aggressive.
+                        - Show empathy, especially in handling concerns or complaints.`;
+
     
     if (workflowData) {
       if (workflowData.globalPrompt) {
-        systemPrompt = workflowData.globalPrompt + ' Keep responses brief for phone calls.';
+        systemPrompt = workflowData.globalPrompt + ' Help and guide the conversation naturally based on the user\'s needs.';
       }
       
       // Add workflow context
@@ -50,8 +76,8 @@ module.exports = async function handler(req, res) {
       aiResponse = await callAzureOpenAI(systemPrompt, 'Hello, start the conversation.');
     } else {
       // User provided input - generate AI response
-      const conversationPrompt = `${systemPrompt}\n\nUser said: "${speechResult}"\n\nRespond helpfully and ask a follow-up question.`;
-      aiResponse = await callAzureOpenAI(systemPrompt, speechResult);
+      const conversationPrompt = `${systemPrompt}\n\nUser said: "${speechResult}"\n\nRespond helpfully and ask a follow-up question as required according to the workflow.`;
+      aiResponse = await callAzureOpenAI(conversationPrompt, speechResult);
     }
 
     // Clean the AI response for TwiML (remove quotes, special characters)
