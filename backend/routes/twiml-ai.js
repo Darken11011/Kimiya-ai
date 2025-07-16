@@ -60,6 +60,38 @@ module.exports = async function handler(req, res) {
     // Get workflow data for context
     const workflowData = global.workflowData && global.workflowData[workflowId];
 
+    // Helper function to check if current node is an end node
+    const isEndNode = (node) => {
+      if (!node) return false;
+      return node.type === 'endNode' ||
+             node.type === 'end' ||
+             node.data?.isEndNode === true ||
+             (node.data?.label && node.data.label.toLowerCase().includes('end'));
+    };
+
+    // Helper function to generate end call TwiML
+    const generateEndCallTwiML = (endNode) => {
+      const endingMessage = endNode?.data?.message ||
+                           endNode?.data?.prompt ||
+                           endNode?.data?.greeting ||
+                           "Thank you for calling! Your request has been completed. Have a wonderful day!";
+
+      const cleanEndingMessage = endingMessage
+        .replace(/['"]/g, '')
+        .replace(/&/g, 'and')
+        .replace(/</g, 'less than')
+        .replace(/>/g, 'greater than')
+        .substring(0, 800);
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">${cleanEndingMessage}</Say>
+    <Pause length="1"/>
+    <Say voice="alice">Goodbye!</Say>
+    <Hangup/>
+</Response>`;
+    };
+
     // Initialize current node if not set
     if (!callState.currentNodeId && workflowData && workflowData.nodes) {
       const startNode = workflowData.nodes.find(node =>
@@ -68,6 +100,22 @@ module.exports = async function handler(req, res) {
       if (startNode) {
         callState.currentNodeId = startNode.id;
       }
+    }
+
+    // Get current node for processing
+    let currentNode = getCurrentNode();
+
+    // Check if we're at an end node and should terminate the call
+    if (currentNode && isEndNode(currentNode)) {
+      console.log(`Reached end node: ${currentNode.data?.label || currentNode.type}. Ending call.`);
+
+      // Clean up conversation state
+      delete global.callConversations[callSid];
+
+      // Return end call TwiML
+      const endTwiML = generateEndCallTwiML(currentNode);
+      console.log('Sending end call TwiML response');
+      return res.status(200).send(endTwiML);
     }
 
     // Helper functions for workflow management
@@ -90,15 +138,24 @@ module.exports = async function handler(req, res) {
         callState.currentNodeId = nextNode.id;
         callState.conversationTurns = 0; // Reset turns for new node
         console.log(`Moved to next node: ${nextNode.data?.label || nextNode.type}`);
+
+        // Update currentNode reference for end node check
+        currentNode = nextNode;
+
         return true;
       }
       return false;
     };
 
     const shouldMoveToNextNode = async (currentNode, conversationHistory, userMessage) => {
-      // For non-conversation nodes, move immediately
-      if (currentNode.type !== 'conversationNode' && currentNode.type !== 'startNode') {
+      // For non-conversation nodes, move immediately (unless it's an end node)
+      if (currentNode.type !== 'conversationNode' && currentNode.type !== 'startNode' && !isEndNode(currentNode)) {
         return true;
+      }
+
+      // Never move from end nodes
+      if (isEndNode(currentNode)) {
+        return false;
       }
 
       const nodeObjective = currentNode.data?.prompt || currentNode.data?.objective || '';
@@ -150,8 +207,7 @@ Respond with only "YES" if we should move to the next node, or "NO" if we should
         return false; // Default to staying in node if evaluation fails
       }
     };
-    // Build context-aware system prompt
-    const currentNode = getCurrentNode();
+    // Build context-aware system prompt (reuse currentNode from above)
     let systemPrompt = 'You are a helpful AI assistant.';
 
     if (workflowData && workflowData.globalPrompt) {
@@ -176,7 +232,7 @@ IMPORTANT CONVERSATION GUIDELINES:
 - Be warm, friendly, and conversational - this is a phone call, not a text chat
 - Give detailed, helpful responses that show you're engaged and listening
 - Ask follow-up questions to keep the conversation flowing naturally
-- Don't rush through the conversation - take time to understand the user's needs
+- Don't rush through the conversation - take time to understand the user's needs but dont make if long and frustrating
 - Be patient and allow for natural pauses in conversation
 - Continue the conversation naturally based on what has been discussed
 - Remember what the user has already told you (check the conversation summary)
@@ -184,10 +240,11 @@ IMPORTANT CONVERSATION GUIDELINES:
 - Focus on the current node's specific objective, but don't be robotic about it
 - Engage in natural conversation while working toward the node's goal
 - Don't end the conversation abruptly - keep it flowing until the objective is met
+- And make sure to end the call with a friendly goodbye after a conclusion is reached or upon user request
 
 RESPONSE STYLE:
 - Give responses that are 2-3 sentences long minimum
-- Be conversational and engaging, not short or abrupt
+- Be conversational and engaging, not short or abrupt and not long enough to be frustrating
 - Show genuine interest in helping the user
 - Ask thoughtful follow-up questions
 - Acknowledge what the user has said before moving forward
@@ -245,7 +302,39 @@ Conversation turns in this node: ${callState.conversationTurns}`;
         const shouldMove = await shouldMoveToNextNode(currentNode, callState.messages, speechResult);
         if (shouldMove) {
           console.log(`Moving from ${currentNode.data?.label || currentNode.type} to next node`);
-          moveToNextNode();
+          const moved = moveToNextNode();
+
+          // If we moved to an end node, end the call immediately
+          if (moved && currentNode && isEndNode(currentNode)) {
+            console.log(`Moved to end node: ${currentNode.data?.label || currentNode.type}. Ending call.`);
+
+            // Clean up conversation state
+            delete global.callConversations[callSid];
+
+            // Return end call TwiML
+            const endTwiML = generateEndCallTwiML(currentNode);
+            console.log('Sending end call TwiML response after node transition');
+            return res.status(200).send(endTwiML);
+          }
+
+          // If we couldn't move to next node (workflow completed), end the call
+          if (!moved) {
+            console.log('No more nodes in workflow. Ending call.');
+
+            // Clean up conversation state
+            delete global.callConversations[callSid];
+
+            // Generate completion message
+            const completionTwiML = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Thank you for calling! We have completed your request. If you need any further assistance, please don't hesitate to call back.</Say>
+    <Pause length="1"/>
+    <Say voice="alice">Have a wonderful day! Goodbye!</Say>
+    <Hangup/>
+</Response>`;
+            console.log('Sending workflow completion TwiML response');
+            return res.status(200).send(completionTwiML);
+          }
         }
       }
     }
