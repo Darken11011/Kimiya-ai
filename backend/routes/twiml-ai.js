@@ -60,7 +60,12 @@ module.exports = async function handler(req, res) {
     // Get workflow data for context
     const workflowData = global.workflowData && global.workflowData[workflowId];
 
-    // Helper function to check if current node is an end node
+    // Helper functions for workflow management (defined first to avoid hoisting issues)
+    const getCurrentNode = () => {
+      if (!workflowData || !workflowData.nodes) return null;
+      return workflowData.nodes.find(node => node.id === callState.currentNodeId);
+    };
+
     const isEndNode = (node) => {
       if (!node) return false;
       return node.type === 'endNode' ||
@@ -69,7 +74,6 @@ module.exports = async function handler(req, res) {
              (node.data?.label && node.data.label.toLowerCase().includes('end'));
     };
 
-    // Helper function to generate end call TwiML
     const generateEndCallTwiML = (endNode) => {
       const endingMessage = endNode?.data?.message ||
                            endNode?.data?.prompt ||
@@ -117,12 +121,6 @@ module.exports = async function handler(req, res) {
       console.log('Sending end call TwiML response');
       return res.status(200).send(endTwiML);
     }
-
-    // Helper functions for workflow management
-    const getCurrentNode = () => {
-      if (!workflowData || !workflowData.nodes) return null;
-      return workflowData.nodes.find(node => node.id === callState.currentNodeId);
-    };
 
     const getNextNode = async (userMessage = '') => {
       if (!workflowData || !workflowData.edges || !callState.currentNodeId) return null;
