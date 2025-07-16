@@ -85,39 +85,43 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   // Smart auto-scroll: only scroll to bottom if user hasn't manually scrolled up
   useEffect(() => {
     if (scrollAreaRef.current && !isUserScrolling) {
-      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
+      setTimeout(() => {
+        if (scrollAreaRef.current) {
+          scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        }
+      }, 0);
     }
   }, [messages, isUserScrolling]);
-
-  // Handle scroll events to detect user scrolling
-  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    const scrollElement = event.currentTarget.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollElement) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px threshold
-
-      setIsUserScrolling(!isAtBottom);
-      setShowScrollToBottom(!isAtBottom);
-    }
-  };
 
   // Function to scroll to bottom manually
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTo({
-          top: scrollElement.scrollHeight,
-          behavior: 'smooth'
-        });
-        setIsUserScrolling(false);
-        setShowScrollToBottom(false);
-      }
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+      setIsUserScrolling(false);
+      setShowScrollToBottom(false);
     }
   };
+
+  // Check scroll position to show/hide scroll button
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const handleScroll = () => {
+        if (scrollAreaRef.current) {
+          const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current;
+          const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+          setIsUserScrolling(!isAtBottom);
+          setShowScrollToBottom(!isAtBottom);
+        }
+      };
+
+      scrollAreaRef.current.addEventListener('scroll', handleScroll);
+      const currentRef = scrollAreaRef.current;
+      return () => currentRef?.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -875,12 +879,13 @@ Conversation turns in this node: ${conversationTurns}`
 
           <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 mt-4">
             {/* Chat Messages */}
-            <div className="relative flex-1">
-              <ScrollArea
-                className="flex-1 p-4 border rounded-lg h-full"
+            <div className="relative flex-1 min-h-0">
+              <div
+                className="h-full border rounded-lg overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                 ref={scrollAreaRef}
-                onScrollCapture={handleScroll}
+                style={{ maxHeight: '400px' }}
               >
+                <div className="space-y-4">
               <div className="space-y-4">
                 {messages.length === 0 && !isSimulating && (
                   <div className="text-center text-gray-500 py-8">
@@ -948,16 +953,16 @@ Conversation turns in this node: ${conversationTurns}`
                     </Card>
                   </div>
                 )}
+                </div>
               </div>
-              </ScrollArea>
 
               {/* Scroll to bottom button */}
               {showScrollToBottom && (
                 <Button
                   onClick={scrollToBottom}
                   size="sm"
-                  className="absolute bottom-4 right-4 rounded-full shadow-lg z-10"
-                  variant="secondary"
+                  className="absolute bottom-4 right-4 rounded-full shadow-lg z-10 bg-blue-500 hover:bg-blue-600 text-white"
+                  variant="default"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </Button>
