@@ -1,6 +1,24 @@
 const fetch = require('node-fetch');
 
-// AI-powered TwiML endpoint using Azure OpenAI
+// Global storage for call conversations (in production, use Redis or database)
+global.callConversations = global.callConversations || {};
+
+// Cleanup old conversations (older than 1 hour) to prevent memory leaks
+const cleanupOldConversations = () => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  Object.keys(global.callConversations).forEach(callSid => {
+    const conversation = global.callConversations[callSid];
+    if (conversation.startTime < oneHourAgo) {
+      delete global.callConversations[callSid];
+      console.log(`Cleaned up old conversation: ${callSid}`);
+    }
+  });
+};
+
+// Run cleanup every 30 minutes
+setInterval(cleanupOldConversations, 30 * 60 * 1000);
+
+// AI-powered TwiML endpoint using Azure OpenAI with workflow support
 module.exports = async function handler(req, res) {
   console.log('=== AI TWIML ENDPOINT CALLED ===');
   console.log('Timestamp:', new Date().toISOString());
@@ -25,59 +43,194 @@ module.exports = async function handler(req, res) {
       hasUserInput: !!speechResult
     });
 
+    // Initialize or get conversation state for this call
+    if (!global.callConversations[callSid]) {
+      global.callConversations[callSid] = {
+        messages: [],
+        currentNodeId: null,
+        conversationTurns: 0,
+        conversationSummary: '',
+        startTime: new Date(),
+        workflowId: workflowId
+      };
+    }
+
+    const callState = global.callConversations[callSid];
+
     // Get workflow data for context
     const workflowData = global.workflowData && global.workflowData[workflowId];
-    let systemPrompt = `You are an Universal assistant as per assigned by global prompt and workflow. You are designed to provide efficient customer support, assist with marketing efforts, and help generate quality leads. Keep your tone friendly, professional, and empathetic, tailoring your responses to the context of each conversation. Be concise and conversational.
 
-                        Core Objectives:
-
-                        Customer Support: 
-                        - Address customer inquiries, troubleshoot issues, and provide clear solutions.
-                        - Gather information to resolve problems, and offer follow-up support to ensure satisfaction.
-
-                        Marketing: 
-                        - Understand customer interests to suggest relevant products/services.
-                        - Present offers and promotions in a non-intrusive, engaging way, while maintaining brand trust.
-
-                        Lead Generation: 
-                        - Identify potential leads, ask qualifying questions, and guide them toward becoming qualified prospects.
-                        - Encourage further engagement, such as scheduling calls or signing up for newsletters.
-
-                        General Guidelines:
-                        - Use simple, clear language. Avoid jargon unless necessary.
-                        - Respect the customer's time and privacy, asking for permission before gathering personal info or sending marketing materials.
-                        - Respond empathetically to frustrations and inquiries, focusing on resolution.
-                        - In marketing, add value without being pushy. In lead gen, maintain professionalism with a sense of urgency.
-
-                        Tone and Language:
-                        - Friendly, engaging, and supportive.
-                        - Confident, but not aggressive.
-                        - Show empathy, especially in handling concerns or complaints.`;
-
-    
-    if (workflowData) {
-      if (workflowData.globalPrompt) {
-        systemPrompt = workflowData.globalPrompt + ' Help and guide the conversation naturally based on the user\'s needs.';
-      }
-      
-      // Add workflow context
-      const startNode = workflowData.nodes.find(node => 
+    // Initialize current node if not set
+    if (!callState.currentNodeId && workflowData && workflowData.nodes) {
+      const startNode = workflowData.nodes.find(node =>
         node.type === 'startNode' || node.type === 'start'
       );
-      if (startNode && startNode.data && startNode.data.prompt) {
-        systemPrompt += ` Start the conversation with: "${startNode.data.prompt}"`;
+      if (startNode) {
+        callState.currentNodeId = startNode.id;
       }
     }
 
+    // Helper functions for workflow management
+    const getCurrentNode = () => {
+      if (!workflowData || !workflowData.nodes) return null;
+      return workflowData.nodes.find(node => node.id === callState.currentNodeId);
+    };
+
+    const getNextNode = () => {
+      if (!workflowData || !workflowData.edges || !callState.currentNodeId) return null;
+      const outgoingEdges = workflowData.edges.filter(edge => edge.source === callState.currentNodeId);
+      if (outgoingEdges.length === 0) return null;
+      const nextEdge = outgoingEdges[0]; // Take first edge for now
+      return workflowData.nodes.find(node => node.id === nextEdge.target);
+    };
+
+    const moveToNextNode = () => {
+      const nextNode = getNextNode();
+      if (nextNode) {
+        callState.currentNodeId = nextNode.id;
+        callState.conversationTurns = 0; // Reset turns for new node
+        console.log(`Moved to next node: ${nextNode.data?.label || nextNode.type}`);
+        return true;
+      }
+      return false;
+    };
+
+    const shouldMoveToNextNode = async (currentNode, conversationHistory, userMessage) => {
+      // For non-conversation nodes, move immediately
+      if (currentNode.type !== 'conversationNode' && currentNode.type !== 'startNode') {
+        return true;
+      }
+
+      const nodeObjective = currentNode.data?.prompt || currentNode.data?.objective || '';
+      const nodeInstructions = currentNode.data?.instructions || '';
+
+      const evaluationPrompt = `You are evaluating whether a conversation has completed its objective for the current node.
+
+Current Node: ${currentNode.data?.label || currentNode.type}
+Node Objective: ${nodeObjective}
+${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
+
+Recent conversation:
+${conversationHistory.slice(-8).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+Latest user message: ${userMessage}
+
+IMPORTANT CRITERIA FOR MOVING TO NEXT NODE:
+- Has this specific node's LIMITED objective been fulfilled? (Don't try to do everything in one node)
+- For "Welcome & Greeting": Has the user been welcomed and expressed their basic intent?
+- For "Inquiry Type Classification": Has the inquiry type been identified?
+- For "Requirements Gathering": Has basic requirement info been collected?
+- Each node should have a FOCUSED, LIMITED purpose
+
+MOVE TO NEXT NODE if:
+- The current node's specific objective is reasonably complete
+- The user has provided the basic information this node is designed to collect
+- The conversation has addressed this node's core purpose
+- There are other specialized nodes designed for additional details
+
+AVOID staying in current node if:
+- You're trying to gather information that belongs in a different node
+- The conversation is going beyond this node's specific scope
+- You're asking for details that other nodes are designed to handle
+
+Respond with only "YES" if we should move to the next node, or "NO" if we should continue the conversation in this node.`;
+
+      try {
+        const evaluation = await callAzureOpenAI([
+          { role: 'system', content: evaluationPrompt }
+        ]);
+        return evaluation.trim().toUpperCase().includes('YES');
+      } catch (error) {
+        console.error('Failed to evaluate node completion:', error);
+        return false; // Default to staying in node if evaluation fails
+      }
+    };
+    // Build context-aware system prompt
+    const currentNode = getCurrentNode();
+    let systemPrompt = 'You are a helpful AI assistant.';
+
+    if (workflowData && workflowData.globalPrompt) {
+      systemPrompt = workflowData.globalPrompt;
+    }
+
+    // Add current node context
+    if (currentNode) {
+      const nodePrompt = currentNode.data?.prompt || currentNode.data?.greeting || '';
+      const nodeInstructions = currentNode.data?.instructions || '';
+
+      systemPrompt += `
+
+Current Node: ${currentNode.data?.label || currentNode.type}
+Node Context: ${nodePrompt}
+${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
+${callState.conversationSummary ? `\nConversation Summary So Far: ${callState.conversationSummary}` : ''}
+
+You are in a phone conversation. Focus ONLY on achieving the specific objective of THIS node - do not try to complete the entire workflow in one node.
+
+IMPORTANT:
+- Do NOT start with greetings like "Hello" or "Thank you for reaching out" unless this is truly the first interaction
+- Continue the conversation naturally based on what has been discussed
+- Remember what the user has already told you (check the conversation summary)
+- Don't ask for information the user has already provided
+- Focus ONLY on the current node's specific objective - there are other nodes designed for other purposes
+- Do NOT try to gather all information at once - stick to this node's purpose
+- Once this node's specific objective is met, the conversation will naturally move to the next specialized node
+
+Conversation turns in this node: ${callState.conversationTurns}`;
+    }
+
     let aiResponse;
-    
+
     if (!speechResult) {
       // First interaction - use system prompt to generate greeting
       aiResponse = await callAzureOpenAI(systemPrompt, 'Hello, start the conversation.');
+
+      // Add to conversation history
+      callState.messages.push({
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: new Date(),
+        nodeId: callState.currentNodeId
+      });
     } else {
-      // User provided input - generate AI response
-      const conversationPrompt = `${systemPrompt}\n\nUser said: "${speechResult}"\n\nRespond helpfully and ask a follow-up question as required according to the workflow.`;
-      aiResponse = await callAzureOpenAI(conversationPrompt, speechResult);
+      // User provided input - increment conversation turns and add to history
+      callState.conversationTurns++;
+
+      // Add user message to history
+      callState.messages.push({
+        role: 'user',
+        content: speechResult,
+        timestamp: new Date(),
+        nodeId: callState.currentNodeId
+      });
+
+      // Generate AI response with full context
+      const conversationMessages = [
+        { role: 'system', content: systemPrompt },
+        ...callState.messages.slice(-8).map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        { role: 'user', content: speechResult }
+      ];
+
+      aiResponse = await callAzureOpenAI(conversationMessages);
+
+      // Add AI response to history
+      callState.messages.push({
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: new Date(),
+        nodeId: callState.currentNodeId
+      });
+
+      // Check if we should move to next node (after 2+ turns)
+      if (callState.conversationTurns >= 2 && currentNode) {
+        const shouldMove = await shouldMoveToNextNode(currentNode, callState.messages, speechResult);
+        if (shouldMove) {
+          moveToNextNode();
+        }
+      }
     }
 
     // Clean the AI response for TwiML (remove quotes, special characters)
@@ -121,11 +274,31 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// Call Azure OpenAI API
-async function callAzureOpenAI(systemPrompt, userMessage) {
+// Call Azure OpenAI API - supports both old format (systemPrompt, userMessage) and new format (messages array)
+async function callAzureOpenAI(systemPromptOrMessages, userMessage) {
   try {
     console.log('Calling Azure OpenAI...');
-    
+
+    let messages;
+
+    // Handle both old format and new format
+    if (Array.isArray(systemPromptOrMessages)) {
+      // New format: array of messages
+      messages = systemPromptOrMessages;
+    } else {
+      // Old format: systemPrompt and userMessage
+      messages = [
+        {
+          role: 'system',
+          content: systemPromptOrMessages
+        },
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ];
+    }
+
     const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -133,16 +306,7 @@ async function callAzureOpenAI(systemPrompt, userMessage) {
         'api-key': process.env.AZURE_OPENAI_API_KEY
       },
       body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userMessage
-          }
-        ],
+        messages: messages,
         max_tokens: 100, // Reduced for faster responses
         temperature: 0.5, // Lower for more consistent, faster responses
         top_p: 0.9, // Slightly reduced for faster processing
