@@ -346,18 +346,23 @@ Latest user message: ${userMessage}
 
 Has this conversation node achieved its objective? Should we move to the next step in the workflow?
 
-IMPORTANT CRITERIA:
-- Has the main purpose of this node been fulfilled?
-- Has enough information been gathered or provided for this specific step?
-- Is the user ready to proceed to the next logical step?
-- Has the conversation naturally reached a conclusion for this step?
-- Are there clear indicators that this phase is complete?
+IMPORTANT CRITERIA FOR MOVING TO NEXT NODE:
+- Has this specific node's LIMITED objective been fulfilled? (Don't try to do everything in one node)
+- For "Welcome & Greeting": Has the user been welcomed and expressed their basic intent?
+- For "Inquiry Type Classification": Has the inquiry type been identified?
+- For "Requirements Gathering": Has basic requirement info been collected?
+- Each node should have a FOCUSED, LIMITED purpose
 
-AVOID moving to next node if:
-- The user is still providing information relevant to this node
-- The conversation is still actively addressing this node's objective
-- The user hasn't indicated readiness to move forward
-- More clarification or details are needed for this step
+MOVE TO NEXT NODE if:
+- The current node's specific objective is reasonably complete
+- The user has provided the basic information this node is designed to collect
+- The conversation has addressed this node's core purpose
+- There are other specialized nodes designed for additional details
+
+AVOID staying in current node if:
+- You're trying to gather information that belongs in a different node
+- The conversation is going beyond this node's specific scope
+- You're asking for details that other nodes are designed to handle
 
 Respond with only "YES" if we should move to the next node, or "NO" if we should continue the conversation in this node.`;
 
@@ -407,14 +412,16 @@ Node Context: ${nodePrompt}
 ${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
 ${conversationSummary ? `\nConversation Summary So Far: ${conversationSummary}` : ''}
 
-You are continuing a phone conversation. The user has been talking with you and you should maintain context from the previous conversation. Focus on achieving the objective of this node while being natural and conversational.
+You are continuing a phone conversation. The user has been talking with you and you should maintain context from the previous conversation. Focus ONLY on achieving the specific objective of THIS node - do not try to complete the entire workflow in one node.
 
 IMPORTANT:
 - Do NOT start with greetings like "Hello" or "Thank you for reaching out" unless this is truly the first interaction
 - Continue the conversation naturally based on what has been discussed
 - Remember what the user has already told you (check the conversation summary)
 - Don't ask for information the user has already provided
-- Focus on the current node's objective while maintaining conversation flow
+- Focus ONLY on the current node's specific objective - there are other nodes designed for other purposes
+- Do NOT try to gather all information at once - stick to this node's purpose
+- Once this node's specific objective is met, the conversation will naturally move to the next specialized node
 
 Conversation turns in this node: ${conversationTurns}`
         },
@@ -439,8 +446,8 @@ Conversation turns in this node: ${conversationTurns}`
 
         setMessages(prev => [...prev, aiMessage]);
 
-        // Check if we should move to next node (only after a few turns and with some delay)
-        if (conversationTurns >= 3) { // Increased from 2 to 3 for better conversation flow
+        // Check if we should move to next node (more aggressive to follow workflow)
+        if (conversationTurns >= 2) { // Reduced back to 2 to move faster through workflow
           // Add a small delay to make the conversation feel more natural
           setTimeout(async () => {
             const shouldMove = await shouldMoveToNextNode(currentNode, [...messages, aiMessage], userMessage);
@@ -448,7 +455,7 @@ Conversation turns in this node: ${conversationTurns}`
             if (shouldMove) {
               await moveToNextNode(currentNode.id, userMessage);
             }
-          }, 2000); // Increased delay for more natural flow
+          }, 1000); // Reduced delay to move through workflow faster
         }
       } catch (error) {
         toast.error('Failed to get AI response');
