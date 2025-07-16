@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Send, Bot, User, Loader2, AlertCircle, Play, Square, Phone, PhoneCall, MessageSquare, Settings, Eye, EyeOff } from 'lucide-react';
+import { Send, Bot, User, Loader2, AlertCircle, Play, Square, Phone, PhoneCall, MessageSquare, Settings, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -56,6 +56,8 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   const [conversationTurns, setConversationTurns] = useState(0);
   const [nodeContext, setNodeContext] = useState<string>('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   // Call functionality state
   const [activeTab, setActiveTab] = useState<'chat' | 'call'>('chat');
@@ -80,11 +82,42 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
 
   // Chat now uses backend API instead of direct Azure OpenAI calls
 
+  // Smart auto-scroll: only scroll to bottom if user hasn't manually scrolled up
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    if (scrollAreaRef.current && !isUserScrolling) {
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
-  }, [messages]);
+  }, [messages, isUserScrolling]);
+
+  // Handle scroll events to detect user scrolling
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const scrollElement = event.currentTarget.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollElement) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px threshold
+
+      setIsUserScrolling(!isAtBottom);
+      setShowScrollToBottom(!isAtBottom);
+    }
+  };
+
+  // Function to scroll to bottom manually
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTo({
+          top: scrollElement.scrollHeight,
+          behavior: 'smooth'
+        });
+        setIsUserScrolling(false);
+        setShowScrollToBottom(false);
+      }
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -842,7 +875,12 @@ Conversation turns in this node: ${conversationTurns}`
 
           <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 mt-4">
             {/* Chat Messages */}
-            <ScrollArea className="flex-1 p-4 border rounded-lg" ref={scrollAreaRef}>
+            <div className="relative flex-1">
+              <ScrollArea
+                className="flex-1 p-4 border rounded-lg h-full"
+                ref={scrollAreaRef}
+                onScrollCapture={handleScroll}
+              >
               <div className="space-y-4">
                 {messages.length === 0 && !isSimulating && (
                   <div className="text-center text-gray-500 py-8">
@@ -911,7 +949,20 @@ Conversation turns in this node: ${conversationTurns}`
                   </div>
                 )}
               </div>
-            </ScrollArea>
+              </ScrollArea>
+
+              {/* Scroll to bottom button */}
+              {showScrollToBottom && (
+                <Button
+                  onClick={scrollToBottom}
+                  size="sm"
+                  className="absolute bottom-4 right-4 rounded-full shadow-lg z-10"
+                  variant="secondary"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
 
             <Separator className="my-4" />
 
@@ -955,6 +1006,14 @@ Conversation turns in this node: ${conversationTurns}`
                       </span>
                     )}
                   </div>
+                )}
+              </div>
+
+              {/* Chat Info Footer */}
+              <div className="text-xs text-gray-500 text-center mt-2">
+                <p>{messages.length} messages • {nodes.length} nodes in workflow</p>
+                {isUserScrolling && (
+                  <p className="text-blue-600 mt-1">Scroll to bottom to see new messages</p>
                 )}
               </div>
             </div>
