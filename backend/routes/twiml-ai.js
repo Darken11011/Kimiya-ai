@@ -124,20 +124,108 @@ module.exports = async function handler(req, res) {
       return workflowData.nodes.find(node => node.id === callState.currentNodeId);
     };
 
-    const getNextNode = () => {
+    const getNextNode = async (userMessage = '') => {
       if (!workflowData || !workflowData.edges || !callState.currentNodeId) return null;
       const outgoingEdges = workflowData.edges.filter(edge => edge.source === callState.currentNodeId);
       if (outgoingEdges.length === 0) return null;
-      const nextEdge = outgoingEdges[0]; // Take first edge for now
-      return workflowData.nodes.find(node => node.id === nextEdge.target);
+
+      // If only one edge, use it directly
+      if (outgoingEdges.length === 1) {
+        const nextEdge = outgoingEdges[0];
+        return workflowData.nodes.find(node => node.id === nextEdge.target);
+      }
+
+      // Multiple edges - evaluate conditions
+      // First, try to find edges with conditions that are met
+      for (const edge of outgoingEdges) {
+        // Skip default/fallback edges in first pass
+        if (edge.data?.isDefault || edge.data?.isFallback) continue;
+
+        const conditionMet = await evaluateEdgeCondition(edge, userMessage);
+        if (conditionMet) {
+          console.log(`Taking edge with condition: ${edge.data?.condition || edge.condition}`);
+          return workflowData.nodes.find(node => node.id === edge.target);
+        }
+      }
+
+      // If no conditional edges matched, look for default/fallback edge
+      const defaultEdge = outgoingEdges.find(edge => edge.data?.isDefault || edge.data?.isFallback);
+      if (defaultEdge) {
+        console.log('Taking default/fallback edge');
+        return workflowData.nodes.find(node => node.id === defaultEdge.target);
+      }
+
+      // If no default edge, take first edge as final fallback
+      console.log('Taking first edge as final fallback');
+      const fallbackEdge = outgoingEdges[0];
+      return workflowData.nodes.find(node => node.id === fallbackEdge.target);
     };
 
-    const moveToNextNode = () => {
-      const nextNode = getNextNode();
+    // Function to evaluate edge conditions
+    const evaluateEdgeCondition = async (edge, userMessage) => {
+      // If no condition specified, edge is always valid
+      if (!edge.data?.condition && !edge.condition) {
+        return true;
+      }
+
+      const condition = edge.data?.condition || edge.condition || '';
+      const conditionType = edge.data?.conditionType || 'ai_evaluation';
+
+      // If condition is empty, edge is valid
+      if (!condition.trim()) {
+        return true;
+      }
+
+      // Handle different condition types
+      if (conditionType === 'keyword') {
+        // Simple keyword matching
+        const keywords = condition.toLowerCase().split(',').map(k => k.trim());
+        const userMessageLower = userMessage.toLowerCase();
+        return keywords.some(keyword => userMessageLower.includes(keyword));
+      }
+
+      if (conditionType === 'exact_match') {
+        // Exact phrase matching
+        return userMessage.toLowerCase().includes(condition.toLowerCase());
+      }
+
+      // Default: AI evaluation for complex conditions
+      const evaluationPrompt = `You are evaluating whether a workflow edge condition is met based on the user's response and conversation context.
+
+Edge Condition: "${condition}"
+User's Latest Message: "${userMessage}"
+Conversation History: ${callState.messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+Based on the user's response and conversation context, does this condition evaluate to true?
+
+Examples of conditions:
+- "user wants to buy" - true if user expressed buying intent
+- "user wants to sell" - true if user expressed selling intent
+- "user provided contact info" - true if user gave phone/email
+- "user is satisfied" - true if user seems satisfied with service
+- "user needs more help" - true if user needs additional assistance
+
+Respond with only "YES" if the condition is met, or "NO" if it is not met.`;
+
+      try {
+        const evaluation = await callAzureOpenAI([
+          { role: 'system', content: evaluationPrompt }
+        ]);
+        const result = evaluation.trim().toUpperCase().includes('YES');
+        console.log(`Edge condition "${condition}" evaluated to: ${result}`);
+        return result;
+      } catch (error) {
+        console.error('Failed to evaluate edge condition:', error);
+        return true; // Default to true if evaluation fails
+      }
+    };
+
+    const moveToNextNode = async (userMessage = '') => {
+      const nextNode = await getNextNode(userMessage);
       if (nextNode) {
+        console.log(`Moving from ${currentNode?.data?.label || currentNode?.type} to ${nextNode.data?.label || nextNode.type}`);
         callState.currentNodeId = nextNode.id;
         callState.conversationTurns = 0; // Reset turns for new node
-        console.log(`Moved to next node: ${nextNode.data?.label || nextNode.type}`);
 
         // Update currentNode reference for end node check
         currentNode = nextNode;
@@ -301,8 +389,7 @@ Conversation turns in this node: ${callState.conversationTurns}`;
       if (callState.conversationTurns >= 4 && currentNode) {
         const shouldMove = await shouldMoveToNextNode(currentNode, callState.messages, speechResult);
         if (shouldMove) {
-          console.log(`Moving from ${currentNode.data?.label || currentNode.type} to next node`);
-          const moved = moveToNextNode();
+          const moved = await moveToNextNode(speechResult);
 
           // If we moved to an end node, end the call immediately
           if (moved && currentNode && isEndNode(currentNode)) {
