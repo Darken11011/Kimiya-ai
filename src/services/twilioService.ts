@@ -102,14 +102,15 @@ export class TwilioService {
   private async wakeUpBackend(): Promise<void> {
     try {
       const API_BASE_URL = this.getApiBaseUrl();
-      console.log('Waking up backend...');
+      console.log('Waking up backend... (this may take up to 60 seconds on free tier)');
       await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: AbortSignal.timeout(60000) // 60 second timeout for Render wake-up
       });
-      console.log('Backend is awake');
+      console.log('Backend is awake and ready');
     } catch (error) {
       console.warn('Failed to wake up backend:', error);
+      throw new Error('Backend wake-up failed. Please try again in a moment.');
     }
   }
 

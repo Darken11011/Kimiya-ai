@@ -92,8 +92,7 @@ module.exports = async function handler(req, res) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">${cleanResponse}</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
-        <Say voice="alice">Please go ahead.</Say>
+    <Gather input="speech" timeout="5" speechTimeout="1" action="/api/twiml-ai?id=${workflowId}" method="POST">
     </Gather>
     <Say voice="alice">Thank you for calling! Have a great day!</Say>
     <Hangup/>
@@ -111,8 +110,7 @@ module.exports = async function handler(req, res) {
     const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">Hello! Thank you for calling. I'm here to help you. How can I assist you today?</Say>
-    <Gather input="speech" timeout="5" speechTimeout="2" action="/api/twiml-ai?id=${req.query.id || 'fallback'}" method="POST">
-        <Say voice="alice">Please tell me what you need.</Say>
+    <Gather input="speech" timeout="5" speechTimeout="1" action="/api/twiml-ai?id=${req.query.id || 'fallback'}" method="POST">
     </Gather>
     <Say voice="alice">Thank you for calling!</Say>
     <Hangup/>
@@ -145,9 +143,9 @@ async function callAzureOpenAI(systemPrompt, userMessage) {
             content: userMessage
           }
         ],
-        max_tokens: 150,
-        temperature: 0.7,
-        top_p: 1,
+        max_tokens: 100, // Reduced for faster responses
+        temperature: 0.5, // Lower for more consistent, faster responses
+        top_p: 0.9, // Slightly reduced for faster processing
         frequency_penalty: 0,
         presence_penalty: 0
       })
