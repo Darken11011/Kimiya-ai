@@ -55,6 +55,7 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [conversationTurns, setConversationTurns] = useState(0);
   const [nodeContext, setNodeContext] = useState<string>('');
+  const [conversationSummary, setConversationSummary] = useState<string>('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -182,7 +183,7 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
       setConversationTurns(0);
 
       // Set initial context based on start node
-      const context = startNode.data?.prompt || startNode.data?.description || 'Call started';
+      const context = (startNode.data?.prompt || startNode.data?.description || 'Call started') as string;
       setNodeContext(context);
 
       const systemMessage: ChatMessage = {
@@ -191,14 +192,14 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
         content: `Call simulation started. ${startNode.data?.label || 'Start Node'}: ${context}`,
         timestamp: new Date(),
         nodeId: startNode.id,
-        nodeName: startNode.data?.label
+        nodeName: startNode.data?.label as string
       };
       setMessages([systemMessage]);
 
       // If start node has specific content, have AI initiate the conversation
       if (startNode.data?.prompt || startNode.data?.greeting) {
         setTimeout(() => {
-          initiateNodeConversation(startNode);
+          initiateNodeConversation(startNode, true); // true = this is the first node
         }, 500);
       }
     } else {
@@ -243,11 +244,17 @@ const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
     return startNode?.data?.globalPrompt || globalPrompt || 'You are a helpful AI assistant.';
   };
 
-  const initiateNodeConversation = async (node: Node) => {
+  const initiateNodeConversation = async (node: Node, isFirstNode: boolean = false) => {
     if (node.type === 'conversationNode' || node.type === 'startNode') {
       const nodePrompt = node.data?.prompt || node.data?.greeting || '';
       const nodeInstructions = node.data?.instructions || '';
       const effectiveGlobalPrompt = getEffectiveGlobalPrompt();
+
+      // Only initiate conversation for the very first node (start node)
+      // For subsequent nodes, let the conversation flow naturally
+      if (!isFirstNode) {
+        return;
+      }
 
       const systemPrompt = `${effectiveGlobalPrompt}
 
@@ -255,7 +262,7 @@ Current Node: ${node.data?.label || node.type}
 Node Context: ${nodePrompt}
 ${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
 
-You are in a phone conversation. Be natural and conversational. Stay in character for this node until the conversation naturally progresses or the user indicates they want to move forward. Don't immediately jump to the next step - have a proper conversation first.`;
+You are starting a phone conversation. Be natural and conversational. Begin with an appropriate greeting based on the node context.`;
 
       try {
         const aiResponse = await callBackendChatAPI([
@@ -269,7 +276,7 @@ You are in a phone conversation. Be natural and conversational. Stay in characte
           content: aiResponse,
           timestamp: new Date(),
           nodeId: node.id,
-          nodeName: node.data?.label
+          nodeName: node.data?.label as string
         };
 
         setMessages(prev => [...prev, aiMessage]);
@@ -333,16 +340,24 @@ Node Objective: ${nodeObjective}
 ${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
 
 Recent conversation:
-${conversationHistory.slice(-6).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+${conversationHistory.slice(-8).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
 
 Latest user message: ${userMessage}
 
 Has this conversation node achieved its objective? Should we move to the next step in the workflow?
-Consider:
+
+IMPORTANT CRITERIA:
 - Has the main purpose of this node been fulfilled?
-- Has enough information been gathered or provided?
-- Is the user ready to proceed?
+- Has enough information been gathered or provided for this specific step?
+- Is the user ready to proceed to the next logical step?
 - Has the conversation naturally reached a conclusion for this step?
+- Are there clear indicators that this phase is complete?
+
+AVOID moving to next node if:
+- The user is still providing information relevant to this node
+- The conversation is still actively addressing this node's objective
+- The user hasn't indicated readiness to move forward
+- More clarification or details are needed for this step
 
 Respond with only "YES" if we should move to the next node, or "NO" if we should continue the conversation in this node.`;
 
@@ -373,6 +388,15 @@ Respond with only "YES" if we should move to the next node, or "NO" if we should
 
       const effectiveGlobalPrompt = getEffectiveGlobalPrompt();
 
+      // Get conversation history excluding system messages but including context
+      const conversationHistory = messages
+        .filter(msg => msg.role !== 'system')
+        .slice(-10) // Keep last 10 messages for context
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
       const conversationMessages = [
         {
           role: 'system',
@@ -381,18 +405,20 @@ Respond with only "YES" if we should move to the next node, or "NO" if we should
 Current Node: ${currentNode.data?.label || currentNode.type}
 Node Context: ${nodePrompt}
 ${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
+${conversationSummary ? `\nConversation Summary So Far: ${conversationSummary}` : ''}
 
-You are in a phone conversation. Be natural and conversational. Focus on achieving the objective of this node. Don't mention moving to next steps unless the conversation naturally concludes or the user indicates they're ready to proceed.
+You are continuing a phone conversation. The user has been talking with you and you should maintain context from the previous conversation. Focus on achieving the objective of this node while being natural and conversational.
+
+IMPORTANT:
+- Do NOT start with greetings like "Hello" or "Thank you for reaching out" unless this is truly the first interaction
+- Continue the conversation naturally based on what has been discussed
+- Remember what the user has already told you (check the conversation summary)
+- Don't ask for information the user has already provided
+- Focus on the current node's objective while maintaining conversation flow
 
 Conversation turns in this node: ${conversationTurns}`
         },
-        ...messages
-          .filter(msg => msg.role !== 'system')
-          .slice(-10) // Keep last 10 messages for context
-          .map(msg => ({
-            role: msg.role,
-            content: msg.content
-          })),
+        ...conversationHistory,
         {
           role: 'user',
           content: userMessage
@@ -408,13 +434,13 @@ Conversation turns in this node: ${conversationTurns}`
           content: aiResponse,
           timestamp: new Date(),
           nodeId: currentNode.id,
-          nodeName: currentNode.data?.label
+          nodeName: currentNode.data?.label as string
         };
 
         setMessages(prev => [...prev, aiMessage]);
 
         // Check if we should move to next node (only after a few turns and with some delay)
-        if (conversationTurns >= 2) {
+        if (conversationTurns >= 3) { // Increased from 2 to 3 for better conversation flow
           // Add a small delay to make the conversation feel more natural
           setTimeout(async () => {
             const shouldMove = await shouldMoveToNextNode(currentNode, [...messages, aiMessage], userMessage);
@@ -422,7 +448,7 @@ Conversation turns in this node: ${conversationTurns}`
             if (shouldMove) {
               await moveToNextNode(currentNode.id, userMessage);
             }
-          }, 1500);
+          }, 2000); // Increased delay for more natural flow
         }
       } catch (error) {
         toast.error('Failed to get AI response');
@@ -446,7 +472,7 @@ Conversation turns in this node: ${conversationTurns}`
         content: `[API Request] ${node.data?.label || 'API call executed'} - Processing request...`,
         timestamp: new Date(),
         nodeId: node.id,
-        nodeName: node.data?.label
+        nodeName: node.data?.label as string
       };
     } else if (node.type === 'endCall') {
       nodeMessage = {
@@ -455,7 +481,7 @@ Conversation turns in this node: ${conversationTurns}`
         content: 'Call ended. Thank you for calling!',
         timestamp: new Date(),
         nodeId: node.id,
-        nodeName: node.data?.label
+        nodeName: node.data?.label as string
       };
       setIsSimulating(false);
     } else {
@@ -465,7 +491,7 @@ Conversation turns in this node: ${conversationTurns}`
         content: `[${getNodeTypeDescription(node.type)}] ${node.data?.label || 'Processing'}...`,
         timestamp: new Date(),
         nodeId: node.id,
-        nodeName: node.data?.label
+        nodeName: node.data?.label as string
       };
     }
 
@@ -480,27 +506,23 @@ Conversation turns in this node: ${conversationTurns}`
       setConversationTurns(0); // Reset conversation turns for new node
 
       // Set new node context
-      const context = nextNode.data?.prompt || nextNode.data?.description || '';
+      const context = (nextNode.data?.prompt || nextNode.data?.description || '') as string;
       setNodeContext(context);
 
-      // Add system message about node transition
+      // Add system message about node transition (more subtle)
       const transitionMessage: ChatMessage = {
         id: `transition-${Date.now()}`,
         role: 'system',
-        content: `→ Moved to: ${getNodeTypeDescription(nextNode.type)} - ${nextNode.data?.label || 'Untitled'}`,
+        content: `→ Moved to: ${nextNode.data?.label || getNodeTypeDescription(nextNode.type)}`,
         timestamp: new Date(),
         nodeId: nextNode.id,
-        nodeName: nextNode.data?.label
+        nodeName: nextNode.data?.label as string
       };
 
       setMessages(prev => [...prev, transitionMessage]);
 
-      // If it's a conversation node, initiate the conversation
-      if (nextNode.type === 'conversationNode') {
-        setTimeout(() => {
-          initiateNodeConversation(nextNode);
-        }, 1000);
-      }
+      // For conversation nodes, don't initiate new conversation - let it flow naturally
+      // The AI will continue the conversation based on the new node context
     } else {
       // End of workflow
       const endMessage: ChatMessage = {
@@ -547,6 +569,7 @@ Conversation turns in this node: ${conversationTurns}`
     setCurrentNodeId(null);
     setConversationTurns(0);
     setNodeContext('');
+    setConversationSummary('');
 
     // End any active call
     if (isCallInProgress && currentCallSid) {
@@ -675,26 +698,38 @@ Conversation turns in this node: ${conversationTurns}`
       },
       // Preserve other configs or use defaults
       llm: workflowConfig?.llm || {
-        provider: 'openai',
-        model: 'gpt-4',
-        apiKey: '',
-        temperature: 0.7,
-        maxTokens: 1000
+        provider: 'openai' as any,
+        openAI: {
+          apiKey: '',
+          model: 'gpt-4',
+          temperature: 0.7,
+          maxTokens: 1000
+        }
       },
       voice: workflowConfig?.voice || {
-        provider: 'elevenlabs',
-        voiceId: 'default',
-        apiKey: ''
+        provider: 'eleven_labs' as any,
+        elevenLabs: {
+          apiKey: '',
+          voiceId: 'default'
+        }
       },
       transcription: workflowConfig?.transcription || {
-        provider: 'deepgram',
-        apiKey: '',
-        language: 'en'
+        provider: 'deepgram' as any,
+        deepgram: {
+          apiKey: '',
+          language: 'en'
+        }
       },
       globalSettings: workflowConfig?.globalSettings || {
-        enableLogging: true,
-        enableAnalytics: false,
-        maxConversationLength: 50
+        defaultLanguage: 'en-US',
+        timezone: 'UTC',
+        callRecording: true,
+        transcriptionEnabled: true,
+        sentimentAnalysis: false,
+        conversationSummary: true,
+        maxCallDuration: 30,
+        silenceTimeout: 10,
+        interruptionHandling: true
       }
     };
 
@@ -831,7 +866,7 @@ Conversation turns in this node: ${conversationTurns}`
               {currentNode && (
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline" className="text-xs">
-                    {currentNode.data?.label || getNodeTypeDescription(currentNode.type)}
+                    {(currentNode.data?.label as string) || getNodeTypeDescription(currentNode.type)}
                   </Badge>
                   {conversationTurns > 0 && (
                     <Badge variant="secondary" className="text-xs">
@@ -976,7 +1011,7 @@ Conversation turns in this node: ${conversationTurns}`
                 <Input
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
                   placeholder={isSimulating ? "Type your message..." : "Start simulation to begin chatting"}
                   disabled={!isSimulating || isLoading}
                   className="flex-1"
