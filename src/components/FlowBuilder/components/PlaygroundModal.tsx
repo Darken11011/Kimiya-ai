@@ -886,7 +886,6 @@ Conversation turns in this node: ${conversationTurns}`
                 style={{ maxHeight: '400px' }}
               >
                 <div className="space-y-4">
-              <div className="space-y-4">
                 {messages.length === 0 && !isSimulating && (
                   <div className="text-center text-gray-500 py-8">
                     <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
