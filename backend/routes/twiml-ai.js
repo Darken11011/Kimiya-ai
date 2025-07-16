@@ -115,23 +115,28 @@ ${conversationHistory.slice(-8).map(msg => `${msg.role}: ${msg.content}`).join('
 
 Latest user message: ${userMessage}
 
-IMPORTANT CRITERIA FOR MOVING TO NEXT NODE:
-- Has this specific node's LIMITED objective been fulfilled? (Don't try to do everything in one node)
-- For "Welcome & Greeting": Has the user been welcomed and expressed their basic intent?
-- For "Inquiry Type Classification": Has the inquiry type been identified?
-- For "Requirements Gathering": Has basic requirement info been collected?
-- Each node should have a FOCUSED, LIMITED purpose
+IMPORTANT CRITERIA FOR MOVING TO NEXT NODE (Be more patient for phone calls):
+- Has this node's objective been THOROUGHLY fulfilled with good conversation depth?
+- Has the user had enough time to express their needs and feel heard?
+- Has sufficient information been gathered for this node's purpose?
+- For "Welcome & Greeting": Has the user been welcomed, rapport built, and basic intent clearly understood?
+- For "Inquiry Type Classification": Has the inquiry type been clearly identified with context?
+- For "Requirements Gathering": Has detailed requirement information been collected?
+- Each node should provide VALUE and build relationship, not just collect data
 
-MOVE TO NEXT NODE if:
-- The current node's specific objective is reasonably complete
-- The user has provided the basic information this node is designed to collect
-- The conversation has addressed this node's core purpose
-- There are other specialized nodes designed for additional details
+MOVE TO NEXT NODE only if:
+- The current node's objective is COMPLETELY fulfilled
+- The user seems satisfied with this phase of the conversation
+- You have gathered sufficient detail for this node's purpose
+- The conversation has naturally reached a good transition point
+- The user appears ready to move to the next logical step
 
-AVOID staying in current node if:
-- You're trying to gather information that belongs in a different node
-- The conversation is going beyond this node's specific scope
-- You're asking for details that other nodes are designed to handle
+STAY IN CURRENT NODE if:
+- The user is still providing relevant information
+- More clarification or details would be helpful
+- The conversation feels rushed or incomplete
+- You haven't built sufficient rapport or understanding
+- The user seems to have more to say about this topic
 
 Respond with only "YES" if we should move to the next node, or "NO" if we should continue the conversation in this node.`;
 
@@ -165,16 +170,27 @@ Node Context: ${nodePrompt}
 ${nodeInstructions ? `Instructions: ${nodeInstructions}` : ''}
 ${callState.conversationSummary ? `\nConversation Summary So Far: ${callState.conversationSummary}` : ''}
 
-You are in a phone conversation. Focus ONLY on achieving the specific objective of THIS node - do not try to complete the entire workflow in one node.
+You are in a phone conversation. Be conversational, engaging, and helpful. Focus on achieving the specific objective of THIS node while maintaining a natural dialogue.
 
-IMPORTANT:
-- Do NOT start with greetings like "Hello" or "Thank you for reaching out" unless this is truly the first interaction
+IMPORTANT CONVERSATION GUIDELINES:
+- Be warm, friendly, and conversational - this is a phone call, not a text chat
+- Give detailed, helpful responses that show you're engaged and listening
+- Ask follow-up questions to keep the conversation flowing naturally
+- Don't rush through the conversation - take time to understand the user's needs
+- Be patient and allow for natural pauses in conversation
 - Continue the conversation naturally based on what has been discussed
 - Remember what the user has already told you (check the conversation summary)
 - Don't ask for information the user has already provided
-- Focus ONLY on the current node's specific objective - there are other nodes designed for other purposes
-- Do NOT try to gather all information at once - stick to this node's purpose
-- Once this node's specific objective is met, the conversation will naturally move to the next specialized node
+- Focus on the current node's specific objective, but don't be robotic about it
+- Engage in natural conversation while working toward the node's goal
+- Don't end the conversation abruptly - keep it flowing until the objective is met
+
+RESPONSE STYLE:
+- Give responses that are 2-3 sentences long minimum
+- Be conversational and engaging, not short or abrupt
+- Show genuine interest in helping the user
+- Ask thoughtful follow-up questions
+- Acknowledge what the user has said before moving forward
 
 Conversation turns in this node: ${callState.conversationTurns}`;
     }
@@ -224,10 +240,11 @@ Conversation turns in this node: ${callState.conversationTurns}`;
         nodeId: callState.currentNodeId
       });
 
-      // Check if we should move to next node (after 2+ turns)
-      if (callState.conversationTurns >= 2 && currentNode) {
+      // Check if we should move to next node (after 4+ turns for more natural conversation)
+      if (callState.conversationTurns >= 4 && currentNode) {
         const shouldMove = await shouldMoveToNextNode(currentNode, callState.messages, speechResult);
         if (shouldMove) {
+          console.log(`Moving from ${currentNode.data?.label || currentNode.type} to next node`);
           moveToNextNode();
         }
       }
@@ -239,15 +256,20 @@ Conversation turns in this node: ${callState.conversationTurns}`;
       .replace(/&/g, 'and')
       .replace(/</g, 'less than')
       .replace(/>/g, 'greater than')
-      .substring(0, 500); // Limit length for phone calls
+      .substring(0, 800); // Increased limit for more natural conversations
 
-    // Generate TwiML with AI response
+    // Generate TwiML with AI response - more patient conversation flow
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">${cleanResponse}</Say>
-    <Gather input="speech" timeout="5" speechTimeout="1" action="/api/twiml-ai?id=${workflowId}" method="POST">
+    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
+        <Say voice="alice">I'm listening...</Say>
     </Gather>
-    <Say voice="alice">Thank you for calling! Have a great day!</Say>
+    <Say voice="alice">I didn't hear anything. Let me try again.</Say>
+    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
+        <Say voice="alice">Please go ahead, I'm here to help.</Say>
+    </Gather>
+    <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
     <Hangup/>
 </Response>`;
 
@@ -259,13 +281,18 @@ Conversation turns in this node: ${callState.conversationTurns}`;
     console.error('=== ERROR IN AI TWIML ===');
     console.error('Error:', error.message);
     
-    // Simple fallback that always works
+    // Conversational fallback that encourages engagement
     const fallbackTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello! Thank you for calling. I'm here to help you. How can I assist you today?</Say>
-    <Gather input="speech" timeout="5" speechTimeout="1" action="/api/twiml-ai?id=${req.query.id || 'fallback'}" method="POST">
+    <Say voice="alice">Hello! Thank you for calling. I'm here to help you with whatever you need. Please tell me, what can I assist you with today?</Say>
+    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-ai?id=${req.query.id || 'fallback'}" method="POST">
+        <Say voice="alice">I'm listening and ready to help you.</Say>
     </Gather>
-    <Say voice="alice">Thank you for calling!</Say>
+    <Say voice="alice">I didn't catch that. Let me try once more.</Say>
+    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-ai?id=${req.query.id || 'fallback'}" method="POST">
+        <Say voice="alice">Please go ahead, I'm here to assist you.</Say>
+    </Gather>
+    <Say voice="alice">Thank you for calling! Please feel free to call back anytime you need assistance. Have a wonderful day!</Say>
     <Hangup/>
 </Response>`;
     
@@ -307,9 +334,9 @@ async function callAzureOpenAI(systemPromptOrMessages, userMessage) {
       },
       body: JSON.stringify({
         messages: messages,
-        max_tokens: 100, // Reduced for faster responses
-        temperature: 0.5, // Lower for more consistent, faster responses
-        top_p: 0.9, // Slightly reduced for faster processing
+        max_tokens: 200, // Increased for more detailed responses
+        temperature: 0.7, // Higher for more natural, conversational responses
+        top_p: 0.95, // Higher for more varied, engaging responses
         frequency_penalty: 0,
         presence_penalty: 0
       })
