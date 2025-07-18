@@ -1,0 +1,382 @@
+{
+  "name": "Real Estate Property Dealer Workflow",
+  "config": {
+    "name": "Real Estate Property Dealer Workflow",
+    "description": "Comprehensive workflow for real estate property dealers to handle customer inquiries, gather requirements, and provide property recommendations",
+    "twilio": {
+      "accountSid": "YOUR_TWILIO_ACCOUNT_SID",
+      "authToken": "YOUR_TWILIO_AUTH_TOKEN",
+      "phoneNumber": "+1234567890",
+      "recordCalls": true,
+      "callTimeout": 1800
+    },
+    "llm": {
+      "provider": "azure_openai",
+      "azure": {
+        "apiKey": "f6d564a83af3498c9beb46d7d3e3da96",
+        "endpoint": "https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview",
+        "model": "gpt-4o-mini",
+        "temperature": 0.7,
+        "maxTokens": 1000,
+        "systemPrompt": "You are a professional real estate agent assistant. Be helpful, knowledgeable, and guide customers through their property search journey."
+      }
+    },
+    "voice": {
+      "provider": "eleven_labs",
+      "elevenLabs": {
+        "apiKey": "YOUR_ELEVEN_LABS_API_KEY",
+        "voiceId": "21m00Tcm4TlvDq8ikWAM",
+        "model": "eleven_monolingual_v1",
+        "stability": 0.5,
+        "similarityBoost": 0.5
+      }
+    },
+    "transcription": {
+      "provider": "deepgram",
+      "deepgram": {
+        "apiKey": "YOUR_DEEPGRAM_API_KEY",
+        "model": "nova-2",
+        "language": "en-US",
+        "punctuate": true,
+        "smartFormat": true
+      }
+    },
+    "globalSettings": {
+      "defaultLanguage": "en-US",
+      "timezone": "UTC",
+      "callRecording": true,
+      "transcriptionEnabled": true,
+      "sentimentAnalysis": true,
+      "conversationSummary": true,
+      "maxCallDuration": 30,
+      "silenceTimeout": 10,
+      "interruptionHandling": true
+    },
+    "createdAt": "2025-07-06T20:30:00.000Z",
+    "version": "1.0.0"
+  },
+  "nodes": [
+    {
+      "id": "start_node",
+      "type": "startNode",
+      "position": {
+        "x": 60,
+        "y": -45
+      },
+      "data": {
+        "firstMessage": "Hello! Thank you for calling Premier Properties. I'm your AI assistant here to help you find your perfect property. How may I assist you today?",
+        "globalPrompt": "You are a professional real estate AI assistant for Premier Properties. Be warm, professional, and knowledgeable about real estate. Always maintain a helpful and consultative approach. Your goal is to understand customer needs and guide them through their property journey.",
+        "label": "Welcome & Greeting"
+      },
+      "measured": {
+        "width": 408,
+        "height": 355
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "inquiry_type_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 100,
+        "y": 400
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "Determine the type of property inquiry. Ask the customer what they're looking for: Are they looking to buy, sell, rent, or invest in property? Be conversational and gather this information naturally. Once you understand their primary need, acknowledge it and prepare to gather more specific details. Don't move forward until you clearly understand whether they want to buy, sell, rent, or invest.",
+        "label": "Inquiry Type Classification"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false
+    },
+    {
+      "id": "buyer_requirements_node",
+      "type": "conversationNode",
+      "position": {
+        "x": -570,
+        "y": 570
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're helping a property buyer. Gather detailed requirements through natural conversation:\n\n1. Property Type: House, apartment, condo, townhouse, etc.\n2. Budget Range: What's their budget or price range?\n3. Location Preferences: Which areas, neighborhoods, or cities?\n4. Size Requirements: Number of bedrooms, bathrooms, square footage\n5. Must-Have Features: Parking, garden, pool, modern kitchen, etc.\n6. Timeline: When are they looking to buy?\n7. Financing: Are they pre-approved for a mortgage?\n8. Current Living Situation: First-time buyer, upgrading, downsizing?\n\nAsk these questions conversationally, not like a checklist. Listen to their responses and ask follow-up questions. Make sure you understand their priorities and deal-breakers.",
+        "label": "Buyer Requirements Gathering"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "seller_details_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 945,
+        "y": 555
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're helping someone sell their property. Gather comprehensive details through natural conversation:\n\n1. Property Details: Type, size, age, condition of the property\n2. Location: Full address and neighborhood details\n3. Property Features: Unique selling points, recent renovations, special features\n4. Motivation: Why are they selling? Timeline urgency?\n5. Pricing Expectations: What do they think it's worth? Any recent appraisals?\n6. Current Mortgage: Do they have an outstanding mortgage?\n7. Timeline: When do they want to sell? Any deadline constraints?\n8. Previous Marketing: Have they tried selling before?\n9. Property Access: Availability for showings and inspections\n\nBe empathetic and understanding. Selling a home can be emotional. Ask follow-up questions to understand their situation fully.",
+        "label": "Seller Property Details"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "rental_requirements_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 345,
+        "y": 840
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're helping someone with rental needs. Determine if they're looking to rent or rent out a property, then gather relevant details:\n\nFor Renters:\n1. Property Type: Apartment, house, studio, etc.\n2. Budget: Monthly rent budget\n3. Location: Preferred areas, proximity to work/school\n4. Size: Bedrooms, bathrooms needed\n5. Lease Terms: Short-term, long-term, flexible?\n6. Move-in Timeline: When do they need to move?\n7. Requirements: Pet-friendly, furnished, parking, amenities\n8. Current Situation: Why are they moving?\n\nFor Landlords:\n1. Property Details: Type, size, location, condition\n2. Rental History: Previous rental experience\n3. Target Rent: Expected monthly rent\n4. Tenant Preferences: Any specific requirements for tenants\n5. Property Management: Self-manage or need management services\n6. Timeline: When is the property available?\n\nAsk clarifying questions and be thorough in understanding their rental needs.",
+        "label": "Rental Requirements"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "investment_consultation_node",
+      "type": "conversationNode",
+      "position": {
+        "x": -375,
+        "y": 1365
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're consulting with a property investor. Gather detailed investment criteria:\n\n1. Investment Goals: Capital growth, rental income, or both?\n2. Investment Budget: How much are they looking to invest?\n3. Property Types: Residential, commercial, industrial preferences\n4. Location Strategy: Local market or exploring other areas?\n5. Investment Timeline: Short-term flip or long-term hold?\n6. Risk Tolerance: Conservative or aggressive investment approach?\n7. Experience Level: First-time investor or experienced?\n8. Financing: Cash purchase or investment loans?\n9. Expected Returns: What ROI are they targeting?\n10. Portfolio: Do they have other investment properties?\n11. Management: Self-manage or hire property management?\n\nBe knowledgeable about investment strategies and ask insightful questions about their investment philosophy and goals.",
+        "label": "Investment Consultation"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "contact_details_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 600,
+        "y": 1605
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "Now collect the customer's contact information and preferences for follow-up:\n\n1. Full Name: First and last name\n2. Phone Number: Primary contact number\n3. Email Address: For sending property listings and documents\n4. Preferred Contact Method: Phone, email, or text\n5. Best Time to Contact: Morning, afternoon, evening preferences\n6. Urgency Level: How quickly do they need assistance?\n7. Additional Notes: Any other important information\n\nExplain that you'll use this information to:\n- Send relevant property listings\n- Schedule viewings or consultations\n- Provide market updates\n- Connect them with a specialist agent if needed\n\nAssure them about privacy and that their information will be handled professionally.",
+        "label": "Contact Information Collection"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "summary_confirmation_node",
+      "type": "conversationNode",
+      "position": {
+        "x": -75,
+        "y": 2070
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "Provide a comprehensive summary of everything discussed and confirm next steps:\n\n1. Summarize their requirements/situation clearly\n2. Confirm all the key details you've gathered\n3. Explain the next steps in the process\n4. Set expectations for follow-up timing\n5. Mention any immediate actions you'll take\n6. Ask if they have any final questions\n7. Provide your contact information for future reference\n\nMake them feel confident that their needs are understood and that they'll receive excellent service. End on a positive, professional note.",
+        "label": "Summary & Next Steps"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "transfer_to_agent_node",
+      "type": "transferCall",
+      "position": {
+        "x": 645,
+        "y": 2385
+      },
+      "data": {
+        "destination": "+1234567890",
+        "transferMessage": "Transferring to specialist agent with complete customer profile and requirements. Customer is ready for personalized service.",
+        "label": "Transfer to Human Agent"
+      },
+      "measured": {
+        "width": 326,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "end_call_node",
+      "type": "endCall",
+      "position": {
+        "x": -420,
+        "y": 2490
+      },
+      "data": {
+        "endMessage": "Thank you for choosing Premier Properties! We'll be in touch soon with relevant options. Have a wonderful day!",
+        "label": "End Call"
+      },
+      "measured": {
+        "width": 215,
+        "height": 255
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "start_node",
+      "target": "inquiry_type_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_2",
+      "source": "inquiry_type_node",
+      "target": "buyer_requirements_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Customer wants to buy a property",
+        "description": "Route to buyer requirements if customer is looking to purchase"
+      }
+    },
+    {
+      "id": "edge_3",
+      "source": "inquiry_type_node",
+      "target": "seller_details_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Customer wants to sell a property",
+        "description": "Route to seller details if customer wants to sell"
+      }
+    },
+    {
+      "id": "edge_4",
+      "source": "inquiry_type_node",
+      "target": "rental_requirements_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Customer is interested in rental (renting or renting out)",
+        "description": "Route to rental requirements for rental inquiries"
+      },
+      "selected": false
+    },
+    {
+      "id": "edge_5",
+      "source": "inquiry_type_node",
+      "target": "investment_consultation_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Customer is interested in property investment",
+        "description": "Route to investment consultation for investors"
+      }
+    },
+    {
+      "id": "edge_6",
+      "source": "buyer_requirements_node",
+      "target": "contact_details_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_7",
+      "source": "seller_details_node",
+      "target": "contact_details_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_8",
+      "source": "rental_requirements_node",
+      "target": "contact_details_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_9",
+      "source": "investment_consultation_node",
+      "target": "contact_details_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_10",
+      "source": "contact_details_node",
+      "target": "summary_confirmation_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_11",
+      "source": "summary_confirmation_node",
+      "target": "transfer_to_agent_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Customer wants to speak with a human agent or needs immediate assistance",
+        "description": "Transfer to human agent if requested or for complex cases"
+      }
+    },
+    {
+      "id": "edge_12",
+      "source": "summary_confirmation_node",
+      "target": "end_call_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Customer is satisfied with the information gathering and doesn't need immediate human assistance",
+        "description": "End call if customer is satisfied with AI assistance"
+      }
+    }
+  ],
+  "variables": [
+    null
+  ],
+  "exportedAt": "2025-07-06T20:32:33.080Z",
+  "version": "1.0.0"
+}

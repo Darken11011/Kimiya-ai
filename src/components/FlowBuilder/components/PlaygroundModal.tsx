@@ -544,6 +544,19 @@ Conversation turns in this node: ${conversationTurns}`
     }
   };
 
+  // Function to detect if user wants to end the conversation
+  const detectTerminationIntent = (message: string): boolean => {
+    const terminationKeywords = [
+      'bye', 'goodbye', 'good bye', 'see you', 'talk later', 'call later',
+      'call back', 'that\'s all', 'thanks bye', 'thank you bye', 'gotta go',
+      'have to go', 'need to go', 'end call', 'hang up', 'disconnect',
+      'that\'s it', 'i\'m done', 'we\'re done', 'all set', 'thank you that\'s all'
+    ];
+
+    const messageLower = message.toLowerCase().trim();
+    return terminationKeywords.some(keyword => messageLower.includes(keyword));
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
@@ -555,8 +568,29 @@ Conversation turns in this node: ${conversationTurns}`
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageContent = inputMessage.trim();
     setInputMessage('');
     setIsLoading(true);
+
+    // Check for termination intent
+    if (detectTerminationIntent(messageContent)) {
+      const goodbyeMessage: ChatMessage = {
+        id: `goodbye-${Date.now()}`,
+        role: 'assistant',
+        content: 'Thank you so much for our conversation! It was great talking with you. Have a wonderful day! 👋',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, goodbyeMessage]);
+      setIsLoading(false);
+
+      // If there's an active call, end it
+      if (isCallInProgress && currentCallSid) {
+        await handleEndCall();
+      }
+
+      return;
+    }
 
     try {
       await simulateWorkflowStep(userMessage.content);

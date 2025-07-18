@@ -74,6 +74,64 @@ module.exports = async function handler(req, res) {
              (node.data?.label && node.data.label.toLowerCase().includes('end'));
     };
 
+    // Function to detect if user wants to end the call
+    const detectTerminationIntent = async (userMessage) => {
+      if (!userMessage) return false;
+
+      // Quick keyword detection for common termination phrases
+      const terminationKeywords = [
+        'bye', 'goodbye', 'good bye', 'see you', 'talk later', 'call later',
+        'call back', 'that\'s all', 'thanks bye', 'thank you bye', 'gotta go',
+        'have to go', 'need to go', 'end call', 'hang up', 'disconnect',
+        'that\'s it', 'i\'m done', 'we\'re done', 'all set', 'thank you that\'s all'
+      ];
+
+      const messageLower = userMessage.toLowerCase().trim();
+
+      // Check for direct keyword matches
+      const hasTerminationKeyword = terminationKeywords.some(keyword =>
+        messageLower.includes(keyword)
+      );
+
+      if (hasTerminationKeyword) {
+        console.log(`✅ Termination keyword detected in: "${userMessage}"`);
+        return true;
+      }
+
+      console.log(`🔍 No termination keywords found in: "${userMessage}"`);
+      console.log(`Checking with AI evaluation...`);
+
+      // Use AI to detect more subtle termination intents
+      const terminationPrompt = `You are detecting if a user wants to end a phone call based on their message.
+
+User message: "${userMessage}"
+
+Look for signs that the user wants to:
+- End the conversation
+- Hang up the call
+- Say goodbye
+- Indicate they're done/finished
+- Thank you and leave
+- Call back later
+- Not continue the conversation
+
+Common termination phrases include: bye, goodbye, thanks that's all, I'll call back, gotta go, that's it, we're done, etc.
+
+Respond with only "YES" if the user wants to end the call, or "NO" if they want to continue.`;
+
+      try {
+        const evaluation = await callAzureOpenAI([
+          { role: 'system', content: terminationPrompt }
+        ]);
+        const result = evaluation.trim().toUpperCase().includes('YES');
+        console.log(`AI termination intent detection for "${userMessage}": ${result}`);
+        return result;
+      } catch (error) {
+        console.error('Failed to evaluate termination intent:', error);
+        return hasTerminationKeyword; // Fall back to keyword detection
+      }
+    };
+
     const generateEndCallTwiML = (endNode) => {
       const endingMessage = endNode?.data?.message ||
                            endNode?.data?.prompt ||
@@ -362,6 +420,46 @@ Conversation turns in this node: ${callState.conversationTurns}`;
         timestamp: new Date(),
         nodeId: callState.currentNodeId
       });
+
+      // Check for termination intent BEFORE generating AI response
+      const wantsToEndCall = await detectTerminationIntent(speechResult);
+
+      if (wantsToEndCall) {
+        console.log(`User wants to end call. Message: "${speechResult}"`);
+
+        // Try to find an end node in the workflow first
+        const endNode = workflowData?.nodes?.find(node => isEndNode(node));
+
+        if (endNode) {
+          console.log(`Found end node: ${endNode.data?.label || endNode.type}. Using it for termination.`);
+
+          // Clean up conversation state
+          delete global.callConversations[callSid];
+
+          // Use the end node's message
+          const endTwiML = generateEndCallTwiML(endNode);
+          console.log('Sending end node TwiML response due to termination intent');
+          return res.status(200).send(endTwiML);
+        } else {
+          // No end node found, use generic goodbye
+          console.log('No end node found, using generic goodbye');
+
+          // Clean up conversation state
+          delete global.callConversations[callSid];
+
+          // Generate a polite goodbye TwiML
+          const goodbyeTwiML = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Thank you so much for calling! It was great talking with you. Have a wonderful day!</Say>
+    <Pause length="1"/>
+    <Say voice="alice">Goodbye!</Say>
+    <Hangup/>
+</Response>`;
+
+          console.log('Sending goodbye TwiML response due to termination intent');
+          return res.status(200).send(goodbyeTwiML);
+        }
+      }
 
       // Generate AI response with full context
       const conversationMessages = [

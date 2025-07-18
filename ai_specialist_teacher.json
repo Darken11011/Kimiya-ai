@@ -1,0 +1,462 @@
+{
+  "name": "AI Specialist Teacher Workflow",
+  "config": {
+    "name": "AI Specialist Teacher Workflow",
+    "description": "Comprehensive workflow for AI specialist teachers to handle student inquiries, assess learning needs, and provide personalized AI education guidance",
+    "twilio": {
+      "accountSid": "YOUR_TWILIO_ACCOUNT_SID",
+      "authToken": "YOUR_TWILIO_AUTH_TOKEN",
+      "phoneNumber": "+1234567890",
+      "recordCalls": true,
+      "callTimeout": 2400
+    },
+    "llm": {
+      "provider": "azure_openai",
+      "azure": {
+        "apiKey": "f6d564a83af3498c9beb46d7d3e3da96",
+        "endpoint": "https://innochattemp.openai.azure.com/openai/deployments/gpt4omini/chat/completions?api-version=2025-01-01-preview",
+        "model": "gpt-4o-mini",
+        "temperature": 0.7,
+        "maxTokens": 1200,
+        "systemPrompt": "You are an expert AI specialist teacher and mentor. Be encouraging, knowledgeable, and guide students through their AI learning journey with patience and expertise."
+      }
+    },
+    "voice": {
+      "provider": "eleven_labs",
+      "elevenLabs": {
+        "apiKey": "YOUR_ELEVEN_LABS_API_KEY",
+        "voiceId": "21m00Tcm4TlvDq8ikWAM",
+        "model": "eleven_monolingual_v1",
+        "stability": 0.6,
+        "similarityBoost": 0.6
+      }
+    },
+    "transcription": {
+      "provider": "deepgram",
+      "deepgram": {
+        "apiKey": "YOUR_DEEPGRAM_API_KEY",
+        "model": "nova-2",
+        "language": "en-US",
+        "punctuate": true,
+        "smartFormat": true
+      }
+    },
+    "globalSettings": {
+      "defaultLanguage": "en-US",
+      "timezone": "UTC",
+      "callRecording": true,
+      "transcriptionEnabled": true,
+      "sentimentAnalysis": true,
+      "conversationSummary": true,
+      "maxCallDuration": 40,
+      "silenceTimeout": 12,
+      "interruptionHandling": true
+    },
+    "createdAt": "2025-07-18T00:00:00.000Z",
+    "version": "1.0.0"
+  },
+  "nodes": [
+    {
+      "id": "start_node",
+      "type": "startNode",
+      "position": {
+        "x": 60,
+        "y": -45
+      },
+      "data": {
+        "firstMessage": "Hello! Welcome to AI Learning Hub. I'm your AI specialist teacher assistant, here to help you navigate your artificial intelligence learning journey. Whether you're a beginner or looking to advance your skills, I'm here to guide you. How can I help you today?",
+        "globalPrompt": "You are an expert AI specialist teacher and mentor with deep knowledge in machine learning, deep learning, natural language processing, computer vision, and AI applications. Be encouraging, patient, and educational. Adapt your teaching style to the student's level and learning preferences. Your goal is to inspire and guide students in their AI learning journey.",
+        "label": "Welcome & AI Learning Greeting"
+      },
+      "measured": {
+        "width": 408,
+        "height": 355
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "learning_goal_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 100,
+        "y": 400
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "Understand the student's AI learning goals and current situation. Ask them about: What brings them to AI learning today? Are they looking to: 1) Start learning AI from scratch, 2) Advance existing AI skills, 3) Get help with specific AI projects or assignments, 4) Explore AI career opportunities, 5) Understand AI for business applications, or 6) Get academic guidance for AI courses? Be conversational and encouraging. Don't move forward until you clearly understand their primary learning objective.",
+        "label": "Learning Goal Assessment"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false
+    },
+    {
+      "id": "beginner_assessment_node",
+      "type": "conversationNode",
+      "position": {
+        "x": -570,
+        "y": 570
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're helping a beginner start their AI journey. Assess their background and create a personalized learning path:\n\n1. Technical Background: Programming experience (Python, R, etc.), math background (statistics, calculus, linear algebra)\n2. Learning Style: Hands-on projects, theoretical understanding, visual learning, or structured courses\n3. Time Commitment: How many hours per week can they dedicate to learning?\n4. Specific Interests: Machine learning, deep learning, NLP, computer vision, robotics, etc.\n5. Learning Goals: Personal projects, career change, academic requirements, or general knowledge\n6. Preferred Resources: Online courses, books, tutorials, bootcamps, or university programs\n7. Timeline: When do they want to achieve basic proficiency?\n8. Support Needs: Mentorship, study groups, or self-directed learning\n\nBe encouraging and help them understand that everyone starts somewhere. Provide realistic expectations and a clear roadmap.",
+        "label": "Beginner Learning Path Assessment"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "advanced_skills_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 945,
+        "y": 555
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're helping someone advance their existing AI skills. Assess their current level and identify growth areas:\n\n1. Current Skills: What AI/ML techniques do they already know? (supervised/unsupervised learning, neural networks, etc.)\n2. Experience Level: How long have they been working with AI? Any professional experience?\n3. Technical Stack: Which tools and frameworks do they use? (TensorFlow, PyTorch, scikit-learn, etc.)\n4. Project Experience: What AI projects have they completed? Personal or professional?\n5. Specialization Interest: Which area do they want to deepen? (NLP, computer vision, reinforcement learning, etc.)\n6. Skill Gaps: What specific areas do they feel they need to improve?\n7. Career Goals: Research, industry applications, entrepreneurship, or academic advancement?\n8. Learning Challenges: What obstacles have they faced in their AI learning journey?\n\nHelp them identify the next level skills and create an advancement strategy.",
+        "label": "Advanced Skills Development"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "project_help_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 345,
+        "y": 840
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're helping with specific AI projects or assignments. Understand their project needs:\n\n1. Project Type: Academic assignment, personal project, work project, or research\n2. Project Scope: What are they trying to build or solve?\n3. Technical Requirements: Specific algorithms, datasets, or tools required\n4. Current Progress: What have they already accomplished? Where are they stuck?\n5. Timeline: When is the deadline or target completion date?\n6. Resources Available: Computing power, datasets, team members, budget\n7. Specific Challenges: Technical roadblocks, conceptual confusion, or implementation issues\n8. Expected Outcome: What should the final deliverable look like?\n9. Learning Objectives: What do they want to learn from this project?\n\nProvide practical guidance, suggest approaches, and help them break down complex problems into manageable steps.",
+        "label": "Project & Assignment Help"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "career_guidance_node",
+      "type": "conversationNode",
+      "position": {
+        "x": -375,
+        "y": 1365
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're providing AI career guidance and opportunities exploration:\n\n1. Career Stage: Student, career changer, or professional looking to transition into AI\n2. Background: Current field, education level, and relevant experience\n3. AI Career Interests: Data scientist, ML engineer, AI researcher, product manager, consultant\n4. Industry Preferences: Tech, healthcare, finance, automotive, entertainment, etc.\n5. Work Environment: Startup, big tech, research institution, consulting, or freelance\n6. Skill Development: What skills do they need to develop for their target role?\n7. Portfolio Building: What projects would strengthen their AI portfolio?\n8. Networking: How can they connect with AI professionals and communities?\n9. Job Market: Understanding of current AI job market and salary expectations\n10. Timeline: When are they looking to make a career transition?\n\nProvide realistic career advice, suggest skill development paths, and share insights about the AI job market.",
+        "label": "AI Career Guidance"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "business_ai_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 750,
+        "y": 1200
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're helping someone understand AI for business applications and implementation:\n\n1. Business Context: What industry or business area are they in?\n2. Business Challenges: What problems are they trying to solve with AI?\n3. AI Applications: Which AI use cases are relevant to their business? (automation, prediction, personalization, etc.)\n4. Technical Readiness: Current technology infrastructure and data availability\n5. Budget Considerations: Investment capacity for AI implementation\n6. Timeline: When do they need AI solutions implemented?\n7. Team Capabilities: Do they have technical staff or need external help?\n8. ROI Expectations: What business outcomes are they expecting from AI?\n9. Risk Assessment: Concerns about AI implementation and adoption\n10. Competitive Advantage: How can AI differentiate their business?\n\nProvide practical business-focused AI guidance and help them understand implementation strategies.",
+        "label": "Business AI Applications"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "academic_guidance_node",
+      "type": "conversationNode",
+      "position": {
+        "x": -150,
+        "y": 1800
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "You're providing academic guidance for AI courses and programs:\n\n1. Academic Level: Undergraduate, graduate, or continuing education\n2. Program Type: Degree program, certificate, online course, or bootcamp\n3. Institution Preferences: University, online platform, or professional training\n4. Course Focus: Theoretical foundations, practical applications, or research-oriented\n5. Prerequisites: Math background, programming skills, and prior coursework\n6. Specialization Areas: Which AI domains interest them most?\n7. Academic Goals: Career preparation, research interests, or personal enrichment\n8. Time Constraints: Full-time, part-time, or flexible scheduling needs\n9. Budget: Tuition considerations and financial aid options\n10. Support Needs: Mentorship, study groups, or additional resources\n\nHelp them choose the right academic path and provide guidance on course selection and study strategies.",
+        "label": "Academic Course Guidance"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "learning_plan_node",
+      "type": "conversationNode",
+      "position": {
+        "x": 600,
+        "y": 2100
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "Create a personalized learning plan and collect contact information:\n\n1. Summarize their learning goals and current situation\n2. Recommend specific learning resources (courses, books, tutorials, projects)\n3. Create a timeline with milestones and checkpoints\n4. Suggest practical next steps they can take immediately\n5. Identify potential challenges and how to overcome them\n6. Recommend communities and networking opportunities\n\nThen collect contact details:\n- Full Name and preferred name\n- Email address for sending resources and follow-ups\n- Phone number for check-ins (optional)\n- Preferred communication method\n- Best time for follow-up contact\n- Specific areas where they want ongoing support\n\nExplain that you'll use this information to send personalized learning resources and provide ongoing mentorship support.",
+        "label": "Personalized Learning Plan"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "resource_summary_node",
+      "type": "conversationNode",
+      "position": {
+        "x": -75,
+        "y": 2550
+      },
+      "data": {
+        "model": "gpt-4o-mini",
+        "prompt": "Provide a comprehensive summary and resource compilation:\n\n1. Recap their learning journey discussion and key insights\n2. Confirm their personalized learning plan and timeline\n3. List specific resources you've recommended (with brief descriptions)\n4. Outline the next immediate actions they should take\n5. Set expectations for follow-up support and check-ins\n6. Provide encouragement and motivation for their AI learning journey\n7. Share additional resources: AI communities, newsletters, podcasts, conferences\n8. Ask if they have any final questions about their learning path\n\nEnd with inspiration about the exciting possibilities in AI and assure them of ongoing support in their learning journey.",
+        "label": "Resource Summary & Motivation"
+      },
+      "measured": {
+        "width": 386,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "mentor_connection_node",
+      "type": "transferCall",
+      "position": {
+        "x": 645,
+        "y": 2865
+      },
+      "data": {
+        "destination": "+1234567890",
+        "transferMessage": "Connecting student with specialized AI mentor. Complete learning assessment and personalized plan prepared. Student ready for advanced mentorship.",
+        "label": "Connect to AI Mentor"
+      },
+      "measured": {
+        "width": 326,
+        "height": 315
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "end_call_node",
+      "type": "endCall",
+      "position": {
+        "x": -420,
+        "y": 2970
+      },
+      "data": {
+        "endMessage": "Thank you for choosing AI Learning Hub! I'm excited about your AI learning journey. Check your email for the personalized resources I'll be sending. Remember, every expert was once a beginner. Keep learning and stay curious!",
+        "label": "End Call"
+      },
+      "measured": {
+        "width": 215,
+        "height": 255
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "start_node",
+      "target": "learning_goal_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_2",
+      "source": "learning_goal_node",
+      "target": "beginner_assessment_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student is new to AI and wants to start learning from scratch",
+        "description": "Route to beginner assessment for new AI learners"
+      }
+    },
+    {
+      "id": "edge_3",
+      "source": "learning_goal_node",
+      "target": "advanced_skills_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student has existing AI knowledge and wants to advance their skills",
+        "description": "Route to advanced skills development for experienced learners"
+      }
+    },
+    {
+      "id": "edge_4",
+      "source": "learning_goal_node",
+      "target": "project_help_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student needs help with specific AI projects or assignments",
+        "description": "Route to project help for specific technical assistance"
+      },
+      "selected": false
+    },
+    {
+      "id": "edge_5",
+      "source": "learning_goal_node",
+      "target": "career_guidance_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student is interested in AI career opportunities and guidance",
+        "description": "Route to career guidance for professional development"
+      }
+    },
+    {
+      "id": "edge_6",
+      "source": "learning_goal_node",
+      "target": "business_ai_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student is interested in understanding AI for business applications",
+        "description": "Route to business AI applications for business-focused learning"
+      }
+    },
+    {
+      "id": "edge_7",
+      "source": "learning_goal_node",
+      "target": "academic_guidance_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student needs academic guidance for AI courses or programs",
+        "description": "Route to academic guidance for course and program selection"
+      }
+    },
+    {
+      "id": "edge_8",
+      "source": "beginner_assessment_node",
+      "target": "learning_plan_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_9",
+      "source": "advanced_skills_node",
+      "target": "learning_plan_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_10",
+      "source": "project_help_node",
+      "target": "learning_plan_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_11",
+      "source": "career_guidance_node",
+      "target": "learning_plan_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_12",
+      "source": "business_ai_node",
+      "target": "learning_plan_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_13",
+      "source": "academic_guidance_node",
+      "target": "learning_plan_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_14",
+      "source": "learning_plan_node",
+      "target": "resource_summary_node",
+      "type": "conditional",
+      "data": {
+        "type": "none",
+        "isDefault": true
+      }
+    },
+    {
+      "id": "edge_15",
+      "source": "resource_summary_node",
+      "target": "mentor_connection_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student wants to connect with a specialized AI mentor or needs advanced guidance",
+        "description": "Connect to human AI mentor for advanced support"
+      }
+    },
+    {
+      "id": "edge_16",
+      "source": "resource_summary_node",
+      "target": "end_call_node",
+      "type": "conditional",
+      "data": {
+        "type": "ai_based",
+        "aiCondition": "Student is satisfied with the learning plan and resources provided",
+        "description": "End call if student is ready to start their learning journey independently"
+      }
+    }
+  ],
+  "variables": [
+    null
+  ],
+  "exportedAt": "2025-07-18T00:00:00.000Z",
+  "version": "1.0.0"
+}
