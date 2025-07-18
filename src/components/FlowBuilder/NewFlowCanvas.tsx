@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -17,7 +17,6 @@ import { useFlowStore } from '../../stores/flowStore';
 import DynamicNode from './components/DynamicNode';
 import ConditionalEdge from './components/ConditionalEdge';
 import { ComponentDefinition } from '../../types/componentTypes';
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { toast } from 'sonner';
 
 const nodeTypes: NodeTypes = {
@@ -49,19 +48,6 @@ const NewFlowCanvas: React.FC = () => {
     addNode,
     getComponent
   } = useFlowStore();
-
-  // Add keyboard shortcuts for node operations
-  const { onKeyDown } = useKeyboardShortcuts(nodes, edges, setNodes, onEdgesChange);
-
-  // Add keyboard event listener
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      onKeyDown(event as any);
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onKeyDown]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
