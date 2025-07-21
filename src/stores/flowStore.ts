@@ -49,6 +49,7 @@ interface FlowState {
   updateVariable: (variableName: string, updates: Partial<ExtractedVariable>) => void;
   deleteVariable: (variableName: string) => void;
   getAvailableVariables: () => ExtractedVariable[];
+  addDefaultVariables: () => void;
   
   // Selection
   selectNode: (nodeId: string | null) => void;
@@ -286,6 +287,46 @@ export const useFlowStore = create<FlowState>()(
         const state = get();
         return Array.from(state.workflowContext.variables.values());
       },
+
+      // Helper function to add some default variables for testing
+      addDefaultVariables: () => set((state) => {
+        const defaultVariables = new Map(state.workflowContext.variables);
+
+        // Add some common variables if they don't exist
+        if (!defaultVariables.has('user_input')) {
+          defaultVariables.set('user_input', {
+            name: 'user_input',
+            type: 'string' as any,
+            description: 'User input from conversation',
+            nodeId: 'system'
+          });
+        }
+
+        if (!defaultVariables.has('call_duration')) {
+          defaultVariables.set('call_duration', {
+            name: 'call_duration',
+            type: 'number' as any,
+            description: 'Duration of the call in seconds',
+            nodeId: 'system'
+          });
+        }
+
+        if (!defaultVariables.has('api_status')) {
+          defaultVariables.set('api_status', {
+            name: 'api_status',
+            type: 'number' as any,
+            description: 'HTTP status code from API request',
+            nodeId: 'system'
+          });
+        }
+
+        return {
+          workflowContext: {
+            ...state.workflowContext,
+            variables: defaultVariables
+          }
+        };
+      }),
       
       // Component registry
       registerComponent: (definition) => set((state) => {

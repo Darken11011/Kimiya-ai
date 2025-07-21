@@ -39,7 +39,8 @@ const FlowToolbar: React.FC = () => {
     workflowConfig,
     setWorkflowConfig,
     getAvailableVariables,
-    updateNode
+    updateNode,
+    addDefaultVariables
   } = useFlowStore();
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -48,7 +49,7 @@ const FlowToolbar: React.FC = () => {
   // Sync global prompt with start node when nodes change
   useEffect(() => {
     const startNode = nodes.find(node => node.type === 'startNode');
-    if (startNode && startNode.data?.globalPrompt && startNode.data.globalPrompt !== globalPrompt) {
+    if (startNode && startNode.data?.globalPrompt && typeof startNode.data.globalPrompt === 'string' && startNode.data.globalPrompt !== globalPrompt) {
       setGlobalPrompt(startNode.data.globalPrompt);
     }
   }, [nodes]);
@@ -353,6 +354,20 @@ const FlowToolbar: React.FC = () => {
         >
           <Download className="h-4 w-4" />
           <span>Export</span>
+        </Button>
+
+        <Button
+          onClick={() => {
+            addDefaultVariables();
+            toast.success('Default variables added for testing');
+          }}
+          variant="outline"
+          size="sm"
+          className="flex items-center space-x-2"
+          title="Add default variables for testing conditional edges"
+        >
+          <Zap className="h-4 w-4" />
+          <span>Add Variables</span>
         </Button>
 
         <Dialog open={isGlobalPromptOpen} onOpenChange={setIsGlobalPromptOpen}>

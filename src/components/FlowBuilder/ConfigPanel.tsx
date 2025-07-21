@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Settings, Trash2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Settings, Trash2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,16 +8,112 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useFlowStore } from '../../stores/flowStore';
 import { ComponentInput } from '../../types/componentTypes';
+import { VariableType, ExtractedVariable } from '../../types/flowTypes';
+import VariableExtractor from './components/VariableExtractor';
 
 const ConfigPanel: React.FC = () => {
-  const { 
-    selectedNodeId, 
-    nodes, 
-    updateNode, 
-    deleteNode, 
+  const {
+    selectedNodeId,
+    nodes,
+    updateNode,
+    deleteNode,
     selectNode,
-    getComponent 
+    getComponent,
+    getAvailableVariables
   } = useFlowStore();
+
+  // Resize functionality state
+  const [panelWidth, setPanelWidth] = useState(() => {
+    // Load saved width from localStorage or use default
+    const saved = localStorage.getItem('configPanelWidth');
+    return saved ? parseInt(saved, 10) : 320;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const resizeHandleRef = useRef<HTMLDivElement>(null);
+
+  // Minimum and maximum panel widths
+  const MIN_WIDTH = 280;
+  const MAX_WIDTH = 600;
+
+  // Handle resize start
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  // Handle double-click to reset width
+  const handleDoubleClick = () => {
+    setPanelWidth(320); // Reset to default width
+  };
+
+  // Handle resize during mouse move
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = window.innerWidth - e.clientX;
+      const clampedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
+      setPanelWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (isResizing) {
+        setIsResizing(false);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, MIN_WIDTH, MAX_WIDTH]);
+
+  // Save panel width to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('configPanelWidth', panelWidth.toString());
+  }, [panelWidth]);
+
+  // Helper function to convert component output type to VariableType
+  const mapOutputTypeToVariableType = (outputType: string): VariableType => {
+    switch (outputType.toLowerCase()) {
+      case 'string':
+        return VariableType.STRING;
+      case 'number':
+        return VariableType.NUMBER;
+      case 'integer':
+        return VariableType.INTEGER;
+      case 'boolean':
+        return VariableType.BOOLEAN;
+      default:
+        return VariableType.STRING; // Default to string for objects and other types
+    }
+  };
+
+  // Generate suggested variables from node outputs
+  const generateSuggestedVariables = (nodeId: string, outputs: any[]): ExtractedVariable[] => {
+    return outputs.map(output => {
+      const nodeLabel = typeof selectedNode?.data?.label === 'string'
+        ? selectedNode.data.label.toLowerCase().replace(/\s+/g, '_')
+        : 'node';
+
+      return {
+        name: `${nodeLabel}_${output.name}`,
+        type: mapOutputTypeToVariableType(output.type),
+        description: output.description || `Output from ${componentDef?.displayName}: ${output.name}`,
+        nodeId: nodeId
+      };
+    });
+  };
 
   if (!selectedNodeId) return null;
 
@@ -135,9 +231,35 @@ const ConfigPanel: React.FC = () => {
   };
 
   return (
-    <div className="w-80 bg-white shadow-lg border-l border-gray-200 flex flex-col h-full">
+    <div
+      ref={panelRef}
+      className="bg-white shadow-lg border-l border-gray-200 flex flex-col h-full relative"
+      style={{ width: `${panelWidth}px` }}
+    >
+      {/* Resize Handle */}
+      <div
+        ref={resizeHandleRef}
+        className={`absolute left-0 top-0 bottom-0 w-2 cursor-col-resize group transition-all duration-200 ${
+          isResizing ? 'bg-blue-500/20' : 'hover:bg-gray-200/50'
+        }`}
+        onMouseDown={handleResizeStart}
+        onDoubleClick={handleDoubleClick}
+        title="Drag to resize panel • Double-click to reset width"
+      >
+        {/* Visual indicator */}
+        <div className={`absolute left-0 top-0 bottom-0 w-0.5 transition-colors ${
+          isResizing ? 'bg-blue-500' : 'bg-gray-300 group-hover:bg-blue-400'
+        }`} />
+
+        {/* Grip icon */}
+        <div className={`absolute left-0.5 top-1/2 transform -translate-y-1/2 transition-opacity ${
+          isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
+        }`}>
+          <GripVertical className="h-4 w-4 text-gray-500 rotate-90" />
+        </div>
+      </div>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 pl-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div 
@@ -167,7 +289,7 @@ const ConfigPanel: React.FC = () => {
       </div>
 
       {/* Configuration Form */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 pl-6 space-y-4">
         {componentDef.inputs.map((input) => (
           <div key={input.name} className="space-y-2">
             <Label className="text-sm font-medium flex items-center">
@@ -189,10 +311,26 @@ const ConfigPanel: React.FC = () => {
             <p className="text-sm">No configuration options available</p>
           </div>
         )}
+
+        {/* Variable Extraction Section - Show for nodes that have outputs */}
+        {componentDef.outputs && componentDef.outputs.length > 0 && (
+          <div className="border-t pt-4 mt-6">
+            <div className="mb-4">
+              <Label className="text-sm font-medium text-gray-700">Output Variables</Label>
+              <p className="text-xs text-gray-500 mt-1">
+                Define variables that this node will output for use in conditional edges and other nodes.
+              </p>
+            </div>
+            <VariableExtractor
+              nodeId={selectedNodeId}
+              existingVariables={generateSuggestedVariables(selectedNodeId, componentDef.outputs)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Footer Actions */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 pl-6 border-t border-gray-200">
         <Button
           variant="destructive"
           size="sm"
