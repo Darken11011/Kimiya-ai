@@ -1,73 +1,35 @@
-import { EventEmitter } from 'events';
-import { WorkflowConfig, LanguageConfig } from '../types/workflowConfig';
+const EventEmitter = require('events');
+const StreamingAudioProcessor = require('./streamingAudioProcessor');
+const PredictiveCache = require('./predictiveCache');
+const LanguageOptimizer = require('./languageOptimizer');
 
-export interface ConversationRelayConfig {
-  enabled: boolean;
-  streamingMode: 'bidirectional' | 'unidirectional';
-  audioFormat: 'mulaw' | 'linear16';
-  sampleRate: 8000 | 16000;
-  bufferSize: number;
-  latencyOptimization: {
-    enableJitterBuffer: boolean;
-    adaptiveBitrate: boolean;
-    echoCancellation: boolean;
-    noiseReduction: boolean;
-    voiceActivityDetection: boolean;
-  };
-  performance: {
-    targetLatency: number; // Target latency in ms
-    maxLatency: number;    // Maximum acceptable latency
-    qualityThreshold: number; // Minimum quality score (0-1)
-  };
-}
-
-export interface AudioChunk {
-  data: Buffer;
-  timestamp: number;
-  sequenceNumber: number;
-  language?: string;
-  confidence?: number;
-}
-
-export interface StreamingResponse {
-  audioData: Buffer;
-  transcript?: string;
-  confidence: number;
-  processingTime: number;
-  language: string;
-  isPartial: boolean;
-}
-
-export class TwilioConversationRelay extends EventEmitter {
-  private config: ConversationRelayConfig;
-  private workflowConfig: WorkflowConfig;
-  private isActive: boolean = false;
-  private audioBuffer: Buffer[] = [];
-  private sequenceNumber: number = 0;
-  private performanceMetrics: PerformanceMetrics;
-  private streamProcessor: StreamingAudioProcessor;
-
-  constructor(config: ConversationRelayConfig, workflowConfig: WorkflowConfig) {
+class ConversationRelay extends EventEmitter {
+  constructor(config, workflowConfig) {
     super();
     this.config = config;
     this.workflowConfig = workflowConfig;
+    this.isActive = false;
+    this.audioBuffer = [];
+    this.sequenceNumber = 0;
     this.performanceMetrics = new PerformanceMetrics();
     this.streamProcessor = new StreamingAudioProcessor(workflowConfig);
+    this.activeCalls = new Map();
     
     this.setupEventHandlers();
+    console.log('[ConversationRelay] Initialized with bidirectional streaming');
   }
 
-  async startConversation(callSid: string): Promise<void> {
+  async startConversation(callSid, workflowData) {
     const startTime = performance.now();
     
     try {
       console.log(`[ConversationRelay] Starting conversation for call ${callSid}`);
       
       // Initialize streaming connection
-      await this.initializeStream(callSid);
+      await this.initializeStream(callSid, workflowData);
       
       // Set up bidirectional audio processing
-      await this.setupBidirectionalStreaming();
+      await this.setupBidirectionalStreaming(callSid);
       
       this.isActive = true;
       
@@ -83,7 +45,7 @@ export class TwilioConversationRelay extends EventEmitter {
     }
   }
 
-  async processAudioChunk(audioChunk: AudioChunk): Promise<StreamingResponse> {
+  async processAudioChunk(audioChunk) {
     const processingStartTime = performance.now();
     
     try {
@@ -104,7 +66,7 @@ export class TwilioConversationRelay extends EventEmitter {
         this.emit('performanceWarning', { processingTime, target: this.config.performance.targetLatency });
       }
       
-      const streamingResponse: StreamingResponse = {
+      const streamingResponse = {
         ...response,
         processingTime,
         language: this.workflowConfig.globalSettings?.defaultLanguage || 'en-US'
@@ -121,52 +83,73 @@ export class TwilioConversationRelay extends EventEmitter {
     }
   }
 
-  private async initializeStream(callSid: string): Promise<void> {
-    // Initialize Twilio Media Stream
+  async initializeStream(callSid, workflowData) {
+    // Store call data for processing
+    this.activeCalls.set(callSid, {
+      workflowData,
+      startTime: Date.now(),
+      messageHistory: [],
+      currentNodeId: workflowData?.nodes?.[0]?.id || null,
+      conversationTurns: 0
+    });
+
+    // Initialize Twilio Media Stream configuration
     const mediaStreamConfig = {
       callSid,
       track: 'both', // inbound and outbound
-      statusCallback: `${process.env.WEBHOOK_BASE_URL}/twilio/media-stream-status`,
+      statusCallback: `${process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com'}/api/media-stream-status`,
       statusCallbackMethod: 'POST'
     };
 
-    // Set up WebSocket connection for real-time audio
+    // Set up WebSocket connection for real-time audio (if available)
     await this.setupWebSocketConnection(callSid);
     
     // Configure audio processing pipeline
-    await this.configureAudioPipeline();
+    await this.configureAudioPipeline(workflowData);
+    
+    console.log(`[ConversationRelay] Stream initialized for call ${callSid}`);
   }
 
-  private async setupBidirectionalStreaming(): Promise<void> {
+  async setupBidirectionalStreaming(callSid) {
+    const callData = this.activeCalls.get(callSid);
+    if (!callData) {
+      throw new Error(`No call data found for ${callSid}`);
+    }
+
     // Configure inbound audio processing (user speech)
-    this.on('inboundAudio', async (audioData: Buffer) => {
-      const audioChunk: AudioChunk = {
+    this.on('inboundAudio', async (audioData, receivedCallSid) => {
+      if (receivedCallSid !== callSid) return;
+      
+      const audioChunk = {
         data: audioData,
         timestamp: Date.now(),
         sequenceNumber: this.sequenceNumber++,
-        language: this.workflowConfig.globalSettings?.defaultLanguage
+        language: callData.workflowData?.globalSettings?.defaultLanguage || 'en-US'
       };
       
       try {
         const response = await this.processAudioChunk(audioChunk);
         
         // Send response audio back to user
-        this.sendOutboundAudio(response.audioData);
+        this.sendOutboundAudio(response.audioData, callSid);
         
       } catch (error) {
         console.error('[ConversationRelay] Inbound audio processing failed:', error);
         // Send error response or fallback audio
-        await this.handleProcessingError(error);
+        await this.handleProcessingError(error, callSid);
       }
     });
 
     // Configure outbound audio streaming (AI responses)
-    this.on('outboundAudio', (audioData: Buffer) => {
-      this.sendAudioToTwilio(audioData);
+    this.on('outboundAudio', (audioData, receivedCallSid) => {
+      if (receivedCallSid !== callSid) return;
+      this.sendAudioToTwilio(audioData, callSid);
     });
+    
+    console.log(`[ConversationRelay] Bidirectional streaming setup complete for call ${callSid}`);
   }
 
-  private async optimizeAudioChunk(audioChunk: AudioChunk): Promise<AudioChunk> {
+  async optimizeAudioChunk(audioChunk) {
     let optimizedData = audioChunk.data;
     
     // Apply noise reduction if enabled
@@ -195,63 +178,80 @@ export class TwilioConversationRelay extends EventEmitter {
     };
   }
 
-  private async setupWebSocketConnection(callSid: string): Promise<void> {
+  async setupWebSocketConnection(callSid) {
     // This would integrate with Twilio's Media Streams API
-    // Implementation would depend on your WebSocket setup
-    console.log(`[ConversationRelay] Setting up WebSocket for call ${callSid}`);
+    // For now, we'll use the existing TwiML approach but with optimized processing
+    console.log(`[ConversationRelay] WebSocket connection setup for call ${callSid} (using TwiML bridge)`);
   }
 
-  private async configureAudioPipeline(): Promise<void> {
+  async configureAudioPipeline(workflowData) {
     // Configure the audio processing pipeline based on language settings
-    const languageConfig = this.workflowConfig.globalSettings?.languageConfig;
+    const languageConfig = workflowData?.globalSettings?.languageConfig;
     
     if (languageConfig) {
       await this.streamProcessor.configureForLanguage(languageConfig);
     }
+    
+    console.log('[ConversationRelay] Audio pipeline configured');
   }
 
-  private sendOutboundAudio(audioData: Buffer): void {
-    this.emit('outboundAudio', audioData);
+  sendOutboundAudio(audioData, callSid) {
+    this.emit('outboundAudio', audioData, callSid);
   }
 
-  private sendAudioToTwilio(audioData: Buffer): void {
+  sendAudioToTwilio(audioData, callSid) {
     // Send audio data back to Twilio Media Stream
-    // This would use your WebSocket connection to Twilio
-    console.log(`[ConversationRelay] Sending ${audioData.length} bytes to Twilio`);
+    // For now, this integrates with the existing TwiML system
+    console.log(`[ConversationRelay] Sending ${audioData.length} bytes to Twilio for call ${callSid}`);
   }
 
-  private async handleProcessingError(error: any): Promise<void> {
+  async handleProcessingError(error, callSid) {
+    const callData = this.activeCalls.get(callSid);
+    const language = callData?.workflowData?.globalSettings?.defaultLanguage || 'en-US';
+    
     // Generate fallback response
-    const fallbackMessage = "I'm sorry, I didn't catch that. Could you please repeat?";
+    const fallbackMessage = this.getErrorMessage(language);
     const fallbackAudio = await this.streamProcessor.generateFallbackAudio(fallbackMessage);
-    this.sendOutboundAudio(fallbackAudio);
+    this.sendOutboundAudio(fallbackAudio, callSid);
   }
 
-  private async applyNoiseReduction(audioData: Buffer): Promise<Buffer> {
+  getErrorMessage(language) {
+    const errorMessages = {
+      'en-US': "I'm sorry, I didn't catch that. Could you please repeat?",
+      'zh-HK': '唔好意思，我聽唔清楚，可以再講一次嗎？',
+      'zh-CN': '抱歉，我没听清楚，您能再说一遍吗？',
+      'es-ES': 'Lo siento, no te he entendido. ¿Puedes repetir?',
+      'fr-FR': 'Désolé, je n\'ai pas compris. Pouvez-vous répéter?'
+    };
+    
+    return errorMessages[language] || errorMessages['en-US'];
+  }
+
+  async applyNoiseReduction(audioData) {
     // Implement noise reduction algorithm
     // This is a placeholder - you'd use a real noise reduction library
     return audioData;
   }
 
-  private async applyEchoCancellation(audioData: Buffer): Promise<Buffer> {
+  async applyEchoCancellation(audioData) {
     // Implement echo cancellation
     // This is a placeholder - you'd use a real echo cancellation library
     return audioData;
   }
 
-  private async detectVoiceActivity(audioData: Buffer): Promise<boolean> {
+  async detectVoiceActivity(audioData) {
     // Implement voice activity detection
     // This is a placeholder - you'd use a real VAD algorithm
     return audioData.length > 0;
   }
 
-  private async calculateAudioConfidence(audioData: Buffer): Promise<number> {
+  async calculateAudioConfidence(audioData) {
     // Calculate confidence score for audio quality
     // This is a placeholder - you'd implement real audio quality metrics
     return 0.95;
   }
 
-  private setupEventHandlers(): void {
+  setupEventHandlers() {
     this.on('error', (error) => {
       console.error('[ConversationRelay] Error:', error);
       this.performanceMetrics.recordError(error);
@@ -263,9 +263,12 @@ export class TwilioConversationRelay extends EventEmitter {
     });
   }
 
-  async stopConversation(callSid: string): Promise<void> {
+  async stopConversation(callSid) {
     console.log(`[ConversationRelay] Stopping conversation for call ${callSid}`);
     this.isActive = false;
+    
+    // Clean up call data
+    this.activeCalls.delete(callSid);
     
     // Clean up resources
     this.audioBuffer = [];
@@ -276,18 +279,20 @@ export class TwilioConversationRelay extends EventEmitter {
     this.emit('conversationEnded', { callSid, metrics });
   }
 
-  getPerformanceMetrics(): any {
+  getPerformanceMetrics() {
     return this.performanceMetrics.getCurrentMetrics();
   }
 }
 
 class PerformanceMetrics {
-  private processingTimes: number[] = [];
-  private errors: any[] = [];
-  private warnings: any[] = [];
-  private startTime: number = Date.now();
+  constructor() {
+    this.processingTimes = [];
+    this.errors = [];
+    this.warnings = [];
+    this.startTime = Date.now();
+  }
 
-  recordProcessingTime(time: number): void {
+  recordProcessingTime(time) {
     this.processingTimes.push(time);
     
     // Keep only last 100 measurements for memory efficiency
@@ -296,15 +301,15 @@ class PerformanceMetrics {
     }
   }
 
-  recordError(error: any): void {
+  recordError(error) {
     this.errors.push({ timestamp: Date.now(), error });
   }
 
-  recordWarning(warning: any): void {
+  recordWarning(warning) {
     this.warnings.push({ timestamp: Date.now(), warning });
   }
 
-  getCurrentMetrics(): any {
+  getCurrentMetrics() {
     const avgProcessingTime = this.processingTimes.length > 0 
       ? this.processingTimes.reduce((a, b) => a + b, 0) / this.processingTimes.length 
       : 0;
@@ -323,7 +328,7 @@ class PerformanceMetrics {
     };
   }
 
-  getFinalMetrics(): any {
+  getFinalMetrics() {
     return {
       ...this.getCurrentMetrics(),
       finalProcessingTimes: [...this.processingTimes],
@@ -333,40 +338,6 @@ class PerformanceMetrics {
   }
 }
 
-class StreamingAudioProcessor {
-  private workflowConfig: WorkflowConfig;
-  private languageConfig?: LanguageConfig;
 
-  constructor(workflowConfig: WorkflowConfig) {
-    this.workflowConfig = workflowConfig;
-    this.languageConfig = workflowConfig.globalSettings?.languageConfig;
-  }
 
-  async processAudio(audioChunk: AudioChunk): Promise<Omit<StreamingResponse, 'processingTime' | 'language'>> {
-    // This is a placeholder for the actual streaming audio processing
-    // In a real implementation, this would:
-    // 1. Convert audio to text using streaming STT
-    // 2. Process text through AI model
-    // 3. Convert response to audio using streaming TTS
-    // 4. Return the audio data
-    
-    return {
-      audioData: Buffer.from('placeholder_audio_data'),
-      transcript: 'Placeholder transcript',
-      confidence: 0.95,
-      isPartial: false
-    };
-  }
-
-  async configureForLanguage(languageConfig: LanguageConfig): Promise<void> {
-    this.languageConfig = languageConfig;
-    console.log(`[StreamingAudioProcessor] Configured for language: ${languageConfig.primary}`);
-  }
-
-  async generateFallbackAudio(message: string): Promise<Buffer> {
-    // Generate fallback audio for error cases
-    return Buffer.from('fallback_audio_data');
-  }
-}
-
-export default TwilioConversationRelay;
+module.exports = ConversationRelay;

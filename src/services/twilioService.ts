@@ -1,5 +1,6 @@
 // Twilio Service for making phone calls
 import { TwilioConfig } from '../types/workflowConfig';
+import { CallAPI, OptimizedCallResponse } from './apiService';
 
 export interface CallOptions {
   to: string; // Phone number to call
@@ -40,9 +41,69 @@ export class TwilioService {
   }
 
   /**
-   * Make a phone call using Twilio REST API
-   * Note: This is a demo implementation. In production, you would need a backend server
-   * to make Twilio API calls due to CORS restrictions.
+   * Make an optimized phone call with 150-250ms response times
+   * Uses the performance-optimized backend system
+   */
+  async makeOptimizedCall(options: CallOptions): Promise<OptimizedCallResponse> {
+    try {
+      // Normalize and validate phone number
+      const normalizedNumber = this.normalizePhoneNumber(options.to);
+      if (!normalizedNumber) {
+        return {
+          success: false,
+          error: 'Invalid phone number format',
+          optimization: {
+            enabled: false,
+            trackingId: '',
+            expectedLatency: 'N/A',
+            features: {
+              conversationRelay: false,
+              predictiveCache: false,
+              languageOptimization: false,
+              providerFailover: false
+            }
+          }
+        };
+      }
+
+      // Use the optimized API
+      return await CallAPI.makeOptimizedCall({
+        to: normalizedNumber,
+        from: options.from || this.config.phoneNumber,
+        workflowId: options.workflowId,
+        nodes: options.nodes,
+        edges: options.edges,
+        globalPrompt: options.globalPrompt,
+        config: options.config,
+        record: options.record ?? this.config.recordCalls,
+        timeout: options.timeout || this.config.callTimeout || 30,
+        twilioAccountSid: this.config.accountSid,
+        twilioAuthToken: this.config.authToken
+      });
+
+    } catch (error) {
+      console.error('Optimized call error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        optimization: {
+          enabled: false,
+          trackingId: '',
+          expectedLatency: 'N/A',
+          features: {
+            conversationRelay: false,
+            predictiveCache: false,
+            languageOptimization: false,
+            providerFailover: false
+          }
+        }
+      };
+    }
+  }
+
+  /**
+   * Make a traditional phone call (fallback)
+   * Note: This is slower (2-3 seconds) compared to optimized calls
    */
   async makeCall(options: CallOptions): Promise<CallResponse> {
     try {

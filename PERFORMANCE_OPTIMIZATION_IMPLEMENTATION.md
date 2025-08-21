@@ -107,9 +107,10 @@ Primary Provider → Secondary Provider → Fallback Provider
 
 ### **Performance Optimization Panel**
 - **Real-time Metrics**: Latency, cache hit rate, error rate
-- **Configuration Controls**: Enable/disable optimizations
+- **Always-On Status**: Clear indicators that all optimizations are active
 - **Performance Comparison**: Visual comparison with competitors
 - **Language Settings**: Integrated with existing language selector
+- **Simplified UX**: No confusing toggles - optimizations are always enabled
 
 ### **Monitoring Dashboard**
 - **Live Performance Metrics**: Average, P95, P99 latency
@@ -123,15 +124,16 @@ Primary Provider → Secondary Provider → Fallback Provider
 ```typescript
 import PerformanceOrchestrator from './services/performanceOrchestrator';
 
+// All optimizations are enabled by default - no configuration needed
 const orchestrator = new PerformanceOrchestrator(workflowConfig, {
-  targetLatency: 300,
-  maxLatency: 500,
-  cacheEnabled: true,
-  languageOptimization: true,
-  failoverEnabled: true
+  targetLatency: 300,  // Optional: customize performance targets
+  maxLatency: 500,     // Optional: customize performance targets
+  // cacheEnabled: true,        // Always enabled by default
+  // languageOptimization: true, // Always enabled by default
+  // failoverEnabled: true      // Always enabled by default
 });
 
-// Start optimized conversation
+// Start optimized conversation with all optimizations active
 await orchestrator.startOptimizedConversation(callSid);
 ```
 
