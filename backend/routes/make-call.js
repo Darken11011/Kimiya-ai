@@ -93,14 +93,37 @@ module.exports = async function makeCallHandler(req, res) {
     }
 
     // Check Twilio credentials from request body (provided by frontend)
-    const twilioAccountSid = req.body.twilioAccountSid || process.env.TWILIO_ACCOUNT_SID;
-    const twilioAuthToken = req.body.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN;
+    let twilioAccountSid = req.body.twilioAccountSid || process.env.TWILIO_ACCOUNT_SID;
+    let twilioAuthToken = req.body.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN;
+
+    // Clean up credentials (remove whitespace, newlines, etc.)
+    if (twilioAccountSid) {
+      twilioAccountSid = twilioAccountSid.toString().trim();
+    }
+    if (twilioAuthToken) {
+      twilioAuthToken = twilioAuthToken.toString().trim();
+    }
 
     console.log('Checking Twilio credentials...');
     console.log('Account SID exists:', !!twilioAccountSid);
     console.log('Auth Token exists:', !!twilioAuthToken);
     console.log('Using request credentials:', !!req.body.twilioAccountSid);
     console.log('Using env credentials:', !!process.env.TWILIO_ACCOUNT_SID);
+
+    // Debug credential format (first/last 4 chars only for security)
+    if (twilioAccountSid) {
+      console.log('Account SID format:', {
+        length: twilioAccountSid.length,
+        startsWithAC: twilioAccountSid.startsWith('AC'),
+        preview: twilioAccountSid.substring(0, 4) + '...' + twilioAccountSid.substring(twilioAccountSid.length - 4)
+      });
+    }
+    if (twilioAuthToken) {
+      console.log('Auth Token format:', {
+        length: twilioAuthToken.length,
+        preview: twilioAuthToken.substring(0, 4) + '...' + twilioAuthToken.substring(twilioAuthToken.length - 4)
+      });
+    }
 
     if (!twilioAccountSid || !twilioAuthToken) {
       console.error('Missing Twilio credentials:', {
@@ -112,6 +135,28 @@ module.exports = async function makeCallHandler(req, res) {
       return res.status(400).json({
         success: false,
         error: 'Twilio credentials not provided. Please check your configuration.'
+      });
+    }
+
+    // Validate credential format
+    if (!twilioAccountSid.startsWith('AC') || twilioAccountSid.length !== 34) {
+      console.error('Invalid Account SID format:', {
+        length: twilioAccountSid.length,
+        startsWithAC: twilioAccountSid.startsWith('AC')
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid Twilio Account SID format. Should start with "AC" and be 34 characters long.'
+      });
+    }
+
+    if (twilioAuthToken.length !== 32) {
+      console.error('Invalid Auth Token format:', {
+        length: twilioAuthToken.length
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid Twilio Auth Token format. Should be 32 characters long.'
       });
     }
 
@@ -183,12 +228,19 @@ module.exports = async function makeCallHandler(req, res) {
     // Create Basic Auth header
     const auth = Buffer.from(`${twilioAccountSid}:${twilioAuthToken}`).toString('base64');
 
+    console.log('Creating Twilio API request:', {
+      url: `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Calls.json`,
+      authHeaderLength: auth.length,
+      formDataEntries: Array.from(formData.entries()).map(([key, value]) => [key, key.includes('Token') ? '[REDACTED]' : value])
+    });
+
     // Make the API call to Twilio
     const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Calls.json`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Kimiyi-Call-Flow-Weaver/1.0'
       },
       body: formData
     });
