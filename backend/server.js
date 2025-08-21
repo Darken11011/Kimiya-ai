@@ -214,10 +214,14 @@ const server = app.listen(PORT, () => {
   console.log(`   • GET  /api/health-optimized`);
 });
 
-// ConversationRelay WebSocket server (temporarily disabled for deployment)
-// TODO: Enable after WebSocket dependencies are properly installed
-// const conversationRelayWS = new ConversationRelayWebSocket(server);
-console.log(`🎙️  ConversationRelay WebSocket server (disabled - using optimized TwiML)`);
-console.log(`📡 Optimized processing active with performance improvements`);
+// Initialize ConversationRelay WebSocket server
+try {
+  const conversationRelayWS = new ConversationRelayWebSocket(server);
+  console.log(`🎙️  ConversationRelay WebSocket server initialized`);
+  console.log(`📡 Real-time audio streaming: wss://kimiyi-ai.onrender.com/api/conversationrelay-ws`);
+} catch (error) {
+  console.error(`❌ ConversationRelay WebSocket server failed to initialize:`, error.message);
+  console.log(`📡 Falling back to traditional TwiML processing`);
+}
 
 module.exports = app;

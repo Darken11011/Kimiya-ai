@@ -20,47 +20,61 @@ class ConversationRelayWebSocket {
 
   setupWebSocketServer() {
     this.wss.on('connection', (ws, req) => {
-      const url = new URL(req.url, `http://${req.headers.host}`);
-      const workflowId = url.searchParams.get('workflowId');
-      const trackingId = url.searchParams.get('trackingId');
-      const callSid = url.searchParams.get('CallSid');
-      
-      console.log(`[ConversationRelay-WS] New connection: CallSid=${callSid}, TrackingId=${trackingId}`);
-      
-      // Initialize session
-      const session = {
-        ws,
-        callSid,
-        workflowId,
-        trackingId,
-        startTime: Date.now(),
-        messageCount: 0,
-        conversationHistory: []
-      };
-      
-      this.activeSessions.set(callSid, session);
-      
-      // Set up message handlers
-      ws.on('message', (data) => {
-        this.handleWebSocketMessage(session, data);
-      });
-      
-      ws.on('close', () => {
-        console.log(`[ConversationRelay-WS] Connection closed for CallSid=${callSid}`);
-        this.activeSessions.delete(callSid);
-      });
-      
-      ws.on('error', (error) => {
-        console.error(`[ConversationRelay-WS] WebSocket error for CallSid=${callSid}:`, error);
-        this.activeSessions.delete(callSid);
-      });
-      
-      // Send initial setup message
-      this.sendMessage(ws, {
-        event: 'connected',
-        callSid,
-        message: 'ConversationRelay WebSocket connected'
-      });
+      try {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const workflowId = url.searchParams.get('workflowId') || 'default';
+        const trackingId = url.searchParams.get('trackingId') || `track_${Date.now()}`;
+        const callSid = url.searchParams.get('CallSid') || `call_${Date.now()}`;
+
+        console.log(`[ConversationRelay-WS] New connection: CallSid=${callSid}, TrackingId=${trackingId}, WorkflowId=${workflowId}`);
+
+        // Initialize session
+        const session = {
+          ws,
+          callSid,
+          workflowId,
+          trackingId,
+          startTime: Date.now(),
+          messageCount: 0,
+          conversationHistory: []
+        };
+
+        this.activeSessions.set(callSid, session);
+
+        // Set up message handlers
+        ws.on('message', (data) => {
+          try {
+            this.handleWebSocketMessage(session, data);
+          } catch (error) {
+            console.error(`[ConversationRelay-WS] Error handling message for ${callSid}:`, error);
+          }
+        });
+
+        ws.on('close', (code, reason) => {
+          console.log(`[ConversationRelay-WS] Connection closed for CallSid=${callSid}, Code=${code}, Reason=${reason}`);
+          this.activeSessions.delete(callSid);
+        });
+
+        ws.on('error', (error) => {
+          console.error(`[ConversationRelay-WS] WebSocket error for CallSid=${callSid}:`, error);
+          this.activeSessions.delete(callSid);
+        });
+
+        // Send initial setup message
+        this.sendMessage(ws, {
+          event: 'connected',
+          callSid,
+          message: 'ConversationRelay WebSocket connected successfully'
+        });
+
+      } catch (error) {
+        console.error('[ConversationRelay-WS] Error setting up WebSocket connection:', error);
+        ws.close(1011, 'Server error during connection setup');
+      }
+    });
+
+    this.wss.on('error', (error) => {
+      console.error('[ConversationRelay-WS] WebSocket server error:', error);
     });
   }
 
@@ -110,42 +124,62 @@ class ConversationRelayWebSocket {
 
   async handleMedia(session, message) {
     const startTime = performance.now();
-    
+
     try {
+      console.log(`[ConversationRelay-WS] Processing media for ${session.callSid}`);
+
+      // Validate message structure
+      if (!message.media || !message.media.payload) {
+        console.warn('[ConversationRelay-WS] Invalid media message structure');
+        await this.sendAIResponse(session, "I'm having trouble hearing you. Could you please speak again?");
+        return;
+      }
+
       // Extract audio data
       const audioData = Buffer.from(message.media.payload, 'base64');
-      
+      console.log(`[ConversationRelay-WS] Received ${audioData.length} bytes of audio data`);
+
       // Get orchestrator for processing
       const orchestrator = getActiveOrchestrator(session.trackingId);
-      
+
       let aiResponse;
-      
+
       if (orchestrator) {
-        // Use optimized processing
-        const audioChunk = {
-          data: audioData,
-          timestamp: Date.now(),
-          sequenceNumber: session.messageCount,
-          language: 'en-US'
-        };
-        
-        const result = await orchestrator.processOptimizedAudio(session.callSid, audioData);
-        aiResponse = result.response || "I'm processing your request...";
-        
+        console.log('[ConversationRelay-WS] Using performance orchestrator for processing');
+        try {
+          // Use optimized processing
+          const audioChunk = {
+            data: audioData,
+            timestamp: Date.now(),
+            sequenceNumber: session.messageCount,
+            language: 'en-US'
+          };
+
+          const result = await orchestrator.processOptimizedAudio(session.callSid, audioData);
+          aiResponse = result.response || "I'm processing your request...";
+
+        } catch (orchestratorError) {
+          console.error('[ConversationRelay-WS] Orchestrator processing failed:', orchestratorError);
+          // Fallback to simple processing
+          aiResponse = await this.processAudioFallback(audioData, session);
+        }
+
       } else {
+        console.log('[ConversationRelay-WS] No orchestrator available, using fallback processing');
         // Fallback to simple processing
         aiResponse = await this.processAudioFallback(audioData, session);
       }
-      
+
       const processingTime = performance.now() - startTime;
       console.log(`[ConversationRelay-WS] Audio processed in ${processingTime.toFixed(2)}ms`);
-      
+
       // Send AI response back
       await this.sendAIResponse(session, aiResponse);
-      
+
     } catch (error) {
-      console.error(`[ConversationRelay-WS] Media processing error:`, error);
-      await this.sendAIResponse(session, "I'm sorry, I didn't catch that. Could you please repeat?");
+      const processingTime = performance.now() - startTime;
+      console.error(`[ConversationRelay-WS] Media processing error after ${processingTime.toFixed(2)}ms:`, error);
+      await this.sendAIResponse(session, "I'm sorry, I'm having trouble processing your request. Could you please try again?");
     }
   }
 
@@ -221,6 +255,14 @@ class ConversationRelayWebSocket {
 
   async callAzureOpenAI(messages) {
     try {
+      // Validate environment variables
+      if (!process.env.AZURE_OPENAI_ENDPOINT || !process.env.AZURE_OPENAI_API_KEY) {
+        console.error('[ConversationRelay-WS] Missing Azure OpenAI credentials');
+        return "I'm having trouble connecting to my AI service. Please try again.";
+      }
+
+      console.log('[ConversationRelay-WS] Calling Azure OpenAI with', messages.length, 'messages');
+
       const response = await fetch(process.env.AZURE_OPENAI_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -228,7 +270,7 @@ class ConversationRelayWebSocket {
           'api-key': process.env.AZURE_OPENAI_API_KEY
         },
         body: JSON.stringify({
-          messages,
+          messages: Array.isArray(messages) ? messages : [{ role: 'user', content: messages }],
           max_tokens: 150,
           temperature: 0.7,
           top_p: 0.95,
@@ -238,15 +280,26 @@ class ConversationRelayWebSocket {
       });
 
       if (!response.ok) {
-        throw new Error(`Azure OpenAI API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('[ConversationRelay-WS] Azure OpenAI API error:', response.status, errorText);
+        return "I'm experiencing some technical difficulties. How else can I help you?";
       }
 
       const data = await response.json();
-      return data.choices[0].message.content.trim();
+
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('[ConversationRelay-WS] Invalid Azure OpenAI response structure:', data);
+        return "I'm having trouble processing your request. Could you please rephrase?";
+      }
+
+      const aiResponse = data.choices[0].message.content.trim();
+      console.log('[ConversationRelay-WS] Azure OpenAI response:', aiResponse.substring(0, 100) + '...');
+
+      return aiResponse;
 
     } catch (error) {
-      console.error('Azure OpenAI call failed:', error);
-      throw error;
+      console.error('[ConversationRelay-WS] Azure OpenAI call failed:', error);
+      return "I apologize, but I'm having trouble understanding. Could you please try again?";
     }
   }
 
