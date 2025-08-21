@@ -87,20 +87,17 @@ const FlowToolbar: React.FC = () => {
     }
   };
 
-  const handleNew = () => {
-    if (nodes.length > 0 || edges.length > 0) {
-      if (window.confirm('Create a new workflow? Any unsaved changes will be lost.')) {
-        setIsWorkflowSetupOpen(true);
-      }
-    } else {
-      setIsWorkflowSetupOpen(true);
-    }
+  const handleEditWorkflow = () => {
+    // Open workflow setup modal to edit current workflow configuration
+    setIsWorkflowSetupOpen(true);
   };
 
   const handleWorkflowSetupSave = (config: WorkflowConfig) => {
-    newFlow(config);
+    // Update existing workflow configuration instead of creating new
+    setWorkflowConfig(config);
+    setWorkflowName(config.name);
     setIsWorkflowSetupOpen(false);
-    toast.success(`Workflow "${config.name}" created successfully!`);
+    toast.success(`Workflow "${config.name}" updated successfully!`);
   };
 
   const handleExecute = async () => {
@@ -316,13 +313,13 @@ const FlowToolbar: React.FC = () => {
       {/* Right Section - File Operations */}
       <div className="flex items-center space-x-2">
         <Button
-          onClick={handleNew}
+          onClick={handleEditWorkflow}
           variant="outline"
           size="sm"
           className="flex items-center space-x-2"
         >
-          <FileText className="h-4 w-4" />
-          <span>New Workflow</span>
+          <Settings className="h-4 w-4" />
+          <span>Edit Workflow</span>
         </Button>
 
         
@@ -441,6 +438,7 @@ const FlowToolbar: React.FC = () => {
           isOpen={isWorkflowSetupOpen}
           onClose={() => setIsWorkflowSetupOpen(false)}
           onSave={handleWorkflowSetupSave}
+          initialConfig={workflowConfig}
         />
 
         {/* Playground Modal */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,11 +79,23 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
   // Get environment configuration
   const envConfig = getEnvConfig();
 
-  // Twilio Configuration
+  // Helper function to check if a value is a placeholder
+  const isPlaceholder = (value: string | undefined): boolean => {
+    if (!value) return true;
+    return value.includes('YOUR_') || value.includes('your_') || value.includes('_here');
+  };
+
+  // Twilio Configuration - ignore placeholder values from saved workflows
   const [twilioConfig, setTwilioConfig] = useState<TwilioConfig>({
-    accountSid: initialConfig?.twilio?.accountSid || envConfig.twilio.accountSid || '',
-    authToken: initialConfig?.twilio?.authToken || envConfig.twilio.authToken || '',
-    phoneNumber: initialConfig?.twilio?.phoneNumber || envConfig.twilio.phoneNumber || '',
+    accountSid: !isPlaceholder(initialConfig?.twilio?.accountSid)
+      ? initialConfig!.twilio!.accountSid
+      : (envConfig.twilio.accountSid || ''),
+    authToken: !isPlaceholder(initialConfig?.twilio?.authToken)
+      ? initialConfig!.twilio!.authToken
+      : (envConfig.twilio.authToken || ''),
+    phoneNumber: !isPlaceholder(initialConfig?.twilio?.phoneNumber)
+      ? initialConfig!.twilio!.phoneNumber
+      : (envConfig.twilio.phoneNumber || ''),
     webhookUrl: initialConfig?.twilio?.webhookUrl || '',
     recordCalls: initialConfig?.twilio?.recordCalls ?? true,
     callTimeout: initialConfig?.twilio?.callTimeout || 300
@@ -185,6 +197,125 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
   const [currentTab, setCurrentTab] = useState('basic');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  // Track if we've already loaded the initial config to prevent overwriting user changes
+  const [hasLoadedInitialConfig, setHasLoadedInitialConfig] = useState(false);
+
+  // Update state when modal opens with initialConfig (only once per modal opening)
+  useEffect(() => {
+    if (isOpen && initialConfig && !hasLoadedInitialConfig) {
+      console.log('Loading initial workflow config:', initialConfig.name);
+      console.log('LLM Provider in config:', initialConfig.llm?.provider);
+      console.log('Azure config:', initialConfig.llm?.azure);
+      console.log('Full LLM config:', initialConfig.llm);
+      setHasLoadedInitialConfig(true);
+
+      // Update basic info
+      setWorkflowName(initialConfig.name || '');
+      setDescription(initialConfig.description || '');
+
+      // Update Twilio config
+      setTwilioConfig({
+        accountSid: !isPlaceholder(initialConfig.twilio?.accountSid)
+          ? initialConfig.twilio!.accountSid
+          : (envConfig.twilio.accountSid || ''),
+        authToken: !isPlaceholder(initialConfig.twilio?.authToken)
+          ? initialConfig.twilio!.authToken
+          : (envConfig.twilio.authToken || ''),
+        phoneNumber: !isPlaceholder(initialConfig.twilio?.phoneNumber)
+          ? initialConfig.twilio!.phoneNumber
+          : (envConfig.twilio.phoneNumber || ''),
+        webhookUrl: initialConfig.twilio?.webhookUrl || '',
+        recordCalls: initialConfig.twilio?.recordCalls ?? true,
+        callTimeout: initialConfig.twilio?.callTimeout || 300
+      });
+
+      // Update LLM provider and config
+      const provider = initialConfig.llm?.provider || LLMProvider.AZURE_OPENAI;
+      setLlmProvider(provider);
+      setLlmConfig({
+        provider: provider,
+        openAI: {
+          apiKey: initialConfig.llm?.openAI?.apiKey || '',
+          model: initialConfig.llm?.openAI?.model || DEFAULT_OPENAI_CONFIG.model!,
+          temperature: initialConfig.llm?.openAI?.temperature || DEFAULT_OPENAI_CONFIG.temperature,
+          maxTokens: initialConfig.llm?.openAI?.maxTokens || DEFAULT_OPENAI_CONFIG.maxTokens,
+          systemPrompt: initialConfig.llm?.openAI?.systemPrompt || DEFAULT_OPENAI_CONFIG.systemPrompt
+        },
+        azure: {
+          apiKey: initialConfig.llm?.azure?.apiKey || envConfig.azureOpenAI.apiKey || '',
+          endpoint: initialConfig.llm?.azure?.endpoint || envConfig.azureOpenAI.endpoint || '',
+          deploymentName: initialConfig.llm?.azure?.deploymentName || envConfig.azureOpenAI.deploymentName,
+          model: initialConfig.llm?.azure?.model || envConfig.azureOpenAI.model,
+          temperature: initialConfig.llm?.azure?.temperature || 0.7,
+          maxTokens: initialConfig.llm?.azure?.maxTokens || 4000,
+          systemPrompt: initialConfig.llm?.azure?.systemPrompt || 'You are a helpful AI assistant.',
+          apiVersion: initialConfig.llm?.azure?.apiVersion || '2024-02-15-preview'
+        }
+      });
+
+      // Update voice provider and config
+      const voiceProvider = initialConfig.voice?.provider || VoiceProvider.ELEVEN_LABS;
+      setVoiceProvider(voiceProvider);
+      setVoiceConfig({
+        provider: voiceProvider,
+        elevenLabs: {
+          apiKey: initialConfig.voice?.elevenLabs?.apiKey || '',
+          voiceId: initialConfig.voice?.elevenLabs?.voiceId || DEFAULT_ELEVEN_LABS_CONFIG.voiceId,
+          model: initialConfig.voice?.elevenLabs?.model || DEFAULT_ELEVEN_LABS_CONFIG.model,
+          stability: initialConfig.voice?.elevenLabs?.stability || DEFAULT_ELEVEN_LABS_CONFIG.stability,
+          similarityBoost: initialConfig.voice?.elevenLabs?.similarityBoost || DEFAULT_ELEVEN_LABS_CONFIG.similarityBoost
+        },
+        azure: {
+          apiKey: initialConfig.voice?.azure?.apiKey || '',
+          region: initialConfig.voice?.azure?.region || 'eastus',
+          voiceName: initialConfig.voice?.azure?.voiceName || 'en-US-JennyNeural'
+        }
+      });
+
+      // Update transcription provider and config
+      const transcriptionProvider = initialConfig.transcription?.provider || TranscriptionProvider.DEEPGRAM;
+      setTranscriptionProvider(transcriptionProvider);
+      setTranscriptionConfig({
+        provider: transcriptionProvider,
+        deepgram: {
+          apiKey: initialConfig.transcription?.deepgram?.apiKey || '',
+          model: initialConfig.transcription?.deepgram?.model || DEFAULT_DEEPGRAM_CONFIG.model,
+          language: initialConfig.transcription?.deepgram?.language || DEFAULT_DEEPGRAM_CONFIG.language,
+          smartFormat: initialConfig.transcription?.deepgram?.smartFormat ?? DEFAULT_DEEPGRAM_CONFIG.smartFormat,
+          punctuate: initialConfig.transcription?.deepgram?.punctuate ?? DEFAULT_DEEPGRAM_CONFIG.punctuate
+        }
+      });
+
+      // Update global settings (preserve existing properties)
+      setGlobalSettings(prev => ({
+        ...prev,
+        defaultLanguage: initialConfig.globalSettings?.defaultLanguage || DEFAULT_GLOBAL_SETTINGS.defaultLanguage,
+        timezone: initialConfig.globalSettings?.timezone || DEFAULT_GLOBAL_SETTINGS.timezone,
+        languageConfig: initialConfig.globalSettings?.languageConfig || DEFAULT_LANGUAGE_CONFIG
+      }));
+
+      // Update selected language
+      setSelectedLanguage(initialConfig.globalSettings?.defaultLanguage || DEFAULT_GLOBAL_SETTINGS.defaultLanguage);
+
+      // Clear validation errors when loading existing config
+      setValidationErrors([]);
+    } else if (isOpen && !initialConfig && !hasLoadedInitialConfig) {
+      console.log('Creating new workflow - resetting to defaults');
+      setHasLoadedInitialConfig(true);
+      // Reset to defaults when creating new workflow
+      setWorkflowName('');
+      setDescription('');
+      setValidationErrors([]);
+    }
+  }, [isOpen, initialConfig, envConfig, isPlaceholder, hasLoadedInitialConfig]);
+
+  // Reset the loading flag when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasLoadedInitialConfig(false);
+    }
+  }, [isOpen]);
+
   // Language change handlers
   const handleLanguageChange = (language: string) => {
     setSelectedLanguage(language);
@@ -230,16 +361,73 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
     onSave(config);
   };
 
+  const getValidationErrors = (): Array<{message: string, tab: string, field: string}> => {
+    const errors: Array<{message: string, tab: string, field: string}> = [];
+
+    // Basic validation
+    if (!workflowName.trim()) {
+      errors.push({message: 'Workflow name is required', tab: 'basic', field: 'workflowName'});
+    }
+
+    // Twilio validation
+    if (!twilioConfig.accountSid.trim()) {
+      errors.push({message: 'Twilio Account SID is required', tab: 'services', field: 'twilioAccountSid'});
+    }
+    if (!twilioConfig.authToken.trim()) {
+      errors.push({message: 'Twilio Auth Token is required', tab: 'services', field: 'twilioAuthToken'});
+    }
+    if (!twilioConfig.phoneNumber.trim()) {
+      errors.push({message: 'Twilio Phone Number is required', tab: 'services', field: 'twilioPhoneNumber'});
+    }
+
+    // LLM validation based on provider
+    if (llmProvider === LLMProvider.AZURE_OPENAI) {
+      if (!llmConfig.azure?.apiKey?.trim()) {
+        errors.push({message: 'Azure OpenAI API Key is required', tab: 'services', field: 'azureApiKey'});
+      }
+      if (!llmConfig.azure?.endpoint?.trim()) {
+        errors.push({message: 'Azure OpenAI Endpoint is required', tab: 'services', field: 'azureEndpoint'});
+      }
+      if (!llmConfig.azure?.deploymentName?.trim()) {
+        errors.push({message: 'Azure Deployment Name is required', tab: 'services', field: 'azureDeployment'});
+      }
+    } else if (llmProvider === LLMProvider.OPENAI) {
+      if (!llmConfig.openAI?.apiKey?.trim()) {
+        errors.push({message: 'OpenAI API Key is required', tab: 'services', field: 'openaiKey'});
+      }
+    }
+
+    // Voice validation based on provider
+    if (voiceProvider === VoiceProvider.ELEVEN_LABS) {
+      if (!voiceConfig.elevenLabs?.apiKey?.trim()) {
+        errors.push({message: 'ElevenLabs API Key is required', tab: 'voice', field: 'elevenLabsApiKey'});
+      }
+    }
+
+    // Transcription validation based on provider
+    if (transcriptionProvider === TranscriptionProvider.DEEPGRAM) {
+      if (!transcriptionConfig.deepgram?.apiKey?.trim()) {
+        errors.push({message: 'Deepgram API Key is required', tab: 'voice', field: 'deepgramApiKey'});
+      }
+    }
+
+    return errors;
+  };
+
   const isFormValid = () => {
-    return (
-      workflowName.trim() !== '' &&
-      twilioConfig.accountSid !== '' &&
-      twilioConfig.authToken !== '' &&
-      twilioConfig.phoneNumber !== '' &&
-      llmConfig.openAI?.apiKey !== '' &&
-      voiceConfig.elevenLabs?.apiKey !== '' &&
-      transcriptionConfig.deepgram?.apiKey !== ''
-    );
+    return getValidationErrors().length === 0;
+  };
+
+  const getTabErrors = (tabName: string) => {
+    return getValidationErrors().filter(error => error.tab === tabName);
+  };
+
+  const hasTabErrors = (tabName: string) => {
+    return getTabErrors(tabName).length > 0;
+  };
+
+  const hasFieldError = (fieldName: string) => {
+    return getValidationErrors().some(error => error.field === fieldName);
   };
 
   const renderBasicInfo = () => (
@@ -251,8 +439,11 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
           value={workflowName}
           onChange={(e) => setWorkflowName(e.target.value)}
           placeholder="My Voice Agent Workflow"
-          className="mt-1"
+          className={`mt-1 ${hasFieldError('workflowName') ? 'border-red-500 focus:border-red-500' : ''}`}
         />
+        {hasFieldError('workflowName') && (
+          <p className="text-sm text-red-600 mt-1">Workflow name is required</p>
+        )}
       </div>
       
       <div>
@@ -369,6 +560,7 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={LLMProvider.AZURE_OPENAI}>Azure OpenAI</SelectItem>
               <SelectItem value={LLMProvider.OPENAI}>OpenAI</SelectItem>
               <SelectItem value={LLMProvider.ANTHROPIC}>Anthropic (Claude)</SelectItem>
             </SelectContent>
@@ -422,6 +614,90 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
                 onChange={(e) => setLlmConfig({
                   ...llmConfig,
                   openAI: { ...llmConfig.openAI!, systemPrompt: e.target.value }
+                })}
+                placeholder="You are a helpful AI assistant..."
+                className="mt-1 min-h-[80px]"
+              />
+            </div>
+          </>
+        )}
+
+        {llmProvider === LLMProvider.AZURE_OPENAI && (
+          <>
+            <div>
+              <Label htmlFor="azureApiKey">Azure OpenAI API Key *</Label>
+              <Input
+                id="azureApiKey"
+                type={showApiKeys ? 'text' : 'password'}
+                value={llmConfig.azure?.apiKey || ''}
+                onChange={(e) => setLlmConfig({
+                  ...llmConfig,
+                  azure: { ...llmConfig.azure!, apiKey: e.target.value }
+                })}
+                placeholder="Your Azure OpenAI API key"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="azureEndpoint">Azure OpenAI Endpoint *</Label>
+              <Input
+                id="azureEndpoint"
+                type="text"
+                value={llmConfig.azure?.endpoint || ''}
+                onChange={(e) => setLlmConfig({
+                  ...llmConfig,
+                  azure: { ...llmConfig.azure!, endpoint: e.target.value }
+                })}
+                placeholder="https://your-resource.openai.azure.com"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="azureDeployment">Deployment Name *</Label>
+              <Input
+                id="azureDeployment"
+                type="text"
+                value={llmConfig.azure?.deploymentName || ''}
+                onChange={(e) => setLlmConfig({
+                  ...llmConfig,
+                  azure: { ...llmConfig.azure!, deploymentName: e.target.value }
+                })}
+                placeholder="gpt-4o-mini"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label>Model</Label>
+              <Select
+                value={llmConfig.azure?.model}
+                onValueChange={(value) => setLlmConfig({
+                  ...llmConfig,
+                  azure: { ...llmConfig.azure!, model: value }
+                })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                  <SelectItem value="gpt-4">GPT-4</SelectItem>
+                  <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="azureSystemPrompt">System Prompt</Label>
+              <Textarea
+                id="azureSystemPrompt"
+                value={llmConfig.azure?.systemPrompt || ''}
+                onChange={(e) => setLlmConfig({
+                  ...llmConfig,
+                  azure: { ...llmConfig.azure!, systemPrompt: e.target.value }
                 })}
                 placeholder="You are a helpful AI assistant..."
                 className="mt-1 min-h-[80px]"
@@ -699,11 +975,36 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
 
         <Tabs value={currentTab} onValueChange={setCurrentTab}>
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="voice">Voice & Speech</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="basic" className="relative">
+              Basic Info
+              {hasTabErrors('basic') && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="services" className="relative">
+              Services
+              {hasTabErrors('services') && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="relative">
+              Voice & Speech
+              {hasTabErrors('voice') && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="relative">
+              Settings
+              {hasTabErrors('settings') && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="relative">
+              Performance
+              {hasTabErrors('performance') && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-6 mt-6">
@@ -962,15 +1263,42 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
 
         <DialogFooter className="flex-shrink-0 flex items-center justify-between border-t pt-4 mt-4">
           <div className="flex items-center gap-2">
-            {(validationErrors.length > 0 || !isFormValid()) && (
+            {!isFormValid() && (
+              <div className="flex flex-col gap-1 text-sm text-red-600 max-w-md">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-medium">Missing required fields:</span>
+                </div>
+                <div className="ml-6 space-y-1">
+                  {getValidationErrors().slice(0, 3).map((error, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span>•</span>
+                      <span>{error.message}</span>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentTab(error.tab)}
+                        className="text-blue-600 hover:text-blue-800 underline text-xs"
+                      >
+                        Go to {error.tab === 'basic' ? 'Basic Info' :
+                               error.tab === 'services' ? 'Services' :
+                               error.tab === 'voice' ? 'Voice & Speech' :
+                               error.tab === 'settings' ? 'Settings' :
+                               error.tab === 'performance' ? 'Performance' : error.tab}
+                      </button>
+                    </div>
+                  ))}
+                  {getValidationErrors().length > 3 && (
+                    <div className="text-xs text-gray-500">
+                      ... and {getValidationErrors().length - 3} more fields
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {validationErrors.length > 0 && (
               <div className="flex items-center gap-2 text-sm text-red-600">
                 <AlertCircle className="w-4 h-4" />
-                <span>
-                  {validationErrors.length > 0
-                    ? validationErrors[0]
-                    : 'Please fill in all required fields'
-                  }
-                </span>
+                <span>{validationErrors[0]}</span>
               </div>
             )}
           </div>
@@ -980,7 +1308,7 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={!isFormValid()}>
-              Create Workflow
+              {initialConfig ? 'Update Workflow' : 'Create Workflow'}
             </Button>
           </div>
         </DialogFooter>

@@ -115,6 +115,14 @@ export class TwilioService {
   }
 
   /**
+   * Check if a credential value is a placeholder
+   */
+  private isPlaceholder(value: string | undefined): boolean {
+    if (!value) return true;
+    return value.includes('YOUR_') || value.includes('your_') || value.includes('_here') || value.trim() === '';
+  }
+
+  /**
    * Make a real call using backend API
    */
   private async makeRealCall(normalizedNumber: string, options: CallOptions): Promise<CallResponse> {
@@ -125,13 +133,18 @@ export class TwilioService {
       // Wake up backend first (important for Render free tier)
       await this.wakeUpBackend();
 
+      // Check if we have placeholder credentials - if so, send empty values to let backend use environment variables
+      const accountSid = this.isPlaceholder(this.config.accountSid) ? undefined : this.config.accountSid;
+      const authToken = this.isPlaceholder(this.config.authToken) ? undefined : this.config.authToken;
+
       // Debug: Log what credentials we're sending
       console.log('Making call with credentials:', {
-        hasAccountSid: !!this.config.accountSid,
-        hasAuthToken: !!this.config.authToken,
-        accountSidLength: this.config.accountSid?.length || 0,
-        authTokenLength: this.config.authToken?.length || 0,
-        phoneNumber: this.config.phoneNumber
+        hasAccountSid: !!accountSid,
+        hasAuthToken: !!authToken,
+        accountSidLength: accountSid?.length || 0,
+        authTokenLength: authToken?.length || 0,
+        phoneNumber: this.config.phoneNumber,
+        usingPlaceholders: this.isPlaceholder(this.config.accountSid) || this.isPlaceholder(this.config.authToken)
       });
 
       const response = await fetch(`${API_BASE_URL}/api/make-call`, {
@@ -146,9 +159,9 @@ export class TwilioService {
           record: options.record ?? this.config.recordCalls,
           timeout: options.timeout || this.config.callTimeout || 30,
           twimlUrl: options.url,
-          // Include Twilio credentials
-          twilioAccountSid: this.config.accountSid,
-          twilioAuthToken: this.config.authToken,
+          // Include Twilio credentials - send undefined for placeholders so backend uses environment variables
+          twilioAccountSid: accountSid,
+          twilioAuthToken: authToken,
           // Include workflow data for dynamic call processing
           workflowId: options.workflowId,
           nodes: options.nodes,
@@ -178,7 +191,7 @@ export class TwilioService {
           // Wait a moment for backend to fully wake up
           await new Promise(resolve => setTimeout(resolve, 2000));
 
-          // Retry the call
+          // Retry the call with same credential logic
           const retryResponse = await fetch(`${API_BASE_URL}/api/make-call`, {
             method: 'POST',
             headers: {
@@ -190,8 +203,8 @@ export class TwilioService {
               record: options.record ?? this.config.recordCalls,
               timeout: options.timeout || this.config.callTimeout || 30,
               twimlUrl: options.url,
-              twilioAccountSid: this.config.accountSid,
-              twilioAuthToken: this.config.authToken,
+              twilioAccountSid: accountSid, // Use the same processed credentials
+              twilioAuthToken: authToken,   // Use the same processed credentials
               workflowId: options.workflowId,
               nodes: options.nodes,
               edges: options.edges,

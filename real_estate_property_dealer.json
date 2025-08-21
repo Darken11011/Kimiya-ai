@@ -4,9 +4,9 @@
     "name": "Real Estate Property Dealer Workflow",
     "description": "Comprehensive workflow for real estate property dealers to handle customer inquiries, gather requirements, and provide property recommendations",
     "twilio": {
-      "accountSid": "YOUR_TWILIO_ACCOUNT_SID",
-      "authToken": "YOUR_TWILIO_AUTH_TOKEN",
-      "phoneNumber": "+1234567890",
+      "accountSid": "",
+      "authToken": "",
+      "phoneNumber": "+17077433838",
       "recordCalls": true,
       "callTimeout": 1800
     },

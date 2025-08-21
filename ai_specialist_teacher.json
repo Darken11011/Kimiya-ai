@@ -4,9 +4,9 @@
     "name": "AI Specialist Teacher Workflow",
     "description": "Comprehensive workflow for AI specialist teachers to handle student inquiries, assess learning needs, and provide personalized AI education guidance",
     "twilio": {
-      "accountSid": "YOUR_TWILIO_ACCOUNT_SID",
-      "authToken": "YOUR_TWILIO_AUTH_TOKEN",
-      "phoneNumber": "+1234567890",
+      "accountSid": "",
+      "authToken": "",
+      "phoneNumber": "+17077433838",
       "recordCalls": true,
       "callTimeout": 2400
     },
