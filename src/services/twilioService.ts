@@ -102,8 +102,8 @@ export class TwilioService {
   }
 
   /**
-   * Make a traditional phone call (fallback)
-   * Note: This is slower (2-3 seconds) compared to optimized calls
+   * Make a phone call using optimized backend (150-250ms response times)
+   * This method now uses the performance-optimized API by default
    */
   async makeCall(options: CallOptions): Promise<CallResponse> {
     try {
@@ -208,7 +208,7 @@ export class TwilioService {
         usingPlaceholders: this.isPlaceholder(this.config.accountSid) || this.isPlaceholder(this.config.authToken)
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/make-call`, {
+      const response = await fetch(`${API_BASE_URL}/api/make-call-optimized`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ export class TwilioService {
           await new Promise(resolve => setTimeout(resolve, 2000));
 
           // Retry the call with same credential logic
-          const retryResponse = await fetch(`${API_BASE_URL}/api/make-call`, {
+          const retryResponse = await fetch(`${API_BASE_URL}/api/make-call-optimized`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -303,6 +303,69 @@ export class TwilioService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to connect to backend API'
+      };
+    }
+  }
+
+  /**
+   * Make a traditional phone call (fallback - slower 2-3 seconds)
+   * Use this only if the optimized call fails
+   */
+  async makeTraditionalCall(options: CallOptions): Promise<CallResponse> {
+    try {
+      // Normalize and validate phone number
+      const normalizedNumber = this.normalizePhoneNumber(options.to);
+      if (!normalizedNumber) {
+        return {
+          success: false,
+          error: 'Invalid phone number format'
+        };
+      }
+
+      // Use traditional API endpoint
+      const API_BASE_URL = this.getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/make-call`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(15000), // 15 second timeout
+        body: JSON.stringify({
+          to: normalizedNumber,
+          from: options.from || this.config.phoneNumber,
+          record: options.record ?? this.config.recordCalls,
+          timeout: options.timeout || this.config.callTimeout || 30,
+          twimlUrl: options.url,
+          twilioAccountSid: this.config.accountSid,
+          twilioAuthToken: this.config.authToken,
+          workflowId: options.workflowId,
+          nodes: options.nodes,
+          edges: options.edges,
+          config: options.config,
+          globalPrompt: options.globalPrompt
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        return {
+          success: true,
+          callSid: result.callSid,
+          message: result.message || 'Traditional call initiated successfully (2-3s response time)'
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || `HTTP ${response.status}`
+        };
+      }
+
+    } catch (error) {
+      console.error('Traditional call error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }

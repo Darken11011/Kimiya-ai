@@ -826,7 +826,7 @@ Conversation turns in this node: ${conversationTurns}`
       const service = workflowConfig?.twilio ? new TwilioService(workflowConfig.twilio) : defaultTwilioService;
       const fromNumber = workflowConfig?.twilio?.phoneNumber || defaultTwilioService.getConfig().phoneNumber;
 
-      const result: CallResponse = await service.makeCall({
+      const result: CallResponse = await service.makeOptimizedCall({
         to: phoneNumber,
         from: fromNumber,
         record: workflowConfig?.twilio?.recordCalls ?? true,
