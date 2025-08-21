@@ -7,26 +7,60 @@ import {
   TranscriptionProvider
 } from '../types/workflowConfig';
 
+// Demo fallback configuration
+const demoConfig = {
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || 'demo_account_sid',
+    authToken: process.env.TWILIO_AUTH_TOKEN || 'demo_auth_token',
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER || '+1234567890'
+  },
+  azureOpenAI: {
+    apiKey: process.env.AZURE_OPENAI_API_KEY || 'demo_azure_openai_key',
+    endpoint: process.env.AZURE_OPENAI_ENDPOINT || 'https://demo.openai.azure.com',
+    model: 'gpt-4-turbo',
+    deploymentName: 'gpt4omini',
+    apiVersion: '2025-01-01-preview'
+  }
+};
+
+// Try to load environment config, but fall back to demo values
+let envConfig: any = demoConfig;
+let envAvailable = false;
+
+try {
+  const envModule = await import('../utils/envConfig');
+  envConfig = envModule.envConfig;
+  envAvailable = true;
+  console.log('✅ Environment configuration loaded successfully');
+} catch (error) {
+  console.log('⚠️  Environment configuration not available, using demo values');
+  envConfig = demoConfig;
+  envAvailable = false;
+}
+
 /**
  * Demo script to test the performance optimization system
  * This demonstrates how to use the complete 3-phase optimization system
  */
 
-// Sample workflow configuration
+// Sample workflow configuration using environment variables
 const sampleWorkflowConfig: WorkflowConfig = {
   name: 'Performance Demo Workflow',
   twilio: {
-    accountSid: 'demo_account_sid',
-    authToken: 'demo_auth_token',
-    phoneNumber: '+1234567890'
+    accountSid: envConfig.twilio.accountSid,
+    authToken: envConfig.twilio.authToken,
+    phoneNumber: envConfig.twilio.phoneNumber
   },
   llm: {
-    provider: LLMProvider.OPENAI,
-    openAI: {
-      apiKey: 'demo_openai_key',
-      model: 'gpt-4-turbo',
+    provider: LLMProvider.AZURE_OPENAI,
+    azure: {
+      apiKey: envConfig.azureOpenAI.apiKey,
+      endpoint: envConfig.azureOpenAI.endpoint,
+      deploymentName: envConfig.azureOpenAI.deploymentName,
+      model: envConfig.azureOpenAI.model,
       temperature: 0.7,
-      maxTokens: 150
+      maxTokens: 150,
+      apiVersion: envConfig.azureOpenAI.apiVersion
     }
   },
   voice: {
@@ -51,19 +85,19 @@ const sampleWorkflowConfig: WorkflowConfig = {
   }
 };
 
-// Performance configuration for sub-300ms response times
+// Performance configuration using environment variables
 const performanceConfig = {
-  targetLatency: 250,
-  maxLatency: 400,
+  targetLatency: envConfig.performance.targetLatency,
+  maxLatency: envConfig.performance.maxLatency,
   qualityThreshold: 0.9,
-  cacheEnabled: true,
-  languageOptimization: true,
-  failoverEnabled: true,
+  cacheEnabled: envConfig.performance.cacheEnabled,
+  languageOptimization: envConfig.performance.languageOptimization,
+  failoverEnabled: envConfig.performance.failoverEnabled,
   monitoring: {
     enabled: true,
     metricsInterval: 10000, // 10 seconds for demo
     alertThresholds: {
-      latency: 300,
+      latency: envConfig.performance.targetLatency + 50,
       errorRate: 0.03,
       cacheHitRate: 0.4
     }
@@ -108,6 +142,32 @@ export class PerformanceDemo {
   }
 
   async runDemo(): Promise<any> {
+    console.log('🚀 Starting Kimiyi Performance Optimization Demo...\n');
+
+    // Log configuration status
+    if (envAvailable) {
+      console.log('✅ Using environment configuration');
+      try {
+        const envModule = await import('../utils/envConfig');
+        const validation = envModule.validateEnvConfig(envConfig);
+        if (!validation.isValid) {
+          console.warn('⚠️  Environment configuration has issues:');
+          validation.errors.forEach((error: string) => console.warn(`  - ${error}`));
+          console.warn('Continuing with available configuration...\n');
+        } else {
+          envModule.logConfigStatus(envConfig);
+        }
+      } catch (error) {
+        console.log('⚠️  Could not validate environment config, continuing with demo...');
+      }
+    } else {
+      console.log('🔧 Using demo configuration');
+      console.log(`   - Twilio Account: ${envConfig.twilio.accountSid}`);
+      console.log(`   - Azure OpenAI: ${envConfig.azureOpenAI.endpoint}`);
+      console.log(`   - Phone Number: ${envConfig.twilio.phoneNumber}`);
+    }
+    console.log('');
+
     console.log('🎯 [Demo] Starting Performance Optimization Demo');
     console.log('📋 [Demo] Configuration:');
     console.log(`   - Target Latency: ${performanceConfig.targetLatency}ms`);
@@ -175,16 +235,25 @@ export class PerformanceDemo {
 export default PerformanceDemo;
 
 // If running directly (for testing)
-if (require.main === module) {
+// Check if this file is being run directly
+const isMainModule = process.argv[1] && process.argv[1].endsWith('performanceDemo.ts');
+
+if (isMainModule) {
+  console.log('🔍 [Debug] Starting demo execution...');
   const demo = new PerformanceDemo();
-  
+
   demo.runDemo()
-    .then(() => {
+    .then((result) => {
       console.log('🎯 [Demo] All tests passed!');
+      console.log('🔍 [Debug] Demo result:', result);
       return demo.shutdown();
+    })
+    .then(() => {
+      console.log('🔍 [Debug] Demo shutdown complete');
     })
     .catch((error) => {
       console.error('💥 [Demo] Demo failed:', error);
+      console.error('🔍 [Debug] Error details:', error.stack);
       process.exit(1);
     });
 }

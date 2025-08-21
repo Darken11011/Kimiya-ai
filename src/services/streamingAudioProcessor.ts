@@ -613,5 +613,3 @@ class GoogleCloudTTSProvider implements TTSProvider {
     }
   }
 }
-
-export { StreamingAudioProcessor };

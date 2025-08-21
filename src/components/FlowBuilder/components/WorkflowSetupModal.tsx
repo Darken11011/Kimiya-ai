@@ -34,6 +34,7 @@ import {
 } from '../../../types/workflowConfig';
 import { validateRequiredFields } from '../../../utils/configValidation';
 import PerformanceOptimizationPanel, { PerformanceConfig } from './PerformanceOptimizationPanel';
+import { getEnvConfig } from '../../../utils/envConfig';
 
 // Simple language options for the language selector
 const SIMPLE_LANGUAGES = [
@@ -74,12 +75,15 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
 }) => {
   const [workflowName, setWorkflowName] = useState(initialConfig?.name || '');
   const [description, setDescription] = useState(initialConfig?.description || '');
-  
+
+  // Get environment configuration
+  const envConfig = getEnvConfig();
+
   // Twilio Configuration
   const [twilioConfig, setTwilioConfig] = useState<TwilioConfig>({
-    accountSid: initialConfig?.twilio?.accountSid || '',
-    authToken: initialConfig?.twilio?.authToken || '',
-    phoneNumber: initialConfig?.twilio?.phoneNumber || '',
+    accountSid: initialConfig?.twilio?.accountSid || envConfig.twilio.accountSid || '',
+    authToken: initialConfig?.twilio?.authToken || envConfig.twilio.authToken || '',
+    phoneNumber: initialConfig?.twilio?.phoneNumber || envConfig.twilio.phoneNumber || '',
     webhookUrl: initialConfig?.twilio?.webhookUrl || '',
     recordCalls: initialConfig?.twilio?.recordCalls ?? true,
     callTimeout: initialConfig?.twilio?.callTimeout || 300
@@ -87,7 +91,7 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
 
   // LLM Configuration
   const [llmProvider, setLlmProvider] = useState<LLMProvider>(
-    initialConfig?.llm?.provider || LLMProvider.OPENAI
+    initialConfig?.llm?.provider || LLMProvider.AZURE_OPENAI
   );
   const [llmConfig, setLlmConfig] = useState<LLMConfig>({
     provider: llmProvider,
@@ -97,6 +101,15 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
       temperature: initialConfig?.llm?.openAI?.temperature || DEFAULT_OPENAI_CONFIG.temperature,
       maxTokens: initialConfig?.llm?.openAI?.maxTokens || DEFAULT_OPENAI_CONFIG.maxTokens,
       systemPrompt: initialConfig?.llm?.openAI?.systemPrompt || DEFAULT_OPENAI_CONFIG.systemPrompt
+    },
+    azure: {
+      apiKey: initialConfig?.llm?.azure?.apiKey || envConfig.azureOpenAI.apiKey || '',
+      endpoint: initialConfig?.llm?.azure?.endpoint || envConfig.azureOpenAI.endpoint || '',
+      deploymentName: initialConfig?.llm?.azure?.deploymentName || envConfig.azureOpenAI.deploymentName,
+      model: initialConfig?.llm?.azure?.model || envConfig.azureOpenAI.model,
+      temperature: initialConfig?.llm?.azure?.temperature || 0.7,
+      maxTokens: initialConfig?.llm?.azure?.maxTokens || 150,
+      apiVersion: initialConfig?.llm?.azure?.apiVersion || '2024-02-15-preview'
     }
   });
 
@@ -933,6 +946,7 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
           <TabsContent value="performance" className="space-y-6 mt-6">
             <PerformanceOptimizationPanel
               workflowConfig={{
+                name: workflowName || 'Workflow',
                 twilio: twilioConfig,
                 llm: llmConfig,
                 voice: voiceConfig,

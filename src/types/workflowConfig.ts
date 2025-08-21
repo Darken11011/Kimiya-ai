@@ -17,6 +17,17 @@ export interface OpenAIConfig {
   systemPrompt?: string;
 }
 
+export interface AzureOpenAIConfig {
+  apiKey: string;
+  endpoint: string; // e.g., 'https://your-resource.openai.azure.com'
+  deploymentName: string; // e.g., 'gpt-4o-mini'
+  model: string; // e.g., 'gpt-4o-mini'
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+  apiVersion?: string; // e.g., '2024-02-15-preview'
+}
+
 export interface AnthropicConfig {
   apiKey: string;
   model: string; // e.g., 'claude-3-sonnet', 'claude-3-haiku'
@@ -124,7 +135,7 @@ export interface LLMConfig {
   provider: LLMProvider;
   openAI?: OpenAIConfig;
   anthropic?: AnthropicConfig;
-  azure?: AzureConfig;
+  azure?: AzureOpenAIConfig;
   googlePalm?: GoogleCloudConfig;
 }
 
