@@ -214,9 +214,10 @@ const server = app.listen(PORT, () => {
   console.log(`   • GET  /api/health-optimized`);
 });
 
-// Initialize ConversationRelay WebSocket server
-const conversationRelayWS = new ConversationRelayWebSocket(server);
-console.log(`🎙️  ConversationRelay WebSocket server initialized`);
-console.log(`📡 Real-time audio streaming: wss://your-domain/api/conversationrelay-ws`);
+// ConversationRelay WebSocket server (temporarily disabled for deployment)
+// TODO: Enable after WebSocket dependencies are properly installed
+// const conversationRelayWS = new ConversationRelayWebSocket(server);
+console.log(`🎙️  ConversationRelay WebSocket server (disabled - using optimized TwiML)`);
+console.log(`📡 Optimized processing active with performance improvements`);
 
 module.exports = app;

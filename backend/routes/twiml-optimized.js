@@ -225,23 +225,27 @@ async function processOptimizedUserInput(orchestrator, callState, speechResult, 
 }
 
 function generateOptimizedTwiML(response, workflowId, trackingId, processingTime) {
-  // Get host for WebSocket URL
-  const host = process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com';
-  const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
-  const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
+  // For now, use traditional TwiML with optimized processing until WebSocket is fully deployed
+  const cleanResponse = (response || "Hello! I'm your AI assistant. How can I help you today?")
+    .replace(/[<>&"']/g, (match) => {
+      const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' };
+      return entities[match];
+    })
+    .substring(0, 4000);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Real-time ConversationRelay with ${processingTime.toFixed(0)}ms processing -->
-    <Connect action="/api/connect-action?workflowId=${workflowId}&trackingId=${trackingId}">
-        <ConversationRelay
-            url="${websocketUrl}"
-            welcomeGreeting="${response || 'Hello! I\'m your AI assistant. How can I help you today?'}"
-            voice="alice"
-            dtmfDetection="true"
-            interruptByDtmf="true"
-        />
-    </Connect>
+    <!-- Optimized processing in ${processingTime.toFixed(0)}ms -->
+    <Say voice="alice">${cleanResponse}</Say>
+    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
+        <Say voice="alice">I'm listening...</Say>
+    </Gather>
+    <Say voice="alice">I didn't hear anything. Let me try again.</Say>
+    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
+        <Say voice="alice">Please go ahead, I'm here to help.</Say>
+    </Gather>
+    <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
+    <Hangup/>
 </Response>`;
 }
 
