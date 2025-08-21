@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { AlertCircle, Phone, Brain, Mic, Volume2, Settings, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Phone, Brain, Mic, Volume2, Settings, Eye, EyeOff, Globe, Star, Check } from 'lucide-react';
 import {
   WorkflowConfig,
   TwilioConfig,
@@ -26,9 +26,38 @@ import {
   DEFAULT_ELEVEN_LABS_CONFIG,
   DEFAULT_DEEPGRAM_CONFIG,
   LLM_MODELS,
-  POPULAR_VOICES
+  POPULAR_VOICES,
+  LANGUAGE_VOICES,
+  getVoicesForLanguage,
+  LanguageConfig,
+  DEFAULT_LANGUAGE_CONFIG
 } from '../../../types/workflowConfig';
 import { validateRequiredFields } from '../../../utils/configValidation';
+import PerformanceOptimizationPanel, { PerformanceConfig } from './PerformanceOptimizationPanel';
+
+// Simple language options for the language selector
+const SIMPLE_LANGUAGES = [
+  { code: 'en-US', name: 'English (US)', nativeName: 'English (United States)', flag: '🇺🇸' },
+  { code: 'zh-HK', name: 'Cantonese (Hong Kong)', nativeName: '廣東話 (香港)', flag: '🇭🇰', special: true },
+  { code: 'zh-MO', name: 'Cantonese (Macau)', nativeName: '廣東話 (澳門)', flag: '🇲🇴', special: true },
+  { code: 'zh-CN', name: 'Mandarin (Simplified)', nativeName: '普通话 (简体)', flag: '🇨🇳' },
+  { code: 'zh-TW', name: 'Mandarin (Traditional)', nativeName: '國語 (繁體)', flag: '🇹🇼' },
+  { code: 'es-ES', name: 'Spanish (Spain)', nativeName: 'Español (España)', flag: '🇪🇸' },
+  { code: 'es-MX', name: 'Spanish (Mexico)', nativeName: 'Español (México)', flag: '🇲🇽' },
+  { code: 'fr-FR', name: 'French (France)', nativeName: 'Français (France)', flag: '🇫🇷' },
+  { code: 'de-DE', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it-IT', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil)', nativeName: 'Português (Brasil)', flag: '🇧🇷' },
+  { code: 'ja-JP', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵' },
+  { code: 'ko-KR', name: 'Korean', nativeName: '한국어', flag: '🇰🇷' },
+  { code: 'ar-SA', name: 'Arabic (Saudi)', nativeName: 'العربية (السعودية)', flag: '🇸🇦' },
+  { code: 'hi-IN', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'th-TH', name: 'Thai', nativeName: 'ไทย', flag: '🇹🇭' },
+  { code: 'vi-VN', name: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'ru-RU', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
+  { code: 'nl-NL', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱' },
+  { code: 'sv-SE', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪' }
+];
 
 interface WorkflowSetupModalProps {
   isOpen: boolean;
@@ -81,6 +110,16 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
       apiKey: initialConfig?.voice?.elevenLabs?.apiKey || '',
       voiceId: initialConfig?.voice?.elevenLabs?.voiceId || 'pNInz6obpgDQGcFmaJgB',
       ...DEFAULT_ELEVEN_LABS_CONFIG
+    },
+    azure: {
+      apiKey: initialConfig?.voice?.azure?.apiKey || '',
+      region: initialConfig?.voice?.azure?.region || 'eastus',
+      voiceName: initialConfig?.voice?.azure?.voiceName || 'en-US-JennyNeural'
+    },
+    googleCloud: {
+      apiKey: initialConfig?.voice?.googleCloud?.apiKey || '',
+      voiceName: initialConfig?.voice?.googleCloud?.voiceName || 'en-US-Wavenet-F',
+      languageCode: initialConfig?.voice?.googleCloud?.languageCode || 'en-US'
     }
   });
 
@@ -102,9 +141,57 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
     ...initialConfig?.globalSettings
   });
 
+  // Language Configuration
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(
+    initialConfig?.globalSettings?.defaultLanguage || DEFAULT_GLOBAL_SETTINGS.defaultLanguage
+  );
+  const [languageConfig, setLanguageConfig] = useState<LanguageConfig>(
+    initialConfig?.globalSettings?.languageConfig || DEFAULT_LANGUAGE_CONFIG
+  );
+
+  // Performance Configuration
+  const [performanceConfig, setPerformanceConfig] = useState<PerformanceConfig>({
+    targetLatency: 300,
+    maxLatency: 500,
+    qualityThreshold: 0.85,
+    cacheEnabled: true,
+    languageOptimization: true,
+    failoverEnabled: true,
+    monitoring: {
+      enabled: true,
+      metricsInterval: 30000,
+      alertThresholds: {
+        latency: 400,
+        errorRate: 0.05,
+        cacheHitRate: 0.3
+      }
+    }
+  });
+
   const [showApiKeys, setShowApiKeys] = useState(false);
   const [currentTab, setCurrentTab] = useState('basic');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Language change handlers
+  const handleLanguageChange = (language: string) => {
+    setSelectedLanguage(language);
+    setGlobalSettings({
+      ...globalSettings,
+      defaultLanguage: language
+    });
+  };
+
+  const handleLanguageConfigChange = (config: LanguageConfig) => {
+    setLanguageConfig(config);
+    setGlobalSettings({
+      ...globalSettings,
+      languageConfig: config
+    });
+  };
+
+  const handlePerformanceConfigChange = (config: PerformanceConfig) => {
+    setPerformanceConfig(config);
+  };
 
   const handleSave = () => {
     const config: WorkflowConfig = {
@@ -381,7 +468,7 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
                 className="mt-1"
               />
             </div>
-            
+
             <div>
               <Label>Voice</Label>
               <Select
@@ -395,13 +482,121 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {POPULAR_VOICES[VoiceProvider.ELEVEN_LABS].map((voice) => (
+                  {getVoicesForLanguage(selectedLanguage, VoiceProvider.ELEVEN_LABS).map((voice) => (
                     <SelectItem key={voice.id} value={voice.id}>
                       {voice.name}
+                      {voice.recommended && <span className="ml-2 text-xs text-orange-600">★ Recommended</span>}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Voices optimized for {selectedLanguage}
+              </p>
+            </div>
+          </>
+        )}
+
+        {voiceProvider === VoiceProvider.AZURE && (
+          <>
+            <div>
+              <Label htmlFor="azureVoiceKey">Azure Speech API Key *</Label>
+              <Input
+                id="azureVoiceKey"
+                type={showApiKeys ? 'text' : 'password'}
+                value={voiceConfig.azure?.apiKey || ''}
+                onChange={(e) => setVoiceConfig({
+                  ...voiceConfig,
+                  azure: { ...voiceConfig.azure!, apiKey: e.target.value }
+                })}
+                placeholder="your_azure_speech_api_key"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="azureRegion">Azure Region *</Label>
+              <Input
+                id="azureRegion"
+                value={voiceConfig.azure?.region || ''}
+                onChange={(e) => setVoiceConfig({
+                  ...voiceConfig,
+                  azure: { ...voiceConfig.azure!, region: e.target.value }
+                })}
+                placeholder="eastus"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label>Voice</Label>
+              <Select
+                value={voiceConfig.azure?.voiceName}
+                onValueChange={(value) => setVoiceConfig({
+                  ...voiceConfig,
+                  azure: { ...voiceConfig.azure!, voiceName: value }
+                })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getVoicesForLanguage(selectedLanguage, VoiceProvider.AZURE).map((voice) => (
+                    <SelectItem key={voice.id} value={voice.id}>
+                      {voice.name}
+                      {voice.recommended && <span className="ml-2 text-xs text-orange-600">★ Recommended</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Azure Neural voices for {selectedLanguage}
+              </p>
+            </div>
+          </>
+        )}
+
+        {voiceProvider === VoiceProvider.GOOGLE_CLOUD && (
+          <>
+            <div>
+              <Label htmlFor="googleCloudKey">Google Cloud API Key *</Label>
+              <Input
+                id="googleCloudKey"
+                type={showApiKeys ? 'text' : 'password'}
+                value={voiceConfig.googleCloud?.apiKey || ''}
+                onChange={(e) => setVoiceConfig({
+                  ...voiceConfig,
+                  googleCloud: { ...voiceConfig.googleCloud!, apiKey: e.target.value }
+                })}
+                placeholder="your_google_cloud_api_key"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label>Voice</Label>
+              <Select
+                value={voiceConfig.googleCloud?.voiceName}
+                onValueChange={(value) => setVoiceConfig({
+                  ...voiceConfig,
+                  googleCloud: { ...voiceConfig.googleCloud!, voiceName: value, languageCode: selectedLanguage }
+                })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getVoicesForLanguage(selectedLanguage, VoiceProvider.GOOGLE_CLOUD).map((voice) => (
+                    <SelectItem key={voice.id} value={voice.id}>
+                      {voice.name}
+                      {voice.recommended && <span className="ml-2 text-xs text-orange-600">★ Recommended</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Google Cloud voices for {selectedLanguage}
+              </p>
             </div>
           </>
         )}
@@ -490,11 +685,12 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
           </div>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="voice">Voice & Speech</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-6 mt-6">
@@ -512,6 +708,157 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6 mt-6">
+            {/* Language Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  Language Configuration
+                </CardTitle>
+                <CardDescription>
+                  Select the primary language for your voice agent
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Current Selection */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <Label className="text-sm font-medium">Current Selection</Label>
+                  <div className="mt-2 flex items-center space-x-3">
+                    <span className="text-2xl">
+                      {SIMPLE_LANGUAGES.find(lang => lang.code === selectedLanguage)?.flag}
+                    </span>
+                    <div>
+                      <div className="font-medium">
+                        {SIMPLE_LANGUAGES.find(lang => lang.code === selectedLanguage)?.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {SIMPLE_LANGUAGES.find(lang => lang.code === selectedLanguage)?.nativeName}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cantonese Special Section */}
+                <div>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Star className="w-4 h-4 text-orange-500" />
+                    <Label className="font-medium">Cantonese (Optimized)</Label>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                      Special Support
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {SIMPLE_LANGUAGES.filter(lang => lang.special).map(language => (
+                      <Card
+                        key={language.code}
+                        className={`cursor-pointer transition-all hover:shadow-md ${
+                          selectedLanguage === language.code ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                        }`}
+                        onClick={() => handleLanguageChange(language.code)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-2xl">{language.flag}</span>
+                              <div>
+                                <div className="font-medium">{language.name}</div>
+                                <div className="text-sm text-gray-500">{language.nativeName}</div>
+                                <div className="text-xs text-gray-400">{language.code}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                <Star className="w-3 h-3 mr-1" />
+                                Optimized
+                              </Badge>
+                              {selectedLanguage === language.code && (
+                                <Check className="w-5 h-5 text-blue-500" />
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Language Dropdown */}
+                <div>
+                  <Label className="font-medium mb-2 block">All Languages</Label>
+                  <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a language..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SIMPLE_LANGUAGES.map(language => (
+                        <SelectItem key={language.code} value={language.code}>
+                          <div className="flex items-center space-x-2">
+                            <span>{language.flag}</span>
+                            <span>{language.name}</span>
+                            {language.special && (
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800 ml-2">
+                                Optimized
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleLanguageChange('en-US')}
+                    className={selectedLanguage === 'en-US' ? 'bg-blue-50 border-blue-300' : ''}
+                  >
+                    🇺🇸 English
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleLanguageChange('zh-HK')}
+                    className={selectedLanguage === 'zh-HK' ? 'bg-blue-50 border-blue-300' : ''}
+                  >
+                    🇭🇰 Cantonese (HK)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleLanguageChange('zh-CN')}
+                    className={selectedLanguage === 'zh-CN' ? 'bg-blue-50 border-blue-300' : ''}
+                  >
+                    🇨🇳 Mandarin
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleLanguageChange('es-ES')}
+                    className={selectedLanguage === 'es-ES' ? 'bg-blue-50 border-blue-300' : ''}
+                  >
+                    🇪🇸 Spanish
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleLanguageChange('ja-JP')}
+                    className={selectedLanguage === 'ja-JP' ? 'bg-blue-50 border-blue-300' : ''}
+                  >
+                    🇯🇵 Japanese
+                  </Button>
+                </div>
+
+                {/* Info */}
+                <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                  <strong>Note:</strong> Cantonese languages have special optimizations for Hong Kong and Macau dialects,
+                  including enhanced voice synthesis and speech recognition accuracy.
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -581,6 +928,20 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="performance" className="space-y-6 mt-6">
+            <PerformanceOptimizationPanel
+              workflowConfig={{
+                twilio: twilioConfig,
+                llm: llmConfig,
+                voice: voiceConfig,
+                transcription: transcriptionConfig,
+                globalSettings: globalSettings
+              }}
+              onConfigChange={handlePerformanceConfigChange}
+              isEnabled={true}
+            />
           </TabsContent>
         </Tabs>
         </div>
