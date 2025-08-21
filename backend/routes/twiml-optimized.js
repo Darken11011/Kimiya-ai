@@ -225,21 +225,23 @@ async function processOptimizedUserInput(orchestrator, callState, speechResult, 
 }
 
 function generateOptimizedTwiML(response, workflowId, trackingId, processingTime) {
-  const optimizationIndicator = processingTime < 300 ? 'optimized' : 'standard';
-  
+  // Get host for WebSocket URL
+  const host = process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com';
+  const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
+  const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Optimized response generated in ${processingTime.toFixed(0)}ms -->
-    <Say voice="alice">${response}</Say>
-    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
-        <Say voice="alice">I'm listening...</Say>
-    </Gather>
-    <Say voice="alice">I didn't hear anything. Let me try again.</Say>
-    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
-        <Say voice="alice">Please go ahead, I'm here to help.</Say>
-    </Gather>
-    <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
-    <Hangup/>
+    <!-- Real-time ConversationRelay with ${processingTime.toFixed(0)}ms processing -->
+    <Connect action="/api/connect-action?workflowId=${workflowId}&trackingId=${trackingId}">
+        <ConversationRelay
+            url="${websocketUrl}"
+            welcomeGreeting="${response || 'Hello! I\'m your AI assistant. How can I help you today?'}"
+            voice="alice"
+            dtmfDetection="true"
+            interruptByDtmf="true"
+        />
+    </Connect>
 </Response>`;
 }
 
@@ -263,14 +265,20 @@ function getErrorResponse(language) {
 
 function fallbackToStandardProcessing(req, res) {
   console.log('[TwiML-Optimized] Falling back to standard processing');
-  
+
+  const workflowId = req.query.id || 'default';
+
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello! I'm your AI assistant. The optimized system is currently unavailable, but I'm still here to help you.</Say>
-    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-ai?id=${req.query.id}" method="POST">
-        <Say voice="alice">How can I assist you today?</Say>
+    <Say voice="alice">Hello! I'm your AI assistant. How can I help you today?</Say>
+    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
+        <Say voice="alice">I'm listening...</Say>
     </Gather>
-    <Say voice="alice">Thank you for calling!</Say>
+    <Say voice="alice">I didn't hear anything. Let me try again.</Say>
+    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
+        <Say voice="alice">Please go ahead, I'm here to help.</Say>
+    </Gather>
+    <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
     <Hangup/>
 </Response>`;
 

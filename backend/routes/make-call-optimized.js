@@ -151,20 +151,28 @@ module.exports = async function makeCallOptimizedHandler(req, res) {
       ...workflowConfig
     };
 
-    // Initialize Performance Orchestrator with all optimizations enabled
-    const orchestrator = new PerformanceOrchestrator(workflowConfig, {
-      targetLatency: 300,  // Target 300ms response time
-      maxLatency: 500,     // Maximum 500ms response time
-      qualityThreshold: 0.85
-    });
-
     // Generate unique call identifier for tracking
     const callTrackingId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Start optimized conversation
-    const optimizationResult = await orchestrator.startOptimizedConversation(callTrackingId, workflowData);
+    // Initialize Performance Orchestrator with error handling
+    let orchestrator = null;
+    let optimizationResult = null;
 
-    console.log('Performance optimization initialized:', optimizationResult);
+    try {
+      orchestrator = new PerformanceOrchestrator(workflowConfig, {
+        targetLatency: 300,  // Target 300ms response time
+        maxLatency: 500,     // Maximum 500ms response time
+        qualityThreshold: 0.85
+      });
+
+      // Start optimized conversation
+      optimizationResult = await orchestrator.startOptimizedConversation(callTrackingId, workflowData);
+      console.log('Performance optimization initialized:', optimizationResult);
+
+    } catch (orchestratorError) {
+      console.warn('Performance orchestrator initialization failed, proceeding without optimization:', orchestratorError.message);
+      // Continue without orchestrator - the call will still work but without optimizations
+    }
 
     // Get host and protocol for URLs
     const host = req.get('host');
@@ -175,8 +183,10 @@ module.exports = async function makeCallOptimizedHandler(req, res) {
 
     console.log(`Using optimized TwiML endpoint: ${optimizedTwiML}`);
 
-    // Store orchestrator for later use
-    activeOrchestrators.set(callTrackingId, orchestrator);
+    // Store orchestrator for later use (only if successfully initialized)
+    if (orchestrator) {
+      activeOrchestrators.set(callTrackingId, orchestrator);
+    }
 
     // Prepare form data for Twilio API
     const callTimeout = Math.min(Math.max(timeout || 30, 5), 600);
@@ -239,14 +249,16 @@ module.exports = async function makeCallOptimizedHandler(req, res) {
       trackingId: callTrackingId
     });
 
-    // Set up performance monitoring
-    orchestrator.on('performanceAlert', (alert) => {
-      console.warn(`[Performance Alert] Call ${callData.sid}:`, alert);
-    });
+    // Set up performance monitoring (only if orchestrator exists)
+    if (orchestrator) {
+      orchestrator.on('performanceAlert', (alert) => {
+        console.warn(`[Performance Alert] Call ${callData.sid}:`, alert);
+      });
 
-    orchestrator.on('audioProcessed', (data) => {
-      console.log(`[Audio Processed] Call ${callData.sid}: ${data.processingTime}ms`);
-    });
+      orchestrator.on('audioProcessed', (data) => {
+        console.log(`[Audio Processed] Call ${callData.sid}: ${data.processingTime}ms`);
+      });
+    }
 
     // Return success response with optimization details
     res.json({
@@ -256,17 +268,19 @@ module.exports = async function makeCallOptimizedHandler(req, res) {
       to: callData.to,
       from: callData.from,
       optimization: {
-        enabled: true,
+        enabled: !!orchestrator,
         trackingId: callTrackingId,
-        expectedLatency: '150-250ms',
+        expectedLatency: orchestrator ? '150-250ms' : 'standard',
         features: {
-          conversationRelay: true,
-          predictiveCache: true,
-          languageOptimization: true,
-          providerFailover: true
+          conversationRelay: !!orchestrator,
+          predictiveCache: !!orchestrator,
+          languageOptimization: !!orchestrator,
+          providerFailover: !!orchestrator
         }
       },
-      message: 'Optimized call initiated successfully with 92% faster response times'
+      message: orchestrator
+        ? 'Optimized call initiated successfully with 92% faster response times'
+        : 'Call initiated successfully (optimization unavailable, using standard processing)'
     });
 
   } catch (error) {
