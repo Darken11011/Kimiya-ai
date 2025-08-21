@@ -48,7 +48,21 @@ module.exports = async function makeCallHandler(req, res) {
     console.log('Environment check:', {
       hasEnvSid: !!process.env.TWILIO_ACCOUNT_SID,
       hasEnvToken: !!process.env.TWILIO_AUTH_TOKEN,
-      hasEnvPhone: !!process.env.TWILIO_PHONE_NUMBER
+      hasEnvPhone: !!process.env.TWILIO_PHONE_NUMBER,
+      nodeEnv: process.env.NODE_ENV,
+      port: process.env.PORT
+    });
+
+    // Add more detailed request logging
+    console.log('Request details:', {
+      method: req.method,
+      url: req.url,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'user-agent': req.headers['user-agent'],
+        'origin': req.headers.origin
+      },
+      bodySize: JSON.stringify(req.body).length
     });
     const { to, from, twimlUrl, record, timeout, workflowId, nodes, edges, globalPrompt } = req.body;
 
@@ -201,26 +215,64 @@ module.exports = async function makeCallHandler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error making call:', error);
+    console.error('=== ERROR MAKING CALL ===');
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      name: error.name
+    });
+
+    // Log environment state for debugging
+    console.error('Environment state:', {
+      hasEnvSid: !!process.env.TWILIO_ACCOUNT_SID,
+      hasEnvToken: !!process.env.TWILIO_AUTH_TOKEN,
+      hasEnvPhone: !!process.env.TWILIO_PHONE_NUMBER,
+      nodeEnv: process.env.NODE_ENV
+    });
 
     // Handle specific Twilio errors
     if (error.code === 21208) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid timeout parameter. Timeout must be between 5 and 600 seconds.'
+        error: 'Invalid timeout parameter. Timeout must be between 5 and 600 seconds.',
+        code: error.code
       });
     }
 
     if (error.code === 21211) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid phone number. Please check the number and try again.'
+        error: 'Invalid phone number. Please check the number and try again.',
+        code: error.code
       });
     }
 
+    if (error.code === 20003) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication failed. Please check your Twilio credentials.',
+        code: error.code
+      });
+    }
+
+    if (error.code === 21606) {
+      return res.status(400).json({
+        success: false,
+        error: 'The phone number is not verified. Please verify the number in your Twilio console.',
+        code: error.code
+      });
+    }
+
+    // Generic error response with more details for debugging
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to initiate call'
+      error: error.message || 'Failed to initiate call',
+      details: process.env.NODE_ENV === 'development' ? {
+        code: error.code,
+        stack: error.stack
+      } : undefined,
+      timestamp: new Date().toISOString()
     });
   }
 };

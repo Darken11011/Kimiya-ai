@@ -29,17 +29,40 @@ app.options('*', cors(corsOptions));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
+  const healthStatus = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
     service: 'Call Flow Weaver Backend',
     environment: {
       nodeEnv: process.env.NODE_ENV || 'not set',
       port: process.env.PORT || 'not set',
+      hasTwilioSid: !!process.env.TWILIO_ACCOUNT_SID,
+      hasTwilioToken: !!process.env.TWILIO_AUTH_TOKEN,
+      hasTwilioPhone: !!process.env.TWILIO_PHONE_NUMBER,
+      hasAzureKey: !!process.env.AZURE_OPENAI_API_KEY,
+      hasAzureEndpoint: !!process.env.AZURE_OPENAI_ENDPOINT,
       hasTwilioConfig: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
       hasAzureConfig: !!(process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT)
+    },
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
     }
-  });
+  };
+
+  // Check if critical environment variables are missing
+  const missingVars = [];
+  if (!process.env.TWILIO_ACCOUNT_SID) missingVars.push('TWILIO_ACCOUNT_SID');
+  if (!process.env.TWILIO_AUTH_TOKEN) missingVars.push('TWILIO_AUTH_TOKEN');
+  if (!process.env.TWILIO_PHONE_NUMBER) missingVars.push('TWILIO_PHONE_NUMBER');
+
+  if (missingVars.length > 0) {
+    healthStatus.status = 'degraded';
+    healthStatus.warnings = [`Missing environment variables: ${missingVars.join(', ')}`];
+  }
+
+  res.json(healthStatus);
 });
 
 // Quick ping endpoint for fast wake-up
