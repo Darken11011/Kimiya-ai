@@ -1,6 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+
+// Only load .env file in development mode
+// In production (Render), use environment variables directly
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+  console.log('🔧 Development mode: Loading .env file');
+} else {
+  console.log('🚀 Production mode: Using Render environment variables');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
