@@ -822,15 +822,15 @@ Conversation turns in this node: ${conversationTurns}`
     setIsCallInProgress(true);
 
     try {
-      // Use workflowConfig Twilio settings if available, otherwise use default
-      const service = workflowConfig?.twilio ? new TwilioService(workflowConfig.twilio) : defaultTwilioService;
-      const fromNumber = workflowConfig?.twilio?.phoneNumber || defaultTwilioService.getConfig().phoneNumber;
+      // Use twilioConfig state (which includes backend config) for making calls
+      const service = new TwilioService(twilioConfig);
+      const fromNumber = twilioConfig.phoneNumber;
 
       const result: CallResponse = await service.makeOptimizedCall({
         to: phoneNumber,
         from: fromNumber,
-        record: workflowConfig?.twilio?.recordCalls ?? true,
-        timeout: workflowConfig?.twilio?.callTimeout ?? 30,
+        record: twilioConfig.recordCalls,
+        timeout: twilioConfig.callTimeout,
         // Include workflow data for dynamic call processing
         workflowId: workflowConfig?.id || `workflow-${Date.now()}`,
         nodes: nodes,
@@ -869,7 +869,7 @@ Conversation turns in this node: ${conversationTurns}`
     }
 
     try {
-      const service = workflowConfig?.twilio ? new TwilioService(workflowConfig.twilio) : defaultTwilioService;
+      const service = new TwilioService(twilioConfig);
       const result = await service.hangupCall(currentCallSid);
 
       if (result.success) {

@@ -545,7 +545,7 @@ export class TwilioService {
 // Default Twilio configuration - these should be overridden by environment variables or UI input
 export const DEFAULT_TWILIO_CONFIG: TwilioConfig = {
   accountSid: 'AC64208c7087a03b475ea7fa9337b692f8',
-  authToken: '', // Will be provided by environment variables or UI
+  authToken: '587e27a4553570edb09656c15a03d0e8', // Fallback token - should be overridden by backend config
   phoneNumber: '+17077433838',
   recordCalls: true,
   callTimeout: 30
