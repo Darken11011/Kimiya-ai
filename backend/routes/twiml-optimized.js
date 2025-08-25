@@ -5,7 +5,7 @@ const callStates = new Map();
 
 module.exports = async function twimlOptimizedHandler(req, res) {
   const startTime = performance.now();
-  
+
   try {
     // Set proper headers for TwiML
     res.setHeader('Content-Type', 'text/xml; charset=utf-8');
@@ -16,6 +16,15 @@ module.exports = async function twimlOptimizedHandler(req, res) {
     const callSid = req.body.CallSid || req.query.CallSid;
 
     console.log(`[TwiML-Optimized] Processing call ${callSid} with tracking ${trackingId}`);
+    console.log(`[TwiML-Optimized] Request method: ${req.method}`);
+    console.log(`[TwiML-Optimized] Request body keys:`, Object.keys(req.body || {}));
+    console.log(`[TwiML-Optimized] Speech result:`, req.body.SpeechResult ? 'present' : 'none');
+
+    // Validate required parameters
+    if (!workflowId || !trackingId) {
+      console.warn(`[TwiML-Optimized] Missing required parameters: workflowId=${workflowId}, trackingId=${trackingId}`);
+      return fallbackToStandardProcessing(req, res);
+    }
 
     // Get the performance orchestrator for this call
     const orchestrator = getActiveOrchestrator(trackingId);
@@ -109,7 +118,30 @@ module.exports = async function twimlOptimizedHandler(req, res) {
 
     // Generate optimized TwiML with performance indicators
     const totalProcessingTime = performance.now() - startTime;
-    const twiml = generateOptimizedTwiML(cleanResponse, workflowId, trackingId, totalProcessingTime);
+    let twiml;
+
+    try {
+      twiml = generateOptimizedTwiML(cleanResponse, workflowId, trackingId, totalProcessingTime);
+
+      // Validate TwiML is not empty and contains required elements
+      if (!twiml || !twiml.includes('<Response>') || !twiml.includes('</Response>')) {
+        throw new Error('Generated TwiML is invalid or empty');
+      }
+
+      // CRITICAL: Ensure we never return ConversationRelay TwiML (causes Error 12100)
+      if (twiml.includes('<ConversationRelay') || twiml.includes('<Connect')) {
+        console.warn(`[TwiML-Optimized] CRITICAL: ConversationRelay detected in TwiML - forcing fallback to prevent Error 12100`);
+        throw new Error('ConversationRelay TwiML detected - using fallback to prevent parsing errors');
+      }
+
+      console.log(`[TwiML-Optimized] Generated TwiML length: ${twiml.length} characters`);
+      console.log(`[TwiML-Optimized] TwiML preview:`, twiml.substring(0, 200) + '...');
+
+    } catch (twimlError) {
+      console.error(`[TwiML-Optimized] TwiML generation failed:`, twimlError);
+      console.log(`[TwiML-Optimized] Falling back to standard processing due to TwiML generation error`);
+      return fallbackToStandardProcessing(req, res);
+    }
 
     console.log(`[TwiML-Optimized] Total request processed in ${totalProcessingTime}ms (Target: <300ms)`);
 
@@ -130,7 +162,14 @@ module.exports = async function twimlOptimizedHandler(req, res) {
   } catch (error) {
     const totalTime = performance.now() - startTime;
     console.error(`[TwiML-Optimized] Request failed after ${totalTime}ms:`, error);
-    
+    console.error(`[TwiML-Optimized] Error stack:`, error.stack);
+    console.error(`[TwiML-Optimized] Request body:`, req.body);
+    console.error(`[TwiML-Optimized] Request query:`, req.query);
+
+    // Ensure we always send valid TwiML with proper headers
+    res.setHeader('Content-Type', 'text/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+
     // Send error TwiML
     const errorTwiml = generateErrorTwiML(error.message);
     res.status(200).send(errorTwiml);
@@ -225,31 +264,41 @@ async function processOptimizedUserInput(orchestrator, callState, speechResult, 
 }
 
 function generateOptimizedTwiML(response, workflowId, trackingId, processingTime) {
-  // Get host for WebSocket URL
-  const host = process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com';
-  const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
-  const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
+  console.log(`[generateOptimizedTwiML] Called with response: "${response?.substring(0, 50)}..."`);
 
-  const welcomeGreeting = (response || "Hello! I'm your AI assistant. How can I help you today?")
+  // Use traditional TwiML instead of ConversationRelay to avoid parsing issues
+  const cleanResponse = (response || "Hello! I'm your AI assistant. How can I help you today?")
     .replace(/[<>&"']/g, (match) => {
       const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' };
       return entities[match];
     })
-    .substring(0, 200); // Keep greeting short for ConversationRelay
+    .substring(0, 400); // Reasonable length for TwiML
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
+  // CRITICAL: Generate traditional TwiML ONLY - NO ConversationRelay to prevent Error 12100
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Real-time ConversationRelay with ${processingTime.toFixed(0)}ms processing -->
-    <Connect action="/api/connect-action?workflowId=${workflowId}&trackingId=${trackingId}">
-        <ConversationRelay
-            url="${websocketUrl}"
-            welcomeGreeting="${welcomeGreeting}"
-            voice="alice"
-            dtmfDetection="true"
-            interruptByDtmf="true"
-        />
-    </Connect>
+    <!-- Optimized response generated in ${processingTime.toFixed(0)}ms -->
+    <Say voice="alice">${cleanResponse}</Say>
+    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
+        <Say voice="alice">I'm listening...</Say>
+    </Gather>
+    <Say voice="alice">I didn't hear anything. Let me try again.</Say>
+    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
+        <Say voice="alice">Please go ahead, I'm here to help.</Say>
+    </Gather>
+    <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
+    <Hangup/>
 </Response>`;
+
+  console.log(`[generateOptimizedTwiML] Generated traditional TwiML (${twiml.length} chars)`);
+
+  // Safety check: Ensure we never return ConversationRelay
+  if (twiml.includes('<ConversationRelay') || twiml.includes('<Connect')) {
+    console.error(`[generateOptimizedTwiML] CRITICAL ERROR: ConversationRelay detected in generated TwiML!`);
+    throw new Error('ConversationRelay detected in TwiML generation - this should never happen');
+  }
+
+  return twiml;
 }
 
 function generateErrorTwiML(errorMessage) {
@@ -274,21 +323,27 @@ function fallbackToStandardProcessing(req, res) {
   console.log('[TwiML-Optimized] Falling back to standard processing');
 
   const workflowId = req.query.id || 'default';
+  const trackingId = req.query.trackingId || 'fallback';
+
+  // Ensure proper headers are set
+  res.setHeader('Content-Type', 'text/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
 
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">Hello! I'm your AI assistant. How can I help you today?</Say>
-    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
+    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}&trackingId=${trackingId}" method="POST">
         <Say voice="alice">I'm listening...</Say>
     </Gather>
     <Say voice="alice">I didn't hear anything. Let me try again.</Say>
-    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}" method="POST">
+    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}&trackingId=${trackingId}" method="POST">
         <Say voice="alice">Please go ahead, I'm here to help.</Say>
     </Gather>
     <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
     <Hangup/>
 </Response>`;
 
+  console.log('[TwiML-Optimized] Sending fallback TwiML:', twiml.substring(0, 200) + '...');
   res.status(200).send(twiml);
 }
 

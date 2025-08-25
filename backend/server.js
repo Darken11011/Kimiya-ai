@@ -92,6 +92,7 @@ const chatHandler = require('./routes/chat');
 const makeCallOptimizedHandler = require('./routes/make-call-optimized');
 const twimlOptimizedHandler = require('./routes/twiml-optimized');
 const connectActionHandler = require('./routes/connect-action');
+const optimizedRoutes = require('./routes/optimized-routes');
 const ConversationRelayWebSocket = require('./routes/conversationrelay-websocket');
 
 // API Routes
@@ -110,6 +111,9 @@ app.all('/api/twiml-optimized', twimlOptimizedHandler);
 
 // ConversationRelay routes
 app.all('/api/connect-action', connectActionHandler);
+
+// Mount optimized routes (includes call-status-optimized and other optimized endpoints)
+app.use('/api', optimizedRoutes);
 
 // Health check endpoint for optimized system
 app.get('/api/health-optimized', (req, res) => {

@@ -3,11 +3,8 @@ import { WorkflowConfig } from '../types/workflowConfig';
 // API Base URL configuration
 const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    // Browser environment
-    if (window.location.hostname === 'localhost') {
-      return 'http://localhost:3000';
-    }
-    // Production - use the deployed backend
+    // Browser environment - always use Render backend for reliability
+    // This ensures TwiML endpoints are accessible to Twilio webhooks
     return 'https://kimiyi-ai.onrender.com';
   }
   // Server-side rendering fallback
@@ -97,6 +94,7 @@ export class CallAPI {
     timeout?: number;
     twilioAccountSid?: string;
     twilioAuthToken?: string;
+    twimlUrl?: string;
   }): Promise<OptimizedCallResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/make-call-optimized`, {

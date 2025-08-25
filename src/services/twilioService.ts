@@ -184,12 +184,9 @@ export class TwilioService {
   }
 
   /**
-   * Make a real call using backend API
+   * Make a real call using centralized CallAPI (consistent with makeOptimizedCall)
    */
   private async makeRealCall(normalizedNumber: string, options: CallOptions): Promise<CallResponse> {
-    // Determine API base URL
-    const API_BASE_URL = this.getApiBaseUrl();
-
     try {
       // Wake up backend first (important for Render free tier)
       await this.wakeUpBackend();
@@ -208,95 +205,37 @@ export class TwilioService {
         usingPlaceholders: this.isPlaceholder(this.config.accountSid) || this.isPlaceholder(this.config.authToken)
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/make-call-optimized`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(15000), // 15 second timeout
-        body: JSON.stringify({
-          to: normalizedNumber,
-          from: options.from || this.config.phoneNumber,
-          record: options.record ?? this.config.recordCalls,
-          timeout: options.timeout || this.config.callTimeout || 30,
-          twimlUrl: options.url,
-          // Include Twilio credentials - send undefined for placeholders so backend uses environment variables
-          twilioAccountSid: accountSid,
-          twilioAuthToken: authToken,
-          // Include workflow data for dynamic call processing
-          workflowId: options.workflowId,
-          nodes: options.nodes,
-          edges: options.edges,
-          config: options.config,
-          globalPrompt: options.globalPrompt
-        })
+      // Use centralized CallAPI for consistency
+      const result = await CallAPI.makeOptimizedCall({
+        to: normalizedNumber,
+        from: options.from || this.config.phoneNumber,
+        record: options.record ?? this.config.recordCalls,
+        timeout: options.timeout || this.config.callTimeout || 30,
+        twimlUrl: options.url,
+        // Include Twilio credentials - send undefined for placeholders so backend uses environment variables
+        twilioAccountSid: accountSid,
+        twilioAuthToken: authToken,
+        // Include workflow data for dynamic call processing
+        workflowId: options.workflowId,
+        nodes: options.nodes,
+        edges: options.edges,
+        config: options.config,
+        globalPrompt: options.globalPrompt
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch (e) {
-          errorData = { error: errorText };
-        }
-
-        // If it's a 500 error, try to wake up backend and retry once
-        if (response.status === 500) {
-          console.log('Got 500 error:', errorData.error || errorText);
-          console.log('Trying to wake up backend and retry...');
-          await this.wakeUpBackend();
-
-          // Wait a moment for backend to fully wake up
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          // Retry the call with same credential logic
-          const retryResponse = await fetch(`${API_BASE_URL}/api/make-call-optimized`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              to: normalizedNumber,
-              from: options.from || this.config.phoneNumber,
-              record: options.record ?? this.config.recordCalls,
-              timeout: options.timeout || this.config.callTimeout || 30,
-              twimlUrl: options.url,
-              twilioAccountSid: accountSid, // Use the same processed credentials
-              twilioAuthToken: authToken,   // Use the same processed credentials
-              workflowId: options.workflowId,
-              nodes: options.nodes,
-              edges: options.edges,
-              config: options.config,
-              globalPrompt: options.globalPrompt
-            })
-          });
-
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            return {
-              success: true,
-              callSid: retryData.callSid,
-              message: retryData.message + ' (retry successful)'
-            };
-          }
-        }
-
+      // CallAPI already handles errors and retries, so we just need to convert the response format
+      if (result.success) {
+        return {
+          success: true,
+          callSid: result.callSid,
+          message: result.message || `Call initiated successfully to ${normalizedNumber}`
+        };
+      } else {
         return {
           success: false,
-          error: errorData.error || `HTTP error! status: ${response.status}`
+          error: result.error || 'Failed to initiate call'
         };
       }
-
-      const result = await response.json();
-      return {
-        success: result.success,
-        callSid: result.callSid,
-        message: result.message || `Call initiated successfully to ${normalizedNumber}`,
-        error: result.error
-      };
 
     } catch (error) {
       console.error('Backend API call failed:', error);
