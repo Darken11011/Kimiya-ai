@@ -295,9 +295,6 @@ function generateOptimizedTwiML(response, workflowId, trackingId, processingTime
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="${welcomeGreeting}"
-            voice="alice"
-            dtmfDetection="true"
-            interruptByDtmf="true"
         />
     </Connect>
 </Response>`;
@@ -358,9 +355,6 @@ function fallbackToStandardProcessing(req, res) {
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
-            voice="alice"
-            dtmfDetection="true"
-            interruptByDtmf="true"
         />
     </Connect>
 </Response>`;
