@@ -15,14 +15,17 @@ module.exports = async function twimlOptimizedHandler(req, res) {
     const trackingId = req.query.trackingId;
     const callSid = req.body.CallSid || req.query.CallSid;
 
+    console.log(`[TwiML-Optimized] ===== CONVERSATIONRELAY REQUEST =====`);
     console.log(`[TwiML-Optimized] Processing call ${callSid} with tracking ${trackingId}`);
     console.log(`[TwiML-Optimized] Request method: ${req.method}`);
     console.log(`[TwiML-Optimized] Request body keys:`, Object.keys(req.body || {}));
     console.log(`[TwiML-Optimized] Speech result:`, req.body.SpeechResult ? 'present' : 'none');
+    console.log(`[TwiML-Optimized] Full request URL:`, req.url);
 
     // Validate required parameters
     if (!workflowId || !trackingId) {
       console.warn(`[TwiML-Optimized] Missing required parameters: workflowId=${workflowId}, trackingId=${trackingId}`);
+      console.log(`[TwiML-Optimized] Using fallback ConversationRelay configuration`);
       return fallbackToStandardProcessing(req, res);
     }
 
@@ -150,23 +153,28 @@ module.exports = async function twimlOptimizedHandler(req, res) {
       });
     }
 
-    // Send optimized TwiML response
+    // Send optimized ConversationRelay TwiML response
+    console.log(`[TwiML-Optimized] ===== SENDING CONVERSATIONRELAY TWIML =====`);
+    console.log(`[TwiML-Optimized] TwiML length: ${twiml.length} characters`);
+    console.log(`[TwiML-Optimized] WebSocket URL included: ${twiml.includes('conversationrelay-ws')}`);
     res.status(200).send(twiml);
 
   } catch (error) {
     const totalTime = performance.now() - startTime;
+    console.error(`[TwiML-Optimized] ===== CRITICAL ERROR =====`);
     console.error(`[TwiML-Optimized] Request failed after ${totalTime}ms:`, error);
     console.error(`[TwiML-Optimized] Error stack:`, error.stack);
     console.error(`[TwiML-Optimized] Request body:`, req.body);
     console.error(`[TwiML-Optimized] Request query:`, req.query);
+    console.error(`[TwiML-Optimized] ===== END ERROR =====`);
 
     // Ensure we always send valid TwiML with proper headers
     res.setHeader('Content-Type', 'text/xml; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
 
-    // Send error TwiML
-    const errorTwiml = generateErrorTwiML(error.message);
-    res.status(200).send(errorTwiml);
+    // Send fallback ConversationRelay TwiML instead of error TwiML
+    console.log(`[TwiML-Optimized] Sending fallback ConversationRelay TwiML due to error`);
+    return fallbackToStandardProcessing(req, res);
   }
 };
 
@@ -313,7 +321,7 @@ function getErrorResponse(language) {
 }
 
 function fallbackToStandardProcessing(req, res) {
-  console.log('[TwiML-Optimized] Falling back to standard processing');
+  console.log('[TwiML-Optimized] Falling back to ConversationRelay with basic configuration');
 
   const workflowId = req.query.id || 'default';
   const trackingId = req.query.trackingId || 'fallback';
@@ -322,21 +330,26 @@ function fallbackToStandardProcessing(req, res) {
   res.setHeader('Content-Type', 'text/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
 
+  // Generate ConversationRelay TwiML even for fallback (no traditional TwiML)
+  const host = process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com';
+  const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
+  const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
+
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello! I'm your AI assistant. How can I help you today?</Say>
-    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}&trackingId=${trackingId}" method="POST">
-        <Say voice="alice">I'm listening...</Say>
-    </Gather>
-    <Say voice="alice">I didn't hear anything. Let me try again.</Say>
-    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-ai?id=${workflowId}&trackingId=${trackingId}" method="POST">
-        <Say voice="alice">Please go ahead, I'm here to help.</Say>
-    </Gather>
-    <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
-    <Hangup/>
+    <!-- Fallback ConversationRelay TwiML -->
+    <Connect action="/api/connect-action?workflowId=${workflowId}&trackingId=${trackingId}">
+        <ConversationRelay
+            url="${websocketUrl}"
+            welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
+            voice="alice"
+            dtmfDetection="true"
+            interruptByDtmf="true"
+        />
+    </Connect>
 </Response>`;
 
-  console.log('[TwiML-Optimized] Sending fallback TwiML:', twiml.substring(0, 200) + '...');
+  console.log('[TwiML-Optimized] Sending fallback ConversationRelay TwiML');
   res.status(200).send(twiml);
 }
 

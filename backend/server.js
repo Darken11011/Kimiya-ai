@@ -78,14 +78,8 @@ app.get('/ping', (req, res) => {
   res.json({ pong: true, timestamp: Date.now() });
 });
 
-// Import route handlers
-const makeCallHandler = require('./routes/make-call');
-const twimlDefaultHandler = require('./routes/twiml-default');
-const callStatusHandler = require('./routes/call-status');
-const endCallHandler = require('./routes/end-call');
+// Import essential route handlers (removed conflicting traditional TwiML handlers)
 const twilioConfigHandler = require('./routes/twilio-config');
-const testWorkflowHandler = require('./routes/test-workflow');
-const twimlAiHandler = require('./routes/twiml-ai');
 const chatHandler = require('./routes/chat');
 
 // Import optimized performance handlers
@@ -95,24 +89,16 @@ const connectActionHandler = require('./routes/connect-action');
 const optimizedRoutes = require('./routes/optimized-routes');
 const ConversationRelayWebSocket = require('./routes/conversationrelay-websocket');
 
-// API Routes
-app.post('/api/make-call', makeCallHandler);
-app.all('/api/twiml-default', twimlDefaultHandler);
-app.all('/api/call-status', callStatusHandler);
-app.post('/api/end-call', endCallHandler);
+// Essential API Routes (removed conflicting traditional TwiML routes)
 app.get('/api/twilio-config', twilioConfigHandler);
-app.all('/api/test-workflow', testWorkflowHandler);
-app.all('/api/twiml-ai', twimlAiHandler);
 app.post('/api/chat', chatHandler);
 
-// Optimized Performance Routes (150-250ms response times)
+// ConversationRelay routes (individual handlers for main endpoints)
 app.post('/api/make-call-optimized', makeCallOptimizedHandler);
 app.all('/api/twiml-optimized', twimlOptimizedHandler);
-
-// ConversationRelay routes
 app.all('/api/connect-action', connectActionHandler);
 
-// Mount optimized routes (includes call-status-optimized and other optimized endpoints)
+// Mount additional optimized routes (includes call-status-optimized and performance endpoints)
 app.use('/api', optimizedRoutes);
 
 // ConversationRelay test endpoint
@@ -126,7 +112,24 @@ app.get('/api/conversationrelay-test', (req, res) => {
       'Performance optimization integration',
       '<300ms audio latency',
       'Azure OpenAI integration'
-    ]
+    ],
+    debug: {
+      timestamp: new Date().toISOString(),
+      serverUptime: process.uptime(),
+      nodeVersion: process.version,
+      environment: process.env.NODE_ENV || 'development'
+    }
+  });
+});
+
+// WebSocket connection test endpoint
+app.get('/api/websocket-test', (req, res) => {
+  res.json({
+    websocketServer: 'active',
+    path: '/api/conversationrelay-ws',
+    fullUrl: 'wss://kimiyi-ai.onrender.com/api/conversationrelay-ws',
+    testConnection: 'Use WebSocket client to connect to the above URL',
+    expectedProtocol: 'Twilio ConversationRelay Media Stream'
   });
 });
 
@@ -182,18 +185,16 @@ app.get('/', (req, res) => {
     },
     endpoints: [
       'GET /health',
-      'POST /api/make-call',
-      'GET|POST /api/twiml-workflow',
-      'GET|POST /api/twiml-default',
-      'GET|POST /api/call-status',
-      'POST /api/end-call',
       'GET /api/twilio-config',
-      'GET|POST /api/test-workflow',
-      '--- OPTIMIZED ENDPOINTS (150-250ms) ---',
+      'POST /api/chat',
+      '--- CONVERSATIONRELAY ENDPOINTS (150-300ms) ---',
       'GET /api/health-optimized',
       'POST /api/make-call-optimized',
-      'GET|POST /api/twiml-optimized',
+      'GET|POST /api/twiml-optimized (ConversationRelay)',
       'POST /api/call-status-optimized',
+      'POST /api/connect-action',
+      'WS /api/conversationrelay-ws',
+      'GET /api/conversationrelay-test',
       'GET /api/performance-metrics/:trackingId?',
       'POST /api/test-optimization',
       'GET /api/performance-comparison'
