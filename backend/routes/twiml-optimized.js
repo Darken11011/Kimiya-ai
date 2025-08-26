@@ -111,12 +111,13 @@ module.exports = async function twimlOptimizedHandler(req, res) {
       processingTime
     });
 
-    // Clean response for TwiML
+    // Clean response for TwiML with proper XML encoding
     const cleanResponse = aiResponse
-      .replace(/[<>&"']/g, (match) => {
-        const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' };
-        return entities[match];
-      })
+      .replace(/&/g, '&amp;')   // Must be first to avoid double-encoding
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')   // Use numeric entity instead of &apos; to avoid parsing issues
       .substring(0, 4000); // Twilio limit
 
     // Generate optimized TwiML with performance indicators
@@ -273,12 +274,13 @@ function generateOptimizedTwiML(response, workflowId, trackingId, processingTime
   const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
   const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
 
-  // Prepare welcome greeting for ConversationRelay
+  // Prepare welcome greeting for ConversationRelay with proper XML encoding
   const welcomeGreeting = (response || "Hello! I'm your AI assistant. How can I help you today?")
-    .replace(/[<>&"']/g, (match) => {
-      const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' };
-      return entities[match];
-    })
+    .replace(/&/g, '&amp;')   // Must be first to avoid double-encoding
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')   // Use numeric entity instead of &apos; to avoid parsing issues
     .substring(0, 200); // Keep greeting concise for ConversationRelay
 
   // Generate ConversationRelay TwiML for real-time bidirectional audio streaming
@@ -298,6 +300,12 @@ function generateOptimizedTwiML(response, workflowId, trackingId, processingTime
 
   console.log(`[generateOptimizedTwiML] Generated ConversationRelay TwiML (${twiml.length} chars)`);
   console.log(`[generateOptimizedTwiML] WebSocket URL: ${websocketUrl}`);
+  console.log(`[generateOptimizedTwiML] Welcome greeting: ${welcomeGreeting}`);
+
+  // Validate TwiML for XML parsing issues
+  if (twiml.includes('&') && !twiml.match(/&(amp|lt|gt|quot|#\d+);/g)) {
+    console.error(`[generateOptimizedTwiML] WARNING: Potential XML entity encoding issue detected`);
+  }
 
   return twiml;
 }
