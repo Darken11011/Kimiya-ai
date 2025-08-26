@@ -284,12 +284,16 @@ function generateOptimizedTwiML(response, workflowId, trackingId, processingTime
     .substring(0, 200); // Keep greeting concise for ConversationRelay
 
   // Generate ConversationRelay TwiML for real-time bidirectional audio streaming
+  // CRITICAL: Encode & in URL parameters to prevent XML parsing errors
+  const connectActionUrl = `/api/connect-action?workflowId=${workflowId}&amp;trackingId=${trackingId}`;
+  const encodedWebsocketUrl = websocketUrl.replace(/&/g, '&amp;');
+
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <!-- Real-time ConversationRelay with ${processingTime.toFixed(0)}ms processing -->
-    <Connect action="/api/connect-action?workflowId=${workflowId}&trackingId=${trackingId}">
+    <Connect action="${connectActionUrl}">
         <ConversationRelay
-            url="${websocketUrl}"
+            url="${encodedWebsocketUrl}"
             welcomeGreeting="${welcomeGreeting}"
             voice="alice"
             dtmfDetection="true"
@@ -343,12 +347,16 @@ function fallbackToStandardProcessing(req, res) {
   const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
   const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
 
+  // CRITICAL: Encode & in URL parameters to prevent XML parsing errors
+  const connectActionUrl = `/api/connect-action?workflowId=${workflowId}&amp;trackingId=${trackingId}`;
+  const encodedWebsocketUrl = websocketUrl.replace(/&/g, '&amp;');
+
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <!-- Fallback ConversationRelay TwiML -->
-    <Connect action="/api/connect-action?workflowId=${workflowId}&trackingId=${trackingId}">
+    <Connect action="${connectActionUrl}">
         <ConversationRelay
-            url="${websocketUrl}"
+            url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
             voice="alice"
             dtmfDetection="true"
