@@ -14,20 +14,29 @@ module.exports = async function connectActionHandler(req, res) {
     const connectStatus = req.body.ConnectStatus;
     const connectDuration = req.body.ConnectDuration;
 
-    console.log(`[Connect-Action] ConversationRelay ended:`, {
+    console.log(`[Connect-Action] ConversationRelay connection ended:`, {
       callSid,
       connectStatus,
       connectDuration,
       workflowId,
-      trackingId
+      trackingId,
+      timestamp: new Date().toISOString()
     });
 
-    // Log connection details
+    // Log detailed connection information
     if (connectStatus === 'completed') {
-      console.log(`[Connect-Action] ConversationRelay completed successfully after ${connectDuration} seconds`);
+      console.log(`[Connect-Action] ✅ ConversationRelay completed successfully after ${connectDuration} seconds`);
+      console.log(`[Connect-Action] Real-time audio streaming session ended normally`);
+    } else if (connectStatus === 'failed') {
+      console.error(`[Connect-Action] ❌ ConversationRelay failed with status: ${connectStatus}`);
+      console.error(`[Connect-Action] This may indicate WebSocket connection issues`);
     } else {
       console.log(`[Connect-Action] ConversationRelay ended with status: ${connectStatus}`);
     }
+
+    // Log all request parameters for debugging
+    console.log(`[Connect-Action] Full request body:`, req.body);
+    console.log(`[Connect-Action] Full request query:`, req.query);
 
     // Clean up any active orchestrator
     try {

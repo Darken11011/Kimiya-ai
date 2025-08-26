@@ -80,6 +80,28 @@ export class CallAPI {
   private static baseUrl = getApiBaseUrl();
 
   /**
+   * Wake up backend (important for Render free tier)
+   */
+  private static async wakeUpBackend(): Promise<void> {
+    try {
+      console.log('Waking up backend...');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for wake-up
+
+      await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      console.log('Backend is awake');
+    } catch (error) {
+      console.warn('Backend wake-up failed, but continuing with request:', error);
+      // Don't throw error - continue with the main request even if wake-up fails
+    }
+  }
+
+  /**
    * Make an optimized call with 150-250ms response times
    */
   static async makeOptimizedCall(callData: {
@@ -97,23 +119,69 @@ export class CallAPI {
     twimlUrl?: string;
   }): Promise<OptimizedCallResponse> {
     try {
+      console.log('Making optimized call to:', `${this.baseUrl}/api/make-call-optimized`);
+
+      // Wake up backend first (important for Render free tier)
+      await this.wakeUpBackend();
+
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch(`${this.baseUrl}/api/make-call-optimized`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(callData)
+        body: JSON.stringify(callData),
+        signal: controller.signal
       });
 
-      const result = await response.json();
-      
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(result.error || `HTTP ${response.status}`);
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText };
+        }
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
+      const result = await response.json();
+      console.log('Optimized call successful:', result);
       return result;
+
     } catch (error) {
       console.error('Optimized call failed:', error);
+
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return {
+            success: false,
+            error: 'Request timeout - backend may be starting up. Please try again.',
+            optimization: {
+              enabled: false,
+              error: 'timeout'
+            }
+          };
+        }
+
+        if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+          return {
+            success: false,
+            error: 'Network error - please check your connection and try again.',
+            optimization: {
+              enabled: false,
+              error: 'network'
+            }
+          };
+        }
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',

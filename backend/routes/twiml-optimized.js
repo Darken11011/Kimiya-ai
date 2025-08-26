@@ -128,12 +128,6 @@ module.exports = async function twimlOptimizedHandler(req, res) {
         throw new Error('Generated TwiML is invalid or empty');
       }
 
-      // CRITICAL: Ensure we never return ConversationRelay TwiML (causes Error 12100)
-      if (twiml.includes('<ConversationRelay') || twiml.includes('<Connect')) {
-        console.warn(`[TwiML-Optimized] CRITICAL: ConversationRelay detected in TwiML - forcing fallback to prevent Error 12100`);
-        throw new Error('ConversationRelay TwiML detected - using fallback to prevent parsing errors');
-      }
-
       console.log(`[TwiML-Optimized] Generated TwiML length: ${twiml.length} characters`);
       console.log(`[TwiML-Optimized] TwiML preview:`, twiml.substring(0, 200) + '...');
 
@@ -266,37 +260,36 @@ async function processOptimizedUserInput(orchestrator, callState, speechResult, 
 function generateOptimizedTwiML(response, workflowId, trackingId, processingTime) {
   console.log(`[generateOptimizedTwiML] Called with response: "${response?.substring(0, 50)}..."`);
 
-  // Use traditional TwiML instead of ConversationRelay to avoid parsing issues
-  const cleanResponse = (response || "Hello! I'm your AI assistant. How can I help you today?")
+  // Get host for WebSocket URL
+  const host = process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com';
+  const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
+  const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
+
+  // Prepare welcome greeting for ConversationRelay
+  const welcomeGreeting = (response || "Hello! I'm your AI assistant. How can I help you today?")
     .replace(/[<>&"']/g, (match) => {
       const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' };
       return entities[match];
     })
-    .substring(0, 400); // Reasonable length for TwiML
+    .substring(0, 200); // Keep greeting concise for ConversationRelay
 
-  // CRITICAL: Generate traditional TwiML ONLY - NO ConversationRelay to prevent Error 12100
+  // Generate ConversationRelay TwiML for real-time bidirectional audio streaming
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Optimized response generated in ${processingTime.toFixed(0)}ms -->
-    <Say voice="alice">${cleanResponse}</Say>
-    <Gather input="speech" timeout="10" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
-        <Say voice="alice">I'm listening...</Say>
-    </Gather>
-    <Say voice="alice">I didn't hear anything. Let me try again.</Say>
-    <Gather input="speech" timeout="8" speechTimeout="2" action="/api/twiml-optimized?id=${workflowId}&trackingId=${trackingId}" method="POST">
-        <Say voice="alice">Please go ahead, I'm here to help.</Say>
-    </Gather>
-    <Say voice="alice">Thank you for calling! If you need further assistance, please call back. Have a great day!</Say>
-    <Hangup/>
+    <!-- Real-time ConversationRelay with ${processingTime.toFixed(0)}ms processing -->
+    <Connect action="/api/connect-action?workflowId=${workflowId}&trackingId=${trackingId}">
+        <ConversationRelay
+            url="${websocketUrl}"
+            welcomeGreeting="${welcomeGreeting}"
+            voice="alice"
+            dtmfDetection="true"
+            interruptByDtmf="true"
+        />
+    </Connect>
 </Response>`;
 
-  console.log(`[generateOptimizedTwiML] Generated traditional TwiML (${twiml.length} chars)`);
-
-  // Safety check: Ensure we never return ConversationRelay
-  if (twiml.includes('<ConversationRelay') || twiml.includes('<Connect')) {
-    console.error(`[generateOptimizedTwiML] CRITICAL ERROR: ConversationRelay detected in generated TwiML!`);
-    throw new Error('ConversationRelay detected in TwiML generation - this should never happen');
-  }
+  console.log(`[generateOptimizedTwiML] Generated ConversationRelay TwiML (${twiml.length} chars)`);
+  console.log(`[generateOptimizedTwiML] WebSocket URL: ${websocketUrl}`);
 
   return twiml;
 }

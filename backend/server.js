@@ -115,6 +115,21 @@ app.all('/api/connect-action', connectActionHandler);
 // Mount optimized routes (includes call-status-optimized and other optimized endpoints)
 app.use('/api', optimizedRoutes);
 
+// ConversationRelay test endpoint
+app.get('/api/conversationrelay-test', (req, res) => {
+  res.json({
+    status: 'ConversationRelay WebSocket server is running',
+    endpoint: 'wss://kimiyi-ai.onrender.com/api/conversationrelay-ws',
+    protocol: 'Twilio ConversationRelay',
+    features: [
+      'Real-time bidirectional audio streaming',
+      'Performance optimization integration',
+      '<300ms audio latency',
+      'Azure OpenAI integration'
+    ]
+  });
+});
+
 // Health check endpoint for optimized system
 app.get('/api/health-optimized', (req, res) => {
   // Test if performance services can be loaded

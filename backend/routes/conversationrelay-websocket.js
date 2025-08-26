@@ -7,15 +7,24 @@ const { getActiveOrchestrator } = require('./make-call-optimized');
  */
 class ConversationRelayWebSocket {
   constructor(server) {
-    this.wss = new WebSocket.Server({ 
-      server,
-      path: '/api/conversationrelay-ws'
-    });
-    
-    this.activeSessions = new Map();
-    this.setupWebSocketServer();
-    
-    console.log('[ConversationRelay-WS] WebSocket server initialized for real-time audio streaming');
+    try {
+      this.wss = new WebSocket.Server({
+        server,
+        path: '/api/conversationrelay-ws',
+        perMessageDeflate: false,
+        maxPayload: 1024 * 1024 // 1MB for audio data
+      });
+
+      this.activeSessions = new Map();
+      this.setupWebSocketServer();
+
+      console.log('[ConversationRelay-WS] Twilio ConversationRelay WebSocket server initialized');
+      console.log('[ConversationRelay-WS] Ready for real-time bidirectional audio streaming');
+
+    } catch (error) {
+      console.error('[ConversationRelay-WS] Failed to initialize WebSocket server:', error);
+      throw error;
+    }
   }
 
   setupWebSocketServer() {
@@ -26,9 +35,14 @@ class ConversationRelayWebSocket {
         const trackingId = url.searchParams.get('trackingId') || `track_${Date.now()}`;
         const callSid = url.searchParams.get('CallSid') || `call_${Date.now()}`;
 
-        console.log(`[ConversationRelay-WS] New connection: CallSid=${callSid}, TrackingId=${trackingId}, WorkflowId=${workflowId}`);
+        console.log(`[ConversationRelay-WS] New Twilio ConversationRelay connection: CallSid=${callSid}, TrackingId=${trackingId}, WorkflowId=${workflowId}`);
+        console.log(`[ConversationRelay-WS] Request headers:`, {
+          'user-agent': req.headers['user-agent'],
+          'origin': req.headers['origin'],
+          'sec-websocket-protocol': req.headers['sec-websocket-protocol']
+        });
 
-        // Initialize session
+        // Initialize session with ConversationRelay-specific properties
         const session = {
           ws,
           callSid,
@@ -36,7 +50,10 @@ class ConversationRelayWebSocket {
           trackingId,
           startTime: Date.now(),
           messageCount: 0,
-          conversationHistory: []
+          conversationHistory: [],
+          streamSid: null,
+          isActive: false,
+          audioBuffer: []
         };
 
         this.activeSessions.set(callSid, session);
@@ -60,12 +77,14 @@ class ConversationRelayWebSocket {
           this.activeSessions.delete(callSid);
         });
 
-        // Send initial setup message
+        // Send initial protocol setup for Twilio ConversationRelay
         this.sendMessage(ws, {
           event: 'connected',
-          callSid,
-          message: 'ConversationRelay WebSocket connected successfully'
+          protocol: 'Call',
+          version: '1.0.0'
         });
+
+        console.log(`[ConversationRelay-WS] ConversationRelay session initialized for ${callSid}`);
 
       } catch (error) {
         console.error('[ConversationRelay-WS] Error setting up WebSocket connection:', error);
@@ -112,12 +131,31 @@ class ConversationRelayWebSocket {
   }
 
   async handleStart(session, message) {
-    console.log(`[ConversationRelay-WS] Stream started for ${session.callSid}`);
-    
+    console.log(`[ConversationRelay-WS] ConversationRelay stream started for ${session.callSid}`);
+    console.log(`[ConversationRelay-WS] Start message:`, message);
+
+    // Store stream information
+    session.streamSid = message.streamSid;
+    session.isActive = true;
+
     // Get orchestrator for optimization
     const orchestrator = getActiveOrchestrator(session.trackingId);
-    
-    // Send welcome greeting
+
+    if (orchestrator) {
+      console.log(`[ConversationRelay-WS] Using performance orchestrator for ${session.callSid}`);
+      // Initialize optimized conversation
+      try {
+        await orchestrator.startOptimizedConversation(session.callSid, {
+          workflowId: session.workflowId,
+          trackingId: session.trackingId,
+          streamSid: session.streamSid
+        });
+      } catch (error) {
+        console.error(`[ConversationRelay-WS] Error starting optimized conversation:`, error);
+      }
+    }
+
+    // Send welcome greeting (this will be spoken by Twilio)
     const welcomeMessage = "Hello! I'm your AI assistant. How can I help you today?";
     await this.sendAIResponse(session, welcomeMessage);
   }

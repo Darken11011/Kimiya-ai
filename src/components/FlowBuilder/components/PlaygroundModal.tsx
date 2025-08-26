@@ -666,9 +666,21 @@ Conversation turns in this node: ${conversationTurns}`
       const API_BASE_URL = getApiBaseUrl();
       console.log('Fetching from:', `${API_BASE_URL}/api/twilio-config`);
 
+      // Wake up backend first (important for Render free tier)
+      try {
+        console.log('Waking up backend...');
+        await fetch(`${API_BASE_URL}/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(8000) // 8 second timeout for wake-up
+        });
+        console.log('Backend is awake');
+      } catch (wakeUpError) {
+        console.warn('Backend wake-up failed, but continuing:', wakeUpError);
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/twilio-config`, {
         method: 'GET',
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: AbortSignal.timeout(15000) // 15 second timeout (increased for cold starts)
       });
       console.log('Response status:', response.status);
 
