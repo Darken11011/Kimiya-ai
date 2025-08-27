@@ -37,11 +37,22 @@ app.options('*', cors(corsOptions));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  // Check ConversationRelay WebSocket status
+  const conversationRelayStatus = global.conversationRelayWS ? 'active' : 'not_initialized';
+  const activeConnections = global.conversationRelayWS ? global.conversationRelayWS.activeSessions?.size || 0 : 0;
+
   const healthStatus = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     service: 'Call Flow Weaver Backend',
+    conversationRelay: {
+      status: conversationRelayStatus,
+      activeConnections: activeConnections,
+      websocketPath: '/api/conversationrelay-ws',
+      protocolVersion: 'ConversationRelay-v1.0',
+      expectedUrl: `wss://${process.env.WEBHOOK_BASE_URL?.replace('https://', '') || 'kimiyi-ai.onrender.com'}/api/conversationrelay-ws`
+    },
     environment: {
       nodeEnv: process.env.NODE_ENV || 'not set',
       port: process.env.PORT || 'not set',
@@ -51,7 +62,8 @@ app.get('/health', (req, res) => {
       hasAzureKey: !!process.env.AZURE_OPENAI_API_KEY,
       hasAzureEndpoint: !!process.env.AZURE_OPENAI_ENDPOINT,
       hasTwilioConfig: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
-      hasAzureConfig: !!(process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT)
+      hasAzureConfig: !!(process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT),
+      webhookBaseUrl: process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com'
     },
     memory: {
       used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
@@ -68,6 +80,13 @@ app.get('/health', (req, res) => {
   if (missingVars.length > 0) {
     healthStatus.status = 'degraded';
     healthStatus.warnings = [`Missing environment variables: ${missingVars.join(', ')}`];
+  }
+
+  // Check ConversationRelay status
+  if (conversationRelayStatus === 'not_initialized') {
+    healthStatus.status = 'degraded';
+    healthStatus.warnings = healthStatus.warnings || [];
+    healthStatus.warnings.push('ConversationRelay WebSocket server not initialized');
   }
 
   res.json(healthStatus);
@@ -237,11 +256,16 @@ const server = app.listen(PORT, () => {
 // Initialize ConversationRelay WebSocket server
 try {
   const conversationRelayWS = new ConversationRelayWebSocket(server);
+
+  // Store reference globally for health checks
+  global.conversationRelayWS = conversationRelayWS;
+
   console.log(`🎙️  ConversationRelay WebSocket server initialized`);
   console.log(`📡 Real-time audio streaming: wss://kimiyi-ai.onrender.com/api/conversationrelay-ws`);
 } catch (error) {
   console.error(`❌ ConversationRelay WebSocket server failed to initialize:`, error.message);
   console.log(`📡 Falling back to traditional TwiML processing`);
+  global.conversationRelayWS = null;
 }
 
 module.exports = app;
