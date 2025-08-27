@@ -13,15 +13,78 @@ class ConversationRelayWebSocket {
         server,
         path: '/api/conversationrelay-ws',
         perMessageDeflate: false,
-        maxPayload: 1024 * 1024 // 1MB for audio data
+        maxPayload: 1024 * 1024, // 1MB for audio data
+        // Twilio ConversationRelay specific configuration
+        handleProtocols: (protocols, request) => {
+          console.log('[ConversationRelay-WS] 🔌 Incoming WebSocket connection protocols:', protocols);
+          console.log('[ConversationRelay-WS] 🔌 Request headers:', request.headers);
+
+          // Twilio ConversationRelay expects specific protocols
+          const twilioProtocols = ['twilio-conversation-relay', 'conversation-relay', 'twilio'];
+
+          if (protocols && protocols.length > 0) {
+            // Check if any of the requested protocols match Twilio's expected protocols
+            for (const protocol of protocols) {
+              if (twilioProtocols.includes(protocol.toLowerCase())) {
+                console.log(`[ConversationRelay-WS] ✅ Accepting Twilio protocol: ${protocol}`);
+                return protocol;
+              }
+            }
+            // If no Twilio protocol found, accept the first one
+            console.log(`[ConversationRelay-WS] ⚠️  No Twilio protocol found, accepting: ${protocols[0]}`);
+            return protocols[0];
+          }
+
+          // No protocols specified - this is fine for some clients
+          console.log('[ConversationRelay-WS] ℹ️  No protocols specified - accepting connection');
+          return false;
+        },
+        verifyClient: (info) => {
+          console.log('[ConversationRelay-WS] 🔍 Verifying WebSocket client connection');
+          console.log('[ConversationRelay-WS] 🔍 Origin:', info.origin);
+          console.log('[ConversationRelay-WS] 🔍 URL:', info.req.url);
+          console.log('[ConversationRelay-WS] 🔍 User-Agent:', info.req.headers['user-agent']);
+          console.log('[ConversationRelay-WS] 🔍 Sec-WebSocket-Protocol:', info.req.headers['sec-websocket-protocol']);
+
+          // Check if this looks like a Twilio request
+          const userAgent = info.req.headers['user-agent'] || '';
+          const isTwilioRequest = userAgent.includes('Twilio') ||
+                                 userAgent.includes('twilio') ||
+                                 info.req.headers['x-twilio-signature'] ||
+                                 info.origin?.includes('twilio.com');
+
+          if (isTwilioRequest) {
+            console.log('[ConversationRelay-WS] ✅ Detected Twilio ConversationRelay connection attempt');
+          } else {
+            console.log('[ConversationRelay-WS] ℹ️  Non-Twilio WebSocket connection (test client)');
+          }
+
+          // Allow all connections - we'll handle protocol negotiation in handleProtocols
+          return true;
+        }
       });
 
       this.activeSessions = new Map();
       this.conversationServices = new Map(); // Store ConversationRelay service per session
       this.setupWebSocketServer();
 
-      console.log('[ConversationRelay-WS] Twilio ConversationRelay WebSocket server initialized');
-      console.log('[ConversationRelay-WS] Using ConversationRelay built-in STT/TTS capabilities');
+      console.log('[ConversationRelay-WS] 🚀 Twilio ConversationRelay WebSocket server initialized');
+      console.log('[ConversationRelay-WS] 🎙️  Using ConversationRelay built-in STT/TTS capabilities');
+      console.log('[ConversationRelay-WS] 📡 WebSocket server listening on path: /api/conversationrelay-ws');
+      console.log('[ConversationRelay-WS] 🔊 Ready to accept Twilio ConversationRelay connections');
+
+      // Add server-level error handling
+      this.wss.on('error', (error) => {
+        console.error('[ConversationRelay-WS] ❌ WebSocket server error:', error);
+      });
+
+      // Add connection monitoring
+      this.wss.on('listening', () => {
+        console.log('[ConversationRelay-WS] 👂 WebSocket server is listening for connections');
+      });
+
+      // Log when server is ready
+      console.log('[ConversationRelay-WS] ✅ WebSocket server setup complete - waiting for Twilio connections...');
 
     } catch (error) {
       console.error('[ConversationRelay-WS] Failed to initialize WebSocket server:', error);
@@ -30,12 +93,16 @@ class ConversationRelayWebSocket {
   }
 
   setupWebSocketServer() {
+    // Add connection event logging
     this.wss.on('connection', (ws, req) => {
       try {
-        console.log(`[ConversationRelay-WS] ===== NEW WEBSOCKET CONNECTION =====`);
-        console.log(`[ConversationRelay-WS] Request URL: ${req.url}`);
-        console.log(`[ConversationRelay-WS] Request method: ${req.method}`);
-        console.log(`[ConversationRelay-WS] Connection time: ${new Date().toISOString()}`);
+        console.log(`[ConversationRelay-WS] 🎉 ===== NEW WEBSOCKET CONNECTION ESTABLISHED =====`);
+        console.log(`[ConversationRelay-WS] 🔗 Request URL: ${req.url}`);
+        console.log(`[ConversationRelay-WS] 🔗 Request method: ${req.method}`);
+        console.log(`[ConversationRelay-WS] 🔗 Connection time: ${new Date().toISOString()}`);
+        console.log(`[ConversationRelay-WS] 🔗 Remote address: ${req.socket.remoteAddress}`);
+        console.log(`[ConversationRelay-WS] 🔗 User-Agent: ${req.headers['user-agent']}`);
+        console.log(`[ConversationRelay-WS] 🔗 Protocol: ${ws.protocol}`);
 
         const url = new URL(req.url, `http://${req.headers.host}`);
         const workflowId = url.searchParams.get('workflowId') || 'default';
