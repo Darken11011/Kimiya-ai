@@ -115,30 +115,36 @@ module.exports = async function makeCallOptimizedHandler(req, res) {
         }
       },
       voice: config?.voice || {
-        provider: 'azure',
-        azure: {
-          apiKey: process.env.AZURE_SPEECH_API_KEY,
-          region: process.env.AZURE_SPEECH_REGION || 'eastus',
-          voiceName: 'en-US-JennyNeural'
+        provider: 'conversationrelay',
+        conversationrelay: {
+          // ConversationRelay handles TTS automatically
+          // Voice configuration is managed through TwiML welcomeGreeting
+          voiceName: 'alice', // Default Twilio voice
+          language: 'en-US'
         }
       },
       transcription: config?.transcription || {
-        provider: 'azure',
-        azure: {
-          apiKey: process.env.AZURE_SPEECH_API_KEY,
-          region: process.env.AZURE_SPEECH_REGION || 'eastus'
+        provider: 'conversationrelay',
+        conversationrelay: {
+          // ConversationRelay handles STT automatically
+          // No additional configuration needed
+          language: 'en-US',
+          realTimeProcessing: true
         }
       },
       globalSettings: {
         defaultLanguage: config?.globalSettings?.defaultLanguage || 'en-US',
         timezone: 'UTC',
         callRecording: record !== undefined ? record : true,
-        transcriptionEnabled: true,
+        transcriptionEnabled: true, // Handled by ConversationRelay
         sentimentAnalysis: false,
         conversationSummary: true,
         maxCallDuration: 30,
         silenceTimeout: 10,
-        interruptionHandling: true
+        interruptionHandling: true, // Handled by ConversationRelay
+        useConversationRelay: true, // Enable ConversationRelay features
+        sttProvider: 'conversationrelay', // Use built-in STT
+        ttsProvider: 'conversationrelay'  // Use built-in TTS
       }
     };
 

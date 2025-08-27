@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const { getActiveOrchestrator } = require('./make-call-optimized');
+const ConversationRelay = require('../services/conversationRelay');
 
 /**
  * Real Twilio ConversationRelay WebSocket Handler
@@ -16,10 +17,11 @@ class ConversationRelayWebSocket {
       });
 
       this.activeSessions = new Map();
+      this.conversationServices = new Map(); // Store ConversationRelay service per session
       this.setupWebSocketServer();
 
       console.log('[ConversationRelay-WS] Twilio ConversationRelay WebSocket server initialized');
-      console.log('[ConversationRelay-WS] Ready for real-time bidirectional audio streaming');
+      console.log('[ConversationRelay-WS] Using ConversationRelay built-in STT/TTS capabilities');
 
     } catch (error) {
       console.error('[ConversationRelay-WS] Failed to initialize WebSocket server:', error);
@@ -147,104 +149,173 @@ class ConversationRelayWebSocket {
     session.streamSid = message.streamSid;
     session.isActive = true;
 
-    // Get orchestrator for optimization
+    // Get orchestrator and workflow configuration
     const orchestrator = getActiveOrchestrator(session.trackingId);
 
     if (orchestrator) {
       console.log(`[ConversationRelay-WS] Using performance orchestrator for ${session.callSid}`);
-      // Initialize optimized conversation
+
+      // Initialize ConversationRelay service with workflow configuration
+      const conversationService = new ConversationRelay(
+        { callSid: session.callSid, streamSid: session.streamSid },
+        orchestrator.workflowConfig || {}
+      );
+
+      // Store the service for this session
+      this.conversationServices.set(session.callSid, conversationService);
+
+      // Start the conversation with workflow data
       try {
-        await orchestrator.startOptimizedConversation(session.callSid, {
+        await conversationService.startConversation(session.callSid, {
           workflowId: session.workflowId,
           trackingId: session.trackingId,
-          streamSid: session.streamSid
+          streamSid: session.streamSid,
+          nodes: orchestrator.workflowData?.nodes || [],
+          edges: orchestrator.workflowData?.edges || [],
+          globalPrompt: orchestrator.workflowData?.globalPrompt || 'You are a helpful AI assistant.'
         });
+
+        console.log(`[ConversationRelay-WS] ConversationRelay service initialized for ${session.callSid}`);
       } catch (error) {
-        console.error(`[ConversationRelay-WS] Error starting optimized conversation:`, error);
+        console.error(`[ConversationRelay-WS] Error starting ConversationRelay service:`, error);
       }
+    } else {
+      console.log(`[ConversationRelay-WS] No orchestrator available for ${session.callSid}, using basic configuration`);
     }
 
-    // Send welcome greeting (this will be spoken by Twilio)
-    const welcomeMessage = "Hello! I'm your AI assistant. How can I help you today?";
-    await this.sendAIResponse(session, welcomeMessage);
+    // ConversationRelay handles welcome greeting automatically via TwiML welcomeGreeting
+    // No need to send additional greeting here - it's already spoken by Twilio
+    console.log(`[ConversationRelay-WS] ConversationRelay ready for speech input from ${session.callSid}`);
   }
 
   async handleMedia(session, message) {
-    const startTime = performance.now();
-
+    // ConversationRelay handles STT automatically - we should receive speech events, not raw audio
     try {
-      console.log(`[ConversationRelay-WS] Processing media for ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] Received media message for ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] Message type:`, message.event);
+      console.log(`[ConversationRelay-WS] Message structure:`, Object.keys(message));
 
-      // Validate message structure
-      if (!message.media || !message.media.payload) {
-        console.warn('[ConversationRelay-WS] Invalid media message structure');
-        await this.sendAIResponse(session, "I'm having trouble hearing you. Could you please speak again?");
-        return;
-      }
+      // ConversationRelay should automatically handle STT and send us speech events
+      // If we're receiving raw audio, it means ConversationRelay STT isn't working as expected
 
-      // Extract audio data
-      const audioData = Buffer.from(message.media.payload, 'base64');
-      console.log(`[ConversationRelay-WS] Received ${audioData.length} bytes of audio data`);
+      if (message.media && message.media.payload) {
+        console.log(`[ConversationRelay-WS] Received raw audio data (${Buffer.from(message.media.payload, 'base64').length} bytes)`);
+        console.log(`[ConversationRelay-WS] ConversationRelay should handle STT automatically - this may indicate a configuration issue`);
 
-      // Get orchestrator for processing
-      const orchestrator = getActiveOrchestrator(session.trackingId);
+        // For now, let's try to process this with our ConversationRelay service
+        const conversationService = this.conversationServices.get(session.callSid);
+        if (conversationService) {
+          try {
+            const audioData = Buffer.from(message.media.payload, 'base64');
+            const result = await conversationService.processAudioChunk({
+              data: audioData,
+              timestamp: Date.now(),
+              sequenceNumber: session.messageCount,
+              language: 'en-US'
+            });
 
-      let aiResponse;
-
-      if (orchestrator) {
-        console.log('[ConversationRelay-WS] Using performance orchestrator for processing');
-        try {
-          // Use optimized processing
-          const audioChunk = {
-            data: audioData,
-            timestamp: Date.now(),
-            sequenceNumber: session.messageCount,
-            language: 'en-US'
-          };
-
-          const result = await orchestrator.processOptimizedAudio(session.callSid, audioData);
-          aiResponse = result.response || "I'm processing your request...";
-
-        } catch (orchestratorError) {
-          console.error('[ConversationRelay-WS] Orchestrator processing failed:', orchestratorError);
-          // Fallback to simple processing
-          aiResponse = await this.processAudioFallback(audioData, session);
+            if (result && result.response) {
+              await this.sendAIResponse(session, result.response);
+            }
+          } catch (serviceError) {
+            console.error(`[ConversationRelay-WS] ConversationRelay service error:`, serviceError);
+            await this.sendAIResponse(session, "I'm processing your request. Please continue speaking.");
+          }
+        } else {
+          console.warn(`[ConversationRelay-WS] No ConversationRelay service found for ${session.callSid}`);
+          await this.sendAIResponse(session, "I'm listening. How can I help you?");
         }
-
-      } else {
-        console.log('[ConversationRelay-WS] No orchestrator available, using fallback processing');
-        // Fallback to simple processing
-        aiResponse = await this.processAudioFallback(audioData, session);
       }
-
-      const processingTime = performance.now() - startTime;
-      console.log(`[ConversationRelay-WS] Audio processed in ${processingTime.toFixed(2)}ms`);
-
-      // Send AI response back
-      await this.sendAIResponse(session, aiResponse);
 
     } catch (error) {
-      const processingTime = performance.now() - startTime;
-      console.error(`[ConversationRelay-WS] Media processing error after ${processingTime.toFixed(2)}ms:`, error);
-      await this.sendAIResponse(session, "I'm sorry, I'm having trouble processing your request. Could you please try again?");
+      console.error(`[ConversationRelay-WS] Error handling media:`, error);
+      await this.sendAIResponse(session, "I'm having trouble processing your request. Please try again.");
     }
   }
 
   async handleDTMF(session, message) {
     console.log(`[ConversationRelay-WS] DTMF received: ${message.dtmf.digit}`);
-    
-    // Handle DTMF input
-    const digit = message.dtmf.digit;
-    const response = `You pressed ${digit}. How else can I help you?`;
-    
-    await this.sendAIResponse(session, response);
+
+    // Process DTMF input through ConversationRelay service
+    const conversationService = this.conversationServices.get(session.callSid);
+    if (conversationService) {
+      try {
+        const digit = message.dtmf.digit;
+        const result = await conversationService.processDTMF(digit, session);
+        await this.sendAIResponse(session, result.response || `You pressed ${digit}. How can I help you further?`);
+      } catch (error) {
+        console.error(`[ConversationRelay-WS] DTMF processing error:`, error);
+        await this.sendAIResponse(session, `You pressed ${message.dtmf.digit}. How can I help you further?`);
+      }
+    } else {
+      const digit = message.dtmf.digit;
+      const response = `You pressed ${digit}. How else can I help you?`;
+      await this.sendAIResponse(session, response);
+    }
+  }
+
+  async processSpeechTranscript(session, transcript) {
+    // Process speech transcript through workflow-aware conversation
+    const startTime = performance.now();
+
+    try {
+      console.log(`[ConversationRelay-WS] Processing speech transcript: "${transcript}"`);
+
+      // Get ConversationRelay service for this session
+      const conversationService = this.conversationServices.get(session.callSid);
+
+      if (conversationService) {
+        // Use ConversationRelay service for workflow-aware processing
+        const result = await conversationService.processTranscript(transcript, {
+          callSid: session.callSid,
+          workflowId: session.workflowId,
+          trackingId: session.trackingId,
+          conversationHistory: session.conversationHistory || []
+        });
+
+        const processingTime = performance.now() - startTime;
+        console.log(`[ConversationRelay-WS] Transcript processed in ${processingTime.toFixed(2)}ms`);
+
+        // Send AI response
+        await this.sendAIResponse(session, result.response);
+
+        // Update conversation history
+        session.conversationHistory = session.conversationHistory || [];
+        session.conversationHistory.push(
+          { role: 'user', content: transcript, timestamp: Date.now() },
+          { role: 'assistant', content: result.response, timestamp: Date.now() }
+        );
+
+      } else {
+        // Fallback to basic processing if no ConversationRelay service
+        console.warn(`[ConversationRelay-WS] No ConversationRelay service for ${session.callSid}, using basic processing`);
+        await this.processTranscriptFallback(session, transcript);
+      }
+
+    } catch (error) {
+      console.error(`[ConversationRelay-WS] Speech transcript processing error:`, error);
+      await this.sendAIResponse(session, "I understand you're speaking. Let me help you with that.");
+    }
   }
 
   async handleStop(session, message) {
     console.log(`[ConversationRelay-WS] Stream stopped for ${session.callSid}`);
-    
+
+    // Clean up ConversationRelay service
+    const conversationService = this.conversationServices.get(session.callSid);
+    if (conversationService) {
+      try {
+        await conversationService.endConversation(session.callSid);
+        this.conversationServices.delete(session.callSid);
+        console.log(`[ConversationRelay-WS] ConversationRelay service cleaned up for ${session.callSid}`);
+      } catch (error) {
+        console.error(`[ConversationRelay-WS] Error cleaning up ConversationRelay service:`, error);
+      }
+    }
+
     // Clean up session
     this.activeSessions.delete(session.callSid);
+    console.log(`[ConversationRelay-WS] Session cleaned up for ${session.callSid}`);
   }
 
   async sendAIResponse(session, text) {
@@ -270,41 +341,49 @@ class ConversationRelayWebSocket {
     }
   }
 
-  async processAudioFallback(audioData, session) {
-    // Fallback audio processing without orchestrator
-
+  async processTranscriptFallback(session, transcript) {
+    // Fallback transcript processing with workflow awareness
     try {
-      console.log(`[ConversationRelay-WS] Processing ${audioData.length} bytes of audio for speech-to-text`);
+      console.log(`[ConversationRelay-WS] Processing transcript fallback: "${transcript}"`);
 
-      // Convert audio to text using Azure Speech Services or similar
-      const transcript = await this.convertAudioToText(audioData);
+      // Get orchestrator for workflow data
+      const orchestrator = getActiveOrchestrator(session.trackingId);
 
-      if (!transcript || transcript.trim().length === 0) {
-        console.log('[ConversationRelay-WS] No speech detected in audio');
-        return "I didn't hear anything. Could you please speak again?";
-      }
-
-      console.log(`[ConversationRelay-WS] Transcript: "${transcript}"`);
-
-      // Add to conversation history
-      session.conversationHistory.push({
-        role: 'user',
-        content: transcript,
-        timestamp: Date.now()
-      });
-
-      // Generate AI response using Azure OpenAI
+      // Build conversation context with workflow awareness
       const messages = [
-        { role: 'system', content: 'You are a helpful AI assistant. Provide concise, helpful responses.' },
-        ...session.conversationHistory.slice(-5).map(msg => ({ role: msg.role, content: msg.content }))
+        {
+          role: 'system',
+          content: orchestrator?.workflowData?.globalPrompt || 'You are a helpful AI assistant. Provide concise, helpful responses based on the conversation context.'
+        }
       ];
 
+      // Add conversation history
+      if (session.conversationHistory && session.conversationHistory.length > 0) {
+        messages.push(...session.conversationHistory.slice(-5).map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })));
+      }
+
+      // Add current user input
+      messages.push({ role: 'user', content: transcript });
+
+      // Generate AI response
       const aiResponse = await this.callAzureOpenAI(messages);
-      return aiResponse;
+
+      // Send response
+      await this.sendAIResponse(session, aiResponse);
+
+      // Update conversation history
+      session.conversationHistory = session.conversationHistory || [];
+      session.conversationHistory.push(
+        { role: 'user', content: transcript, timestamp: Date.now() },
+        { role: 'assistant', content: aiResponse, timestamp: Date.now() }
+      );
 
     } catch (error) {
-      console.error('[ConversationRelay-WS] Fallback processing error:', error);
-      return "I'm having trouble processing your request. Please try again.";
+      console.error(`[ConversationRelay-WS] Transcript fallback processing error:`, error);
+      await this.sendAIResponse(session, "I understand you're speaking. How can I help you?");
     }
   }
 
@@ -375,31 +454,8 @@ class ConversationRelayWebSocket {
     }));
   }
 
-  async convertAudioToText(audioData) {
-    try {
-      // For now, implement a simple placeholder that simulates speech detection
-      // In production, this would integrate with Azure Speech Services, Google Speech-to-Text, etc.
-
-      console.log(`[ConversationRelay-WS] Converting ${audioData.length} bytes of audio to text`);
-
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // For testing purposes, return a placeholder that indicates we received audio
-      // This should be replaced with actual speech-to-text service
-      if (audioData.length > 1000) {
-        // Simulate that we detected speech in larger audio chunks
-        return "I heard you speaking. How can I help you?";
-      } else {
-        // Simulate no speech detected in small chunks
-        return null;
-      }
-
-    } catch (error) {
-      console.error('[ConversationRelay-WS] Speech-to-text conversion error:', error);
-      return null;
-    }
-  }
+  // ConversationRelay handles STT automatically - no need for custom convertAudioToText
+  // The STT is handled by Twilio's ConversationRelay service natively
 
   sendMessage(ws, message) {
     if (ws.readyState === WebSocket.OPEN) {

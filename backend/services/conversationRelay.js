@@ -21,23 +21,38 @@ class ConversationRelay extends EventEmitter {
 
   async startConversation(callSid, workflowData) {
     const startTime = performance.now();
-    
+
     try {
       console.log(`[ConversationRelay] Starting conversation for call ${callSid}`);
-      
+      console.log(`[ConversationRelay] Workflow data:`, {
+        workflowId: workflowData.workflowId,
+        nodesCount: workflowData.nodes?.length || 0,
+        edgesCount: workflowData.edges?.length || 0,
+        hasGlobalPrompt: !!workflowData.globalPrompt
+      });
+
+      // Store workflow data for this call
+      this.activeCalls.set(callSid, {
+        workflowData,
+        conversationHistory: [],
+        currentNode: 'start',
+        startTime: Date.now(),
+        isActive: true
+      });
+
       // Initialize streaming connection
       await this.initializeStream(callSid, workflowData);
-      
+
       // Set up bidirectional audio processing
       await this.setupBidirectionalStreaming(callSid);
-      
+
       this.isActive = true;
-      
+
       const initTime = performance.now() - startTime;
       console.log(`[ConversationRelay] Conversation started in ${initTime}ms`);
-      
-      this.emit('conversationStarted', { callSid, initTime });
-      
+
+      this.emit('conversationStarted', { callSid, initTime, workflowData });
+
     } catch (error) {
       console.error('[ConversationRelay] Failed to start conversation:', error);
       this.emit('error', { callSid, error });
@@ -336,8 +351,161 @@ class PerformanceMetrics {
       allWarnings: [...this.warnings]
     };
   }
+  async endConversation(callSid) {
+    console.log(`[ConversationRelay] Ending conversation for call ${callSid}`);
+
+    const callData = this.activeCalls.get(callSid);
+    if (callData) {
+      callData.isActive = false;
+
+      // Emit conversation ended event with metrics
+      this.emit('conversationEnded', {
+        callSid,
+        duration: Date.now() - callData.startTime,
+        messageCount: callData.messageCount || 0
+      });
+
+      // Clean up resources
+      this.activeCalls.delete(callSid);
+    }
+
+    this.isActive = false;
+  }
+
+  async processTranscript(transcript, context) {
+    // Process speech transcript with workflow awareness
+    const startTime = performance.now();
+
+    try {
+      console.log(`[ConversationRelay] Processing transcript: "${transcript}" for call ${context.callSid}`);
+
+      const callData = this.activeCalls.get(context.callSid);
+      if (!callData) {
+        throw new Error(`No call data found for ${context.callSid}`);
+      }
+
+      // Add user message to conversation history
+      callData.conversationHistory.push({
+        role: 'user',
+        content: transcript,
+        timestamp: Date.now()
+      });
+
+      // Process through workflow logic
+      const response = await this.processWorkflowLogic(transcript, callData);
+
+      // Add assistant response to conversation history
+      callData.conversationHistory.push({
+        role: 'assistant',
+        content: response,
+        timestamp: Date.now()
+      });
+
+      const processingTime = performance.now() - startTime;
+      console.log(`[ConversationRelay] Transcript processed in ${processingTime.toFixed(2)}ms`);
+
+      return {
+        response,
+        processingTime,
+        confidence: 0.95,
+        workflowNode: callData.currentNode
+      };
+
+    } catch (error) {
+      console.error(`[ConversationRelay] Transcript processing error:`, error);
+      return {
+        response: "I understand you're speaking. How can I help you?",
+        processingTime: performance.now() - startTime,
+        confidence: 0.5,
+        error: error.message
+      };
+    }
+  }
+
+  async processDTMF(digit, session) {
+    // Process DTMF input with workflow awareness
+    try {
+      console.log(`[ConversationRelay] Processing DTMF: ${digit} for call ${session.callSid}`);
+
+      const callData = this.activeCalls.get(session.callSid);
+      if (!callData) {
+        return { response: `You pressed ${digit}. How can I help you?` };
+      }
+
+      // Process DTMF through workflow logic
+      const response = await this.processWorkflowLogic(`DTMF:${digit}`, callData);
+
+      return {
+        response,
+        digit,
+        workflowNode: callData.currentNode
+      };
+
+    } catch (error) {
+      console.error(`[ConversationRelay] DTMF processing error:`, error);
+      return { response: `You pressed ${digit}. How can I help you further?` };
+    }
+  }
+
+  async processWorkflowLogic(input, callData) {
+    // Process input through workflow nodes and logic
+    try {
+      const { workflowData } = callData;
+
+      // Build conversation context
+      const messages = [
+        {
+          role: 'system',
+          content: workflowData.globalPrompt || 'You are a helpful AI assistant. Provide concise, helpful responses.'
+        }
+      ];
+
+      // Add recent conversation history
+      if (callData.conversationHistory.length > 0) {
+        messages.push(...callData.conversationHistory.slice(-5));
+      }
+
+      // Add current input
+      messages.push({ role: 'user', content: input });
+
+      // Generate AI response
+      const response = await this.generateAIResponse(messages);
+
+      return response;
+
+    } catch (error) {
+      console.error(`[ConversationRelay] Workflow logic error:`, error);
+      return "I'm here to help. What would you like to know?";
+    }
+  }
+
+  async generateAIResponse(messages) {
+    // Generate AI response using configured LLM
+    try {
+      // This would integrate with Azure OpenAI or other LLM
+      // For now, return a contextual response based on input
+      const lastMessage = messages[messages.length - 1];
+      const input = lastMessage.content.toLowerCase();
+
+      if (input.includes('hello') || input.includes('hi')) {
+        return "Hello! I'm here to help you. What can I do for you today?";
+      }
+
+      if (input.includes('help')) {
+        return "I'd be happy to help you. Could you tell me more about what you need assistance with?";
+      }
+
+      if (input.includes('thank')) {
+        return "You're welcome! Is there anything else I can help you with?";
+      }
+
+      return "I understand. How can I assist you with that?";
+
+    } catch (error) {
+      console.error(`[ConversationRelay] AI response generation error:`, error);
+      return "I'm here to help. Could you please tell me more about what you need?";
+    }
+  }
 }
-
-
 
 module.exports = ConversationRelay;
