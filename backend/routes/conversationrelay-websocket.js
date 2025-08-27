@@ -101,32 +101,41 @@ class ConversationRelayWebSocket {
     try {
       const message = JSON.parse(data.toString());
       session.messageCount++;
-      
-      console.log(`[ConversationRelay-WS] Message from ${session.callSid}:`, message.event);
-      
+
+      console.log(`[ConversationRelay-WS] ===== MESSAGE RECEIVED =====`);
+      console.log(`[ConversationRelay-WS] CallSid: ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] Event: ${message.event}`);
+      console.log(`[ConversationRelay-WS] Message count: ${session.messageCount}`);
+
       switch (message.event) {
         case 'start':
+          console.log(`[ConversationRelay-WS] Handling START event`);
           await this.handleStart(session, message);
           break;
-          
+
         case 'media':
+          console.log(`[ConversationRelay-WS] Handling MEDIA event - Audio data received!`);
           await this.handleMedia(session, message);
           break;
-          
+
         case 'dtmf':
+          console.log(`[ConversationRelay-WS] Handling DTMF event`);
           await this.handleDTMF(session, message);
           break;
-          
+
         case 'stop':
+          console.log(`[ConversationRelay-WS] Handling STOP event`);
           await this.handleStop(session, message);
           break;
-          
+
         default:
           console.log(`[ConversationRelay-WS] Unknown event: ${message.event}`);
+          console.log(`[ConversationRelay-WS] Full message:`, JSON.stringify(message, null, 2));
       }
-      
+
     } catch (error) {
       console.error(`[ConversationRelay-WS] Error handling message:`, error);
+      console.error(`[ConversationRelay-WS] Raw data:`, data.toString());
     }
   }
 
@@ -263,28 +272,36 @@ class ConversationRelayWebSocket {
 
   async processAudioFallback(audioData, session) {
     // Fallback audio processing without orchestrator
-    // This would integrate with your existing Azure OpenAI logic
-    
+
     try {
-      // Simulate speech-to-text
-      const transcript = "User said something"; // Placeholder
-      
+      console.log(`[ConversationRelay-WS] Processing ${audioData.length} bytes of audio for speech-to-text`);
+
+      // Convert audio to text using Azure Speech Services or similar
+      const transcript = await this.convertAudioToText(audioData);
+
+      if (!transcript || transcript.trim().length === 0) {
+        console.log('[ConversationRelay-WS] No speech detected in audio');
+        return "I didn't hear anything. Could you please speak again?";
+      }
+
+      console.log(`[ConversationRelay-WS] Transcript: "${transcript}"`);
+
       // Add to conversation history
       session.conversationHistory.push({
         role: 'user',
         content: transcript,
         timestamp: Date.now()
       });
-      
+
       // Generate AI response using Azure OpenAI
       const messages = [
         { role: 'system', content: 'You are a helpful AI assistant. Provide concise, helpful responses.' },
         ...session.conversationHistory.slice(-5).map(msg => ({ role: msg.role, content: msg.content }))
       ];
-      
+
       const aiResponse = await this.callAzureOpenAI(messages);
       return aiResponse;
-      
+
     } catch (error) {
       console.error('[ConversationRelay-WS] Fallback processing error:', error);
       return "I'm having trouble processing your request. Please try again.";
@@ -356,6 +373,38 @@ class ConversationRelayWebSocket {
       messageCount: session.messageCount,
       conversationTurns: session.conversationHistory.length
     }));
+  }
+
+  async convertAudioToText(audioData) {
+    try {
+      // For now, implement a simple placeholder that simulates speech detection
+      // In production, this would integrate with Azure Speech Services, Google Speech-to-Text, etc.
+
+      console.log(`[ConversationRelay-WS] Converting ${audioData.length} bytes of audio to text`);
+
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // For testing purposes, return a placeholder that indicates we received audio
+      // This should be replaced with actual speech-to-text service
+      if (audioData.length > 1000) {
+        // Simulate that we detected speech in larger audio chunks
+        return "I heard you speaking. How can I help you?";
+      } else {
+        // Simulate no speech detected in small chunks
+        return null;
+      }
+
+    } catch (error) {
+      console.error('[ConversationRelay-WS] Speech-to-text conversion error:', error);
+      return null;
+    }
+  }
+
+  sendMessage(ws, message) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    }
   }
 
   closeSession(callSid) {
