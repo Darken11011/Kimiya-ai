@@ -19,25 +19,11 @@ class ConversationRelayWebSocket {
           console.log('[ConversationRelay-WS] 🔌 Incoming WebSocket connection protocols:', protocols);
           console.log('[ConversationRelay-WS] 🔌 Request headers:', request.headers);
 
-          // Twilio ConversationRelay expects specific protocols
-          const twilioProtocols = ['twilio-conversation-relay', 'conversation-relay', 'twilio'];
-
-          if (protocols && protocols.length > 0) {
-            // Check if any of the requested protocols match Twilio's expected protocols
-            for (const protocol of protocols) {
-              if (twilioProtocols.includes(protocol.toLowerCase())) {
-                console.log(`[ConversationRelay-WS] ✅ Accepting Twilio protocol: ${protocol}`);
-                return protocol;
-              }
-            }
-            // If no Twilio protocol found, accept the first one
-            console.log(`[ConversationRelay-WS] ⚠️  No Twilio protocol found, accepting: ${protocols[0]}`);
-            return protocols[0];
-          }
-
-          // No protocols specified - this is fine for some clients
-          console.log('[ConversationRelay-WS] ℹ️  No protocols specified - accepting connection');
-          return false;
+          // CRITICAL: Twilio ConversationRelay does NOT use subprotocols
+          // It uses direct WebSocket connections with JSON message format
+          // Accept connection without requiring specific protocols
+          console.log('[ConversationRelay-WS] ✅ Accepting ConversationRelay connection (no subprotocol required)');
+          return false; // No subprotocol needed for ConversationRelay
         },
         verifyClient: (info) => {
           console.log('[ConversationRelay-WS] 🔍 Verifying WebSocket client connection');
@@ -164,14 +150,11 @@ class ConversationRelayWebSocket {
           this.activeSessions.delete(callSid);
         });
 
-        // Send initial protocol setup for Twilio ConversationRelay
-        this.sendMessage(ws, {
-          event: 'connected',
-          protocol: 'Call',
-          version: '1.0.0'
-        });
+        // CRITICAL: Do NOT send initial messages to ConversationRelay
+        // ConversationRelay will send a 'setup' message first, then we respond
+        // Sending unsolicited messages can cause connection failures
 
-        console.log(`[ConversationRelay-WS] ConversationRelay session initialized for ${callSid}`);
+        console.log(`[ConversationRelay-WS] ✅ ConversationRelay session ready for ${callSid} - waiting for setup message`);
 
       } catch (error) {
         console.error('[ConversationRelay-WS] Error setting up WebSocket connection:', error);
@@ -202,34 +185,54 @@ class ConversationRelayWebSocket {
       const messagePreview = JSON.stringify(message).substring(0, 200);
       console.log(`[ConversationRelay-WS] Message preview: ${messagePreview}...`);
 
-      switch (message.event) {
+      // Handle both ConversationRelay message types and legacy Media Stream events
+      const messageType = message.type || message.event;
+
+      switch (messageType) {
+        // ConversationRelay specific message types (from Twilio documentation)
+        case 'setup':
+          console.log(`[ConversationRelay-WS] 🔧 Handling SETUP message - ConversationRelay initialization`);
+          await this.handleSetup(session, message);
+          break;
+
+        case 'prompt':
+          console.log(`[ConversationRelay-WS] 🎤 Handling PROMPT message - User speech transcription`);
+          await this.handlePrompt(session, message);
+          break;
+
+        case 'dtmf':
+          console.log(`[ConversationRelay-WS] 📞 Handling DTMF message - Key press detected`);
+          await this.handleDTMF(session, message);
+          break;
+
+        case 'interrupt':
+          console.log(`[ConversationRelay-WS] ⚡ Handling INTERRUPT message - User interruption`);
+          await this.handleInterrupt(session, message);
+          break;
+
+        case 'error':
+          console.log(`[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error`);
+          await this.handleConversationRelayError(session, message);
+          break;
+
+        // Legacy Media Stream events (for backward compatibility)
         case 'start':
-          console.log(`[ConversationRelay-WS] Handling START event`);
+          console.log(`[ConversationRelay-WS] 🚀 Handling START event (legacy)`);
           await this.handleStart(session, message);
           break;
 
         case 'media':
-          console.log(`[ConversationRelay-WS] Handling MEDIA event - Audio data received!`);
+          console.log(`[ConversationRelay-WS] 🎵 Handling MEDIA event - Audio data received (legacy)`);
           await this.handleMedia(session, message);
           break;
 
-        case 'speech':
-          console.log(`[ConversationRelay-WS] Handling SPEECH event - ConversationRelay STT result!`);
-          await this.handleSpeech(session, message);
-          break;
-
-        case 'dtmf':
-          console.log(`[ConversationRelay-WS] Handling DTMF event`);
-          await this.handleDTMF(session, message);
-          break;
-
         case 'stop':
-          console.log(`[ConversationRelay-WS] Handling STOP event`);
+          console.log(`[ConversationRelay-WS] 🛑 Handling STOP event (legacy)`);
           await this.handleStop(session, message);
           break;
 
         default:
-          console.log(`[ConversationRelay-WS] Unknown event: ${message.event}`);
+          console.log(`[ConversationRelay-WS] ⚠️  Unknown message type: ${messageType}`);
           console.log(`[ConversationRelay-WS] Full message:`, JSON.stringify(message, null, 2));
 
           // Check if this might be a speech result in a different format
@@ -396,21 +399,23 @@ class ConversationRelayWebSocket {
   }
 
   async handleDTMF(session, message) {
-    console.log(`[ConversationRelay-WS] DTMF received: ${message.dtmf.digit}`);
+    // Handle ConversationRelay DTMF message format
+    const digit = message.digit || message.dtmf?.digit;
+    console.log(`[ConversationRelay-WS] 📞 DTMF received for ${session.callSid}: ${digit}`);
 
     // Process DTMF input through ConversationRelay service
     const conversationService = this.conversationServices.get(session.callSid);
     if (conversationService) {
       try {
-        const digit = message.dtmf.digit;
+        // Use the digit we extracted above
         const result = await conversationService.processDTMF(digit, session);
         await this.sendAIResponse(session, result.response || `You pressed ${digit}. How can I help you further?`);
       } catch (error) {
         console.error(`[ConversationRelay-WS] DTMF processing error:`, error);
-        await this.sendAIResponse(session, `You pressed ${message.dtmf.digit}. How can I help you further?`);
+        await this.sendAIResponse(session, `You pressed ${digit}. How can I help you further?`);
       }
     } else {
-      const digit = message.dtmf.digit;
+      // Use the digit we extracted above
       const response = `You pressed ${digit}. How else can I help you?`;
       await this.sendAIResponse(session, response);
     }
@@ -498,33 +503,9 @@ class ConversationRelayWebSocket {
 
       console.log(`[ConversationRelay-WS] Added to conversation history. Total messages: ${session.conversationHistory.length}`);
 
-      // CRITICAL: Send proper ConversationRelay response format
-      // ConversationRelay should handle TTS automatically when we send text responses
-      const responseMessage = {
-        event: 'response',
-        text: text,
-        timestamp: Date.now(),
-        streamSid: session.streamSid
-      };
-
-      console.log(`[ConversationRelay-WS] Sending response message:`, {
-        event: responseMessage.event,
-        textLength: responseMessage.text.length,
-        streamSid: responseMessage.streamSid
-      });
-
-      this.sendMessage(session.ws, responseMessage);
-
-      // Also try alternative format in case ConversationRelay expects different structure
-      const alternativeMessage = {
-        event: 'say',
-        text: text,
-        voice: 'alice',
-        timestamp: Date.now()
-      };
-
-      console.log(`[ConversationRelay-WS] Also sending alternative format:`, alternativeMessage.event);
-      this.sendMessage(session.ws, alternativeMessage);
+      // CRITICAL: Use proper ConversationRelay text message format
+      // Based on Twilio documentation, ConversationRelay expects 'text' type messages
+      await this.sendTextMessage(session, text);
 
       console.log(`[ConversationRelay-WS] ✅ AI response sent successfully to ${session.callSid}`);
       console.log(`[ConversationRelay-WS] Response preview: "${text.substring(0, 100)}..."`);
@@ -799,6 +780,109 @@ class ConversationRelayWebSocket {
     }
   }
 
+  // ConversationRelay specific message handlers based on Twilio documentation
+  async handleSetup(session, message) {
+    console.log(`[ConversationRelay-WS] 🔧 SETUP message received for ${session.callSid}`);
+    console.log(`[ConversationRelay-WS] Setup details:`, JSON.stringify(message, null, 2));
+
+    // Store setup information
+    session.setupData = message;
+    session.isActive = true;
+
+    // Send initial greeting using ConversationRelay text message format
+    const greeting = "Hello Aditya! I'm your Kimiya. How can I help you today?";
+
+    await this.sendTextMessage(session, greeting);
+
+    console.log(`[ConversationRelay-WS] ✅ Setup complete, greeting sent for ${session.callSid}`);
+  }
+
+  async handlePrompt(session, message) {
+    console.log(`[ConversationRelay-WS] 🎤 PROMPT message received for ${session.callSid}`);
+    console.log(`[ConversationRelay-WS] User speech:`, message.voicePrompt || message.text || 'No text provided');
+
+    // Reset silence timeout since we received user input
+    this.resetSilenceTimeout(session);
+
+    // Extract user speech from the prompt message
+    const userSpeech = message.voicePrompt || message.text || message.prompt;
+
+    if (userSpeech) {
+      // Process the user's speech and generate AI response
+      await this.processSpeechTranscript(session, userSpeech);
+    } else {
+      console.log(`[ConversationRelay-WS] ⚠️  No speech content in prompt message`);
+    }
+  }
+
+  async handleInterrupt(session, message) {
+    console.log(`[ConversationRelay-WS] ⚡ INTERRUPT message received for ${session.callSid}`);
+    console.log(`[ConversationRelay-WS] Interrupt details:`, JSON.stringify(message, null, 2));
+
+    // Reset silence timeout on interrupt
+    this.resetSilenceTimeout(session);
+
+    // Handle user interruption - stop current TTS and prepare for new input
+    session.interrupted = true;
+
+    // Send acknowledgment that we're ready for new input
+    await this.sendTextMessage(session, "Yes, I'm listening. What can I help you with?");
+  }
+
+  async handleConversationRelayError(session, message) {
+    console.error(`[ConversationRelay-WS] ❌ ConversationRelay ERROR for ${session.callSid}:`, message);
+
+    // Log error details
+    console.error(`[ConversationRelay-WS] Error type: ${message.error?.type || 'unknown'}`);
+    console.error(`[ConversationRelay-WS] Error message: ${message.error?.message || 'No message'}`);
+
+    // Try to recover with a fallback response
+    await this.sendTextMessage(session, "I apologize, there was a technical issue. Could you please repeat that?");
+  }
+
+  // ConversationRelay message sending methods
+  async sendTextMessage(session, text) {
+    console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
+
+    // ConversationRelay text message format based on Twilio documentation
+    const textMessage = {
+      type: 'text',
+      text: text,
+      voice: {
+        name: 'alice',
+        language: 'en-US'
+      }
+    };
+
+    this.sendMessage(session.ws, textMessage);
+  }
+
+  async sendMediaMessage(session, mediaUrl) {
+    console.log(`[ConversationRelay-WS] 🎵 Sending media message to ${session.callSid}: ${mediaUrl}`);
+
+    // ConversationRelay media message format
+    const mediaMessage = {
+      type: 'media',
+      media: {
+        url: mediaUrl
+      }
+    };
+
+    this.sendMessage(session.ws, mediaMessage);
+  }
+
+  async sendLanguageMessage(session, language) {
+    console.log(`[ConversationRelay-WS] 🌐 Switching language for ${session.callSid}: ${language}`);
+
+    // ConversationRelay language message format
+    const languageMessage = {
+      type: 'language',
+      language: language
+    };
+
+    this.sendMessage(session.ws, languageMessage);
+  }
+
   // Silence timeout management to prevent calls from hanging
   startSilenceTimeout(session) {
     // Clear any existing timeout
@@ -827,11 +911,11 @@ class ConversationRelayWebSocket {
     try {
       console.log(`[ConversationRelay-WS] 🔇 Handling silence timeout for ${session.callSid}`);
 
-      // Try to prompt the user for a response
+      // Try to prompt the user for a response using ConversationRelay text message
       const promptMessage = "I'm still here. Could you please say something or let me know how I can help you?";
 
-      // Send AI response to encourage user interaction
-      await this.sendAIResponse(session, promptMessage);
+      // Send ConversationRelay text message to encourage user interaction
+      await this.sendTextMessage(session, promptMessage);
 
       // Reset timeout for another chance
       this.startSilenceTimeout(session);
