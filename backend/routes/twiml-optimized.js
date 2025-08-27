@@ -52,12 +52,17 @@ module.exports = async function twimlOptimizedHandler(req, res) {
 
 // Fast TwiML generation functions
 function generateFastTwiML(workflowId, trackingId) {
-  console.log(`[generateFastTwiML] Creating TwiML for workflow: ${workflowId}, tracking: ${trackingId}`);
+  console.log(`[generateFastTwiML] ===== CREATING TWIML =====`);
+  console.log(`[generateFastTwiML] Workflow: ${workflowId}, Tracking: ${trackingId}`);
 
   // Get host for WebSocket URL
   const host = process.env.WEBHOOK_BASE_URL || 'https://kimiyi-ai.onrender.com';
   const wsUrl = host.replace('https://', 'wss://').replace('http://', 'ws://');
+
+  // CRITICAL: Include all necessary parameters for ConversationRelay
   const websocketUrl = `${wsUrl}/api/conversationrelay-ws?workflowId=${workflowId}&trackingId=${trackingId}`;
+
+  console.log(`[generateFastTwiML] WebSocket URL: ${websocketUrl}`);
 
   // CRITICAL: Encode & in URL parameters to prevent XML parsing errors
   const connectActionUrl = `/api/connect-action?workflowId=${workflowId}&amp;trackingId=${trackingId}`;
@@ -65,7 +70,7 @@ function generateFastTwiML(workflowId, trackingId) {
 
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Fast ConversationRelay TwiML -->
+    <!-- Fast ConversationRelay TwiML with Debug Info -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
@@ -74,7 +79,11 @@ function generateFastTwiML(workflowId, trackingId) {
     </Connect>
 </Response>`;
 
-  console.log(`[generateFastTwiML] Generated TwiML (${twiml.length} chars)`);
+  console.log(`[generateFastTwiML] ===== TWIML GENERATED =====`);
+  console.log(`[generateFastTwiML] TwiML length: ${twiml.length} chars`);
+  console.log(`[generateFastTwiML] WebSocket URL encoded: ${encodedWebsocketUrl}`);
+  console.log(`[generateFastTwiML] Connect action: ${connectActionUrl}`);
+
   return twiml;
 }
 

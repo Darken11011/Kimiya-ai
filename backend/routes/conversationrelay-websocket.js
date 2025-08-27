@@ -32,17 +32,28 @@ class ConversationRelayWebSocket {
   setupWebSocketServer() {
     this.wss.on('connection', (ws, req) => {
       try {
+        console.log(`[ConversationRelay-WS] ===== NEW WEBSOCKET CONNECTION =====`);
+        console.log(`[ConversationRelay-WS] Request URL: ${req.url}`);
+        console.log(`[ConversationRelay-WS] Request method: ${req.method}`);
+        console.log(`[ConversationRelay-WS] Connection time: ${new Date().toISOString()}`);
+
         const url = new URL(req.url, `http://${req.headers.host}`);
         const workflowId = url.searchParams.get('workflowId') || 'default';
         const trackingId = url.searchParams.get('trackingId') || `track_${Date.now()}`;
         const callSid = url.searchParams.get('CallSid') || `call_${Date.now()}`;
 
-        console.log(`[ConversationRelay-WS] New Twilio ConversationRelay connection: CallSid=${callSid}, TrackingId=${trackingId}, WorkflowId=${workflowId}`);
-        console.log(`[ConversationRelay-WS] Request headers:`, {
-          'user-agent': req.headers['user-agent'],
-          'origin': req.headers['origin'],
-          'sec-websocket-protocol': req.headers['sec-websocket-protocol']
-        });
+        console.log(`[ConversationRelay-WS] ===== CONNECTION PARAMETERS =====`);
+        console.log(`[ConversationRelay-WS] CallSid: ${callSid}`);
+        console.log(`[ConversationRelay-WS] TrackingId: ${trackingId}`);
+        console.log(`[ConversationRelay-WS] WorkflowId: ${workflowId}`);
+        console.log(`[ConversationRelay-WS] All URL params:`, Object.fromEntries(url.searchParams));
+
+        console.log(`[ConversationRelay-WS] ===== REQUEST HEADERS =====`);
+        console.log(`[ConversationRelay-WS] User-Agent: ${req.headers['user-agent']}`);
+        console.log(`[ConversationRelay-WS] Origin: ${req.headers['origin']}`);
+        console.log(`[ConversationRelay-WS] Protocol: ${req.headers['sec-websocket-protocol']}`);
+        console.log(`[ConversationRelay-WS] Host: ${req.headers['host']}`);
+        console.log(`[ConversationRelay-WS] All headers:`, req.headers);
 
         // Initialize session with ConversationRelay-specific properties
         const session = {
@@ -108,6 +119,14 @@ class ConversationRelayWebSocket {
       console.log(`[ConversationRelay-WS] CallSid: ${session.callSid}`);
       console.log(`[ConversationRelay-WS] Event: ${message.event}`);
       console.log(`[ConversationRelay-WS] Message count: ${session.messageCount}`);
+      console.log(`[ConversationRelay-WS] Message size: ${data.length} bytes`);
+      console.log(`[ConversationRelay-WS] Timestamp: ${new Date().toISOString()}`);
+      console.log(`[ConversationRelay-WS] Session active: ${session.isActive}`);
+      console.log(`[ConversationRelay-WS] Full message structure:`, Object.keys(message));
+
+      // Log first 200 chars of message for debugging
+      const messagePreview = JSON.stringify(message).substring(0, 200);
+      console.log(`[ConversationRelay-WS] Message preview: ${messagePreview}...`);
 
       switch (message.event) {
         case 'start':
@@ -202,11 +221,16 @@ class ConversationRelayWebSocket {
   async handleMedia(session, message) {
     // ConversationRelay sends raw audio - we need to process it for STT
     try {
-      console.log(`[ConversationRelay-WS] Received media message for ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] ===== MEDIA EVENT RECEIVED =====`);
+      console.log(`[ConversationRelay-WS] CallSid: ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] Media message structure:`, Object.keys(message));
 
       if (message.media && message.media.payload) {
         const audioData = Buffer.from(message.media.payload, 'base64');
-        console.log(`[ConversationRelay-WS] Processing ${audioData.length} bytes of audio data`);
+        console.log(`[ConversationRelay-WS] ===== AUDIO DATA PROCESSING =====`);
+        console.log(`[ConversationRelay-WS] Audio data size: ${audioData.length} bytes`);
+        console.log(`[ConversationRelay-WS] Audio buffer current size: ${session.audioBuffer?.length || 0} chunks`);
+        console.log(`[ConversationRelay-WS] Message sequence: ${session.messageCount}`);
 
         // Store audio data for potential batch processing
         session.audioBuffer = session.audioBuffer || [];
@@ -215,6 +239,8 @@ class ConversationRelayWebSocket {
           timestamp: Date.now(),
           sequenceNumber: session.messageCount
         });
+
+        console.log(`[ConversationRelay-WS] Audio buffer updated: ${session.audioBuffer.length} chunks total`);
 
         // Process audio through ConversationRelay service
         const conversationService = this.conversationServices.get(session.callSid);
@@ -379,24 +405,61 @@ class ConversationRelayWebSocket {
 
   async sendAIResponse(session, text) {
     try {
+      console.log(`[ConversationRelay-WS] ===== SENDING AI RESPONSE =====`);
+      console.log(`[ConversationRelay-WS] CallSid: ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] Response text: "${text}"`);
+      console.log(`[ConversationRelay-WS] WebSocket state: ${session.ws.readyState}`);
+      console.log(`[ConversationRelay-WS] Session active: ${session.isActive}`);
+
       // Add to conversation history
+      session.conversationHistory = session.conversationHistory || [];
       session.conversationHistory.push({
         role: 'assistant',
         content: text,
         timestamp: Date.now()
       });
-      
-      // Send text response (ConversationRelay will handle TTS)
-      this.sendMessage(session.ws, {
+
+      console.log(`[ConversationRelay-WS] Added to conversation history. Total messages: ${session.conversationHistory.length}`);
+
+      // CRITICAL: Send proper ConversationRelay response format
+      // ConversationRelay should handle TTS automatically when we send text responses
+      const responseMessage = {
         event: 'response',
         text: text,
-        voice: 'alice'
+        timestamp: Date.now(),
+        streamSid: session.streamSid
+      };
+
+      console.log(`[ConversationRelay-WS] Sending response message:`, {
+        event: responseMessage.event,
+        textLength: responseMessage.text.length,
+        streamSid: responseMessage.streamSid
       });
-      
-      console.log(`[ConversationRelay-WS] Sent AI response to ${session.callSid}: ${text.substring(0, 50)}...`);
-      
+
+      this.sendMessage(session.ws, responseMessage);
+
+      // Also try alternative format in case ConversationRelay expects different structure
+      const alternativeMessage = {
+        event: 'say',
+        text: text,
+        voice: 'alice',
+        timestamp: Date.now()
+      };
+
+      console.log(`[ConversationRelay-WS] Also sending alternative format:`, alternativeMessage.event);
+      this.sendMessage(session.ws, alternativeMessage);
+
+      console.log(`[ConversationRelay-WS] ✅ AI response sent successfully to ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] Response preview: "${text.substring(0, 100)}..."`);
+
     } catch (error) {
-      console.error(`[ConversationRelay-WS] Error sending AI response:`, error);
+      console.error(`[ConversationRelay-WS] ❌ Error sending AI response:`, error);
+      console.error(`[ConversationRelay-WS] Error details:`, {
+        callSid: session.callSid,
+        textLength: text?.length,
+        wsState: session.ws?.readyState,
+        error: error.message
+      });
     }
   }
 
@@ -447,26 +510,42 @@ class ConversationRelayWebSocket {
   detectSpeechInAudio(audioBuffer) {
     // Simple speech detection based on audio characteristics
     try {
-      if (!audioBuffer || audioBuffer.length === 0) return false;
+      console.log(`[ConversationRelay-WS] ===== SPEECH DETECTION ANALYSIS =====`);
+
+      if (!audioBuffer || audioBuffer.length === 0) {
+        console.log(`[ConversationRelay-WS] No audio buffer data - no speech detected`);
+        return false;
+      }
 
       const totalSize = audioBuffer.reduce((sum, chunk) => sum + chunk.data.length, 0);
       const timespan = audioBuffer.length > 1 ?
         audioBuffer[audioBuffer.length - 1].timestamp - audioBuffer[0].timestamp : 0;
 
-      // Speech detection criteria:
-      // 1. Minimum audio size (indicates audio activity)
-      // 2. Minimum duration (speech takes time)
-      // 3. Consistent audio chunks (indicates continuous speech)
+      // Speech detection criteria (REDUCED FOR TESTING):
+      const minSizeForSpeech = 2000; // 2KB minimum (reduced from 8KB)
+      const minDurationForSpeech = 800; // 0.8 seconds minimum (reduced from 1.5s)
+      const consistentChunks = audioBuffer.length >= 3; // At least 3 audio chunks (reduced from 5)
 
-      const minSizeForSpeech = 8000; // 8KB minimum
-      const minDurationForSpeech = 1500; // 1.5 seconds minimum
-      const consistentChunks = audioBuffer.length >= 5; // At least 5 audio chunks
+      console.log(`[ConversationRelay-WS] ===== SPEECH DETECTION METRICS =====`);
+      console.log(`[ConversationRelay-WS] Total audio size: ${totalSize} bytes (min: ${minSizeForSpeech})`);
+      console.log(`[ConversationRelay-WS] Audio timespan: ${timespan}ms (min: ${minDurationForSpeech}ms)`);
+      console.log(`[ConversationRelay-WS] Audio chunks: ${audioBuffer.length} (min: 5)`);
+      console.log(`[ConversationRelay-WS] Size check: ${totalSize >= minSizeForSpeech}`);
+      console.log(`[ConversationRelay-WS] Duration check: ${timespan >= minDurationForSpeech}`);
+      console.log(`[ConversationRelay-WS] Chunks check: ${consistentChunks}`);
 
       const speechDetected = totalSize >= minSizeForSpeech &&
                             timespan >= minDurationForSpeech &&
                             consistentChunks;
 
-      console.log(`[ConversationRelay-WS] Speech detection: size=${totalSize}, duration=${timespan}ms, chunks=${audioBuffer.length}, detected=${speechDetected}`);
+      console.log(`[ConversationRelay-WS] ===== SPEECH DETECTION RESULT =====`);
+      console.log(`[ConversationRelay-WS] Speech detected: ${speechDetected}`);
+
+      if (speechDetected) {
+        console.log(`[ConversationRelay-WS] 🎤 SPEECH DETECTED! Processing conversation...`);
+      } else {
+        console.log(`[ConversationRelay-WS] 🔇 No speech detected yet, continuing to buffer...`);
+      }
 
       return speechDetected;
 
