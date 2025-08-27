@@ -69,7 +69,7 @@ function generateFastTwiML(workflowId, trackingId) {
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
-            welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
+            welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
         />
     </Connect>
 </Response>`;
