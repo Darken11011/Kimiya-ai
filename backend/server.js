@@ -33,7 +33,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
+// app.options('*', cors(corsOptions)); // TEMPORARILY COMMENTED OUT - CAUSING PATH-TO-REGEXP ERROR
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -213,7 +213,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     error: 'Endpoint not found',

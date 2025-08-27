@@ -9,8 +9,8 @@
 
 // Test configuration
 const TEST_CONFIG = {
-  backendUrl: process.env.BACKEND_URL || 'https://kimiyi-ai.onrender.com',
-  localBackendUrl: 'http://localhost:3000',
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:3000', // Test local backend first
+  remoteBackendUrl: 'https://kimiyi-ai.onrender.com',
   testCallSid: 'TEST_CALL_' + Date.now(),
   testWorkflowId: 'test-workflow-123'
 };
