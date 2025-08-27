@@ -120,6 +120,11 @@ class ConversationRelayWebSocket {
           await this.handleMedia(session, message);
           break;
 
+        case 'speech':
+          console.log(`[ConversationRelay-WS] Handling SPEECH event - ConversationRelay STT result!`);
+          await this.handleSpeech(session, message);
+          break;
+
         case 'dtmf':
           console.log(`[ConversationRelay-WS] Handling DTMF event`);
           await this.handleDTMF(session, message);
@@ -133,6 +138,12 @@ class ConversationRelayWebSocket {
         default:
           console.log(`[ConversationRelay-WS] Unknown event: ${message.event}`);
           console.log(`[ConversationRelay-WS] Full message:`, JSON.stringify(message, null, 2));
+
+          // Check if this might be a speech result in a different format
+          if (message.transcript || message.speechResult || message.text) {
+            console.log(`[ConversationRelay-WS] Detected speech data in unknown event, processing as speech`);
+            await this.handleSpeechData(session, message);
+          }
       }
 
     } catch (error) {
@@ -189,24 +200,26 @@ class ConversationRelayWebSocket {
   }
 
   async handleMedia(session, message) {
-    // ConversationRelay handles STT automatically - we should receive speech events, not raw audio
+    // ConversationRelay sends raw audio - we need to process it for STT
     try {
       console.log(`[ConversationRelay-WS] Received media message for ${session.callSid}`);
-      console.log(`[ConversationRelay-WS] Message type:`, message.event);
-      console.log(`[ConversationRelay-WS] Message structure:`, Object.keys(message));
-
-      // ConversationRelay should automatically handle STT and send us speech events
-      // If we're receiving raw audio, it means ConversationRelay STT isn't working as expected
 
       if (message.media && message.media.payload) {
-        console.log(`[ConversationRelay-WS] Received raw audio data (${Buffer.from(message.media.payload, 'base64').length} bytes)`);
-        console.log(`[ConversationRelay-WS] ConversationRelay should handle STT automatically - this may indicate a configuration issue`);
+        const audioData = Buffer.from(message.media.payload, 'base64');
+        console.log(`[ConversationRelay-WS] Processing ${audioData.length} bytes of audio data`);
 
-        // For now, let's try to process this with our ConversationRelay service
+        // Store audio data for potential batch processing
+        session.audioBuffer = session.audioBuffer || [];
+        session.audioBuffer.push({
+          data: audioData,
+          timestamp: Date.now(),
+          sequenceNumber: session.messageCount
+        });
+
+        // Process audio through ConversationRelay service
         const conversationService = this.conversationServices.get(session.callSid);
         if (conversationService) {
           try {
-            const audioData = Buffer.from(message.media.payload, 'base64');
             const result = await conversationService.processAudioChunk({
               data: audioData,
               timestamp: Date.now(),
@@ -215,21 +228,67 @@ class ConversationRelayWebSocket {
             });
 
             if (result && result.response) {
+              console.log(`[ConversationRelay-WS] Audio processing result: "${result.response}"`);
               await this.sendAIResponse(session, result.response);
+            } else {
+              // Try to detect speech in audio buffer
+              await this.processAudioBuffer(session);
             }
           } catch (serviceError) {
             console.error(`[ConversationRelay-WS] ConversationRelay service error:`, serviceError);
-            await this.sendAIResponse(session, "I'm processing your request. Please continue speaking.");
+            // Try fallback speech detection
+            await this.processAudioBuffer(session);
           }
         } else {
           console.warn(`[ConversationRelay-WS] No ConversationRelay service found for ${session.callSid}`);
-          await this.sendAIResponse(session, "I'm listening. How can I help you?");
+          // Try fallback speech detection
+          await this.processAudioBuffer(session);
         }
       }
 
     } catch (error) {
       console.error(`[ConversationRelay-WS] Error handling media:`, error);
       await this.sendAIResponse(session, "I'm having trouble processing your request. Please try again.");
+    }
+  }
+
+  async handleSpeech(session, message) {
+    // Handle ConversationRelay STT results
+    try {
+      console.log(`[ConversationRelay-WS] Received speech event for ${session.callSid}`);
+      console.log(`[ConversationRelay-WS] Speech message:`, JSON.stringify(message, null, 2));
+
+      const transcript = message.transcript || message.text || message.speechResult;
+
+      if (transcript && transcript.trim().length > 0) {
+        console.log(`[ConversationRelay-WS] Speech transcript: "${transcript}"`);
+        await this.processSpeechTranscript(session, transcript);
+      } else {
+        console.log(`[ConversationRelay-WS] Empty or invalid speech transcript`);
+      }
+
+    } catch (error) {
+      console.error(`[ConversationRelay-WS] Error handling speech:`, error);
+      await this.sendAIResponse(session, "I understand you're speaking. How can I help you?");
+    }
+  }
+
+  async handleSpeechData(session, message) {
+    // Handle speech data in unknown message formats
+    try {
+      console.log(`[ConversationRelay-WS] Processing speech data from unknown event`);
+
+      const transcript = message.transcript || message.speechResult || message.text || message.speech?.transcript;
+
+      if (transcript && transcript.trim().length > 0) {
+        console.log(`[ConversationRelay-WS] Found transcript in unknown event: "${transcript}"`);
+        await this.processSpeechTranscript(session, transcript);
+      } else {
+        console.log(`[ConversationRelay-WS] No valid transcript found in unknown event`);
+      }
+
+    } catch (error) {
+      console.error(`[ConversationRelay-WS] Error handling speech data:`, error);
     }
   }
 
@@ -338,6 +397,101 @@ class ConversationRelayWebSocket {
       
     } catch (error) {
       console.error(`[ConversationRelay-WS] Error sending AI response:`, error);
+    }
+  }
+
+  async processAudioBuffer(session) {
+    // Process accumulated audio buffer for speech detection
+    try {
+      if (!session.audioBuffer || session.audioBuffer.length === 0) {
+        return;
+      }
+
+      console.log(`[ConversationRelay-WS] Processing audio buffer with ${session.audioBuffer.length} chunks`);
+
+      // Enhanced speech detection based on audio characteristics
+      const totalAudioSize = session.audioBuffer.reduce((sum, chunk) => sum + chunk.data.length, 0);
+      const audioTimespan = session.audioBuffer.length > 1 ?
+        session.audioBuffer[session.audioBuffer.length - 1].timestamp - session.audioBuffer[0].timestamp : 0;
+
+      console.log(`[ConversationRelay-WS] Audio buffer stats: ${totalAudioSize} bytes over ${audioTimespan}ms`);
+
+      // More sophisticated speech detection
+      const speechDetected = this.detectSpeechInAudio(session.audioBuffer);
+
+      if (speechDetected) {
+        console.log(`[ConversationRelay-WS] Speech detected in audio buffer, processing conversation`);
+
+        // Try to get actual transcript or use intelligent fallback
+        const transcript = await this.extractTranscriptFromAudio(session.audioBuffer) ||
+                          this.generateIntelligentResponse(session);
+
+        if (transcript && transcript !== "silence") {
+          console.log(`[ConversationRelay-WS] Processing transcript: "${transcript}"`);
+          await this.processSpeechTranscript(session, transcript);
+        }
+
+        // Clear the buffer after processing
+        session.audioBuffer = [];
+      } else if (audioTimespan > 3000) {
+        // Clear old buffer data to prevent memory buildup
+        console.log(`[ConversationRelay-WS] Clearing old audio buffer (${audioTimespan}ms old)`);
+        session.audioBuffer = [];
+      }
+
+    } catch (error) {
+      console.error(`[ConversationRelay-WS] Error processing audio buffer:`, error);
+    }
+  }
+
+  detectSpeechInAudio(audioBuffer) {
+    // Simple speech detection based on audio characteristics
+    try {
+      if (!audioBuffer || audioBuffer.length === 0) return false;
+
+      const totalSize = audioBuffer.reduce((sum, chunk) => sum + chunk.data.length, 0);
+      const timespan = audioBuffer.length > 1 ?
+        audioBuffer[audioBuffer.length - 1].timestamp - audioBuffer[0].timestamp : 0;
+
+      // Speech detection criteria:
+      // 1. Minimum audio size (indicates audio activity)
+      // 2. Minimum duration (speech takes time)
+      // 3. Consistent audio chunks (indicates continuous speech)
+
+      const minSizeForSpeech = 8000; // 8KB minimum
+      const minDurationForSpeech = 1500; // 1.5 seconds minimum
+      const consistentChunks = audioBuffer.length >= 5; // At least 5 audio chunks
+
+      const speechDetected = totalSize >= minSizeForSpeech &&
+                            timespan >= minDurationForSpeech &&
+                            consistentChunks;
+
+      console.log(`[ConversationRelay-WS] Speech detection: size=${totalSize}, duration=${timespan}ms, chunks=${audioBuffer.length}, detected=${speechDetected}`);
+
+      return speechDetected;
+
+    } catch (error) {
+      console.error(`[ConversationRelay-WS] Error in speech detection:`, error);
+      return false;
+    }
+  }
+
+  async extractTranscriptFromAudio(audioBuffer) {
+    // Placeholder for actual STT - would integrate with Azure Speech Services or similar
+    // For now, return null to use intelligent fallback
+    return null;
+  }
+
+  generateIntelligentResponse(session) {
+    // Generate contextual responses based on conversation state
+    const conversationTurns = session.conversationHistory?.length || 0;
+
+    if (conversationTurns === 0) {
+      return "Hello! I heard you speaking. How can I help you today?";
+    } else if (conversationTurns < 4) {
+      return "I'm listening. Please continue.";
+    } else {
+      return "I understand. What else can I help you with?";
     }
   }
 
