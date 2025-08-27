@@ -844,15 +844,14 @@ class ConversationRelayWebSocket {
   async sendTextMessage(session, text) {
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // Try multiple voice configurations for better TTS compatibility
+    // ConversationRelay compatible voice configurations
     const voiceConfigs = [
-      { name: 'alice', language: 'en-US' },           // Standard Twilio voice
-      { name: 'Polly.Joanna', language: 'en-US' },   // AWS Polly voice
-      { name: 'man', language: 'en-US' },            // Alternative Twilio voice
-      { name: 'woman', language: 'en-US' }           // Alternative Twilio voice
+      { name: 'alice', language: 'en-US' },           // Standard ConversationRelay voice
+      { name: 'man', language: 'en-US' },            // Alternative ConversationRelay voice
+      { name: 'woman', language: 'en-US' }           // Alternative ConversationRelay voice
     ];
 
-    // Use the first voice config for now, but log all options
+    // Use alice voice for ConversationRelay compatibility
     const selectedVoice = voiceConfigs[0];
     console.log(`[ConversationRelay-WS] 🎤 Using voice: ${selectedVoice.name} (${selectedVoice.language})`);
 
