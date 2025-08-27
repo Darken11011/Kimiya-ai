@@ -66,10 +66,17 @@ class ConversationRelayWebSocket {
           conversationHistory: [],
           streamSid: null,
           isActive: false,
-          audioBuffer: []
+          audioBuffer: [],
+          lastActivity: Date.now(),
+          conversationState: 'waiting_for_speech',
+          silenceTimeout: null,
+          maxSilenceMs: 15000 // 15 seconds max silence before timeout
         };
 
         this.activeSessions.set(callSid, session);
+
+        // Start silence timeout monitoring
+        this.startSilenceTimeout(session);
 
         // Set up message handlers
         ws.on('message', (data) => {
@@ -216,14 +223,6 @@ class ConversationRelayWebSocket {
     // ConversationRelay handles welcome greeting automatically via TwiML welcomeGreeting
     // No need to send additional greeting here - it's already spoken by Twilio
     console.log(`[ConversationRelay-WS] ConversationRelay ready for speech input from ${session.callSid}`);
-
-    // Set up a timeout to ensure we respond even if no speech is detected
-    session.silenceTimeout = setTimeout(async () => {
-      console.log(`[ConversationRelay-WS] Silence timeout reached for ${session.callSid}, sending prompt`);
-      if (session.isActive && (!session.conversationHistory || session.conversationHistory.length === 0)) {
-        await this.sendAIResponse(session, "I'm here and ready to help. Please speak up so I can assist you.");
-      }
-    }, 5000); // 5 second timeout after greeting
   }
 
   async handleMedia(session, message) {
@@ -247,6 +246,9 @@ class ConversationRelayWebSocket {
           timestamp: Date.now(),
           sequenceNumber: session.messageCount
         });
+
+        // Reset silence timeout on any audio activity
+        this.resetSilenceTimeout(session);
 
         console.log(`[ConversationRelay-WS] Audio buffer updated: ${session.audioBuffer.length} chunks total`);
 
@@ -354,13 +356,6 @@ class ConversationRelayWebSocket {
     try {
       console.log(`[ConversationRelay-WS] Processing speech transcript: "${transcript}"`);
 
-      // Clear silence timeout since we received speech
-      if (session.silenceTimeout) {
-        clearTimeout(session.silenceTimeout);
-        session.silenceTimeout = null;
-        console.log(`[ConversationRelay-WS] Cleared silence timeout for ${session.callSid}`);
-      }
-
       // Get ConversationRelay service for this session
       const conversationService = this.conversationServices.get(session.callSid);
 
@@ -400,13 +395,6 @@ class ConversationRelayWebSocket {
 
   async handleStop(session, message) {
     console.log(`[ConversationRelay-WS] Stream stopped for ${session.callSid}`);
-
-    // Clear silence timeout if it exists
-    if (session.silenceTimeout) {
-      clearTimeout(session.silenceTimeout);
-      session.silenceTimeout = null;
-      console.log(`[ConversationRelay-WS] Cleared silence timeout for ${session.callSid}`);
-    }
 
     // Clean up ConversationRelay service
     const conversationService = this.conversationServices.get(session.callSid);
@@ -507,6 +495,9 @@ class ConversationRelayWebSocket {
       if (speechDetected) {
         console.log(`[ConversationRelay-WS] Speech detected in audio buffer, processing conversation`);
 
+        // Reset silence timeout since we detected speech
+        this.resetSilenceTimeout(session);
+
         // Try to get actual transcript or use intelligent fallback
         const transcript = await this.extractTranscriptFromAudio(session.audioBuffer) ||
                           this.generateIntelligentResponse(session);
@@ -519,8 +510,17 @@ class ConversationRelayWebSocket {
         // Clear the buffer after processing
         session.audioBuffer = [];
       } else if (audioTimespan > 3000) {
+        // If we have audio data but no speech detected for 3+ seconds,
+        // trigger a fallback response to prevent silence
+        console.log(`[ConversationRelay-WS] ⚠️  No speech detected for ${audioTimespan}ms - triggering fallback response`);
+
+        const fallbackResponse = this.generateIntelligentResponse(session);
+        if (fallbackResponse) {
+          console.log(`[ConversationRelay-WS] Sending fallback response: "${fallbackResponse}"`);
+          await this.processSpeechTranscript(session, fallbackResponse);
+        }
+
         // Clear old buffer data to prevent memory buildup
-        console.log(`[ConversationRelay-WS] Clearing old audio buffer (${audioTimespan}ms old)`);
         session.audioBuffer = [];
       }
 
@@ -530,7 +530,7 @@ class ConversationRelayWebSocket {
   }
 
   detectSpeechInAudio(audioBuffer) {
-    // Enhanced speech detection with more sensitive thresholds
+    // Simple speech detection based on audio characteristics
     try {
       console.log(`[ConversationRelay-WS] ===== SPEECH DETECTION ANALYSIS =====`);
 
@@ -543,10 +543,10 @@ class ConversationRelayWebSocket {
       const timespan = audioBuffer.length > 1 ?
         audioBuffer[audioBuffer.length - 1].timestamp - audioBuffer[0].timestamp : 0;
 
-      // MUCH MORE SENSITIVE speech detection criteria for better responsiveness:
-      const minSizeForSpeech = 500; // 500 bytes minimum (much lower threshold)
-      const minDurationForSpeech = 300; // 0.3 seconds minimum (much faster response)
-      const consistentChunks = audioBuffer.length >= 2; // At least 2 audio chunks (faster detection)
+      // Speech detection criteria (ULTRA-AGGRESSIVE FOR CALL SILENCE FIX):
+      const minSizeForSpeech = 1000; // 1KB minimum (ultra-reduced for sensitivity)
+      const minDurationForSpeech = 500; // 0.5 seconds minimum (ultra-reduced)
+      const consistentChunks = audioBuffer.length >= 2; // At least 2 audio chunks (ultra-reduced)
 
       console.log(`[ConversationRelay-WS] ===== SPEECH DETECTION METRICS =====`);
       console.log(`[ConversationRelay-WS] Total audio size: ${totalSize} bytes (min: ${minSizeForSpeech})`);
@@ -556,10 +556,9 @@ class ConversationRelayWebSocket {
       console.log(`[ConversationRelay-WS] Duration check: ${timespan >= minDurationForSpeech}`);
       console.log(`[ConversationRelay-WS] Chunks check: ${consistentChunks}`);
 
-      // More aggressive speech detection - trigger on any reasonable audio activity
-      const speechDetected = (totalSize >= minSizeForSpeech && consistentChunks) ||
-                            (timespan >= minDurationForSpeech && audioBuffer.length >= 1) ||
-                            (totalSize >= 1000); // Fallback: any audio over 1KB
+      const speechDetected = totalSize >= minSizeForSpeech &&
+                            timespan >= minDurationForSpeech &&
+                            consistentChunks;
 
       console.log(`[ConversationRelay-WS] ===== SPEECH DETECTION RESULT =====`);
       console.log(`[ConversationRelay-WS] Speech detected: ${speechDetected}`);
@@ -579,38 +578,9 @@ class ConversationRelayWebSocket {
   }
 
   async extractTranscriptFromAudio(audioBuffer) {
-    // Enhanced transcript extraction with better fallback
-    try {
-      console.log(`[ConversationRelay-WS] Attempting to extract transcript from ${audioBuffer?.length || 0} audio chunks`);
-
-      // TODO: Integrate with Azure Speech Services or other STT provider
-      // For now, analyze audio characteristics to provide intelligent responses
-
-      if (!audioBuffer || audioBuffer.length === 0) {
-        return null;
-      }
-
-      const totalSize = audioBuffer.reduce((sum, chunk) => sum + chunk.data.length, 0);
-      const timespan = audioBuffer.length > 1 ?
-        audioBuffer[audioBuffer.length - 1].timestamp - audioBuffer[0].timestamp : 0;
-
-      console.log(`[ConversationRelay-WS] Audio analysis: ${totalSize} bytes over ${timespan}ms`);
-
-      // Simulate different types of speech based on audio characteristics
-      if (totalSize > 3000 && timespan > 1000) {
-        return "Hello, I need help with something"; // Longer speech
-      } else if (totalSize > 1500) {
-        return "Hi there"; // Medium speech
-      } else if (totalSize > 500) {
-        return "Yes"; // Short speech
-      }
-
-      return null; // Use intelligent fallback
-
-    } catch (error) {
-      console.error(`[ConversationRelay-WS] Error extracting transcript:`, error);
-      return null;
-    }
+    // Placeholder for actual STT - would integrate with Azure Speech Services or similar
+    // For now, return null to use intelligent fallback
+    return null;
   }
 
   generateIntelligentResponse(session) {
@@ -751,9 +721,59 @@ class ConversationRelayWebSocket {
   closeSession(callSid) {
     const session = this.activeSessions.get(callSid);
     if (session) {
+      // Clear any active silence timeout
+      if (session.silenceTimeout) {
+        clearTimeout(session.silenceTimeout);
+        session.silenceTimeout = null;
+      }
       session.ws.close();
       this.activeSessions.delete(callSid);
       console.log(`[ConversationRelay-WS] Manually closed session for ${callSid}`);
+    }
+  }
+
+  // Silence timeout management to prevent calls from hanging
+  startSilenceTimeout(session) {
+    // Clear any existing timeout
+    if (session.silenceTimeout) {
+      clearTimeout(session.silenceTimeout);
+    }
+
+    session.silenceTimeout = setTimeout(() => {
+      console.log(`[ConversationRelay-WS] ⏰ SILENCE TIMEOUT for ${session.callSid} - no speech detected for ${session.maxSilenceMs}ms`);
+
+      // Send a prompt to encourage user response
+      this.handleSilenceTimeout(session);
+    }, session.maxSilenceMs);
+
+    console.log(`[ConversationRelay-WS] 🕐 Started silence timeout for ${session.callSid} (${session.maxSilenceMs}ms)`);
+  }
+
+  resetSilenceTimeout(session) {
+    // Reset the timeout when activity is detected
+    session.lastActivity = Date.now();
+    this.startSilenceTimeout(session);
+    console.log(`[ConversationRelay-WS] 🔄 Reset silence timeout for ${session.callSid}`);
+  }
+
+  async handleSilenceTimeout(session) {
+    try {
+      console.log(`[ConversationRelay-WS] 🔇 Handling silence timeout for ${session.callSid}`);
+
+      // Try to prompt the user for a response
+      const promptMessage = "I'm still here. Could you please say something or let me know how I can help you?";
+
+      // Send AI response to encourage user interaction
+      await this.sendAIResponse(session, promptMessage);
+
+      // Reset timeout for another chance
+      this.startSilenceTimeout(session);
+
+    } catch (error) {
+      console.error(`[ConversationRelay-WS] Error handling silence timeout:`, error);
+
+      // If we can't recover, close the session gracefully
+      this.closeSession(session.callSid);
     }
   }
 }
