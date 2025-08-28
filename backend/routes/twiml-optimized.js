@@ -1,6 +1,7 @@
 const { getActiveOrchestrator } = require('./make-call-optimized');
 
 /**
+ * Hoi
  * Fast TwiML Optimized Handler - Prevents Timeout Issues
  * Generates TwiML immediately without heavy processing to avoid 15s timeout
  */
