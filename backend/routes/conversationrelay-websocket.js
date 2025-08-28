@@ -143,6 +143,17 @@ class ConversationRelayWebSocket {
         ws.on('close', (code, reason) => {
           console.log(`[ConversationRelay-WS] 🔌 Connection closed for CallSid=${callSid}, Code=${code}, Reason=${reason}`);
           console.log(`[ConversationRelay-WS] Session duration: ${Date.now() - session.startTime}ms, State: ${session.conversationState}`);
+
+          // Clear silence timeout to prevent continued processing
+          if (session.silenceTimeout) {
+            clearTimeout(session.silenceTimeout);
+            session.silenceTimeout = null;
+            console.log(`[ConversationRelay-WS] 🛑 Cleared silence timeout for closed session ${callSid}`);
+          }
+
+          // Mark session as inactive
+          session.isActive = false;
+
           this.activeSessions.delete(callSid);
         });
 
@@ -863,16 +874,25 @@ class ConversationRelayWebSocket {
 
   // ConversationRelay message sending methods
   async sendTextMessage(session, text) {
+    // Check if session is still active before sending
+    if (!session.isActive || session.ws.readyState !== WebSocket.OPEN) {
+      console.log(`[ConversationRelay-WS] 🛑 Skipping text message - session ${session.callSid} is no longer active`);
+      return;
+    }
+
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CRITICAL: Use plain text messages for ConversationRelay native TTS
-    // ConversationRelay handles TTS automatically without voice configuration
-    console.log(`[ConversationRelay-WS] 📤 Sending plain text message for native ConversationRelay TTS`);
+    // CRITICAL: Use ConversationRelay-compatible voice configuration for TTS
+    // ConversationRelay requires voice settings for proper TTS synthesis
+    console.log(`[ConversationRelay-WS] 📤 Sending text message with ConversationRelay voice config for TTS`);
 
     const textMessage = {
       type: 'text',
-      text: text
-      // No voice configuration - ConversationRelay handles TTS natively
+      text: text,
+      voice: {
+        name: 'alice',        // ConversationRelay-compatible voice
+        language: 'en-US'     // Language for TTS
+      }
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
@@ -934,6 +954,12 @@ class ConversationRelayWebSocket {
 
   async handleSilenceTimeout(session) {
     try {
+      // Check if session is still active before processing
+      if (!session.isActive || session.ws.readyState !== WebSocket.OPEN) {
+        console.log(`[ConversationRelay-WS] 🛑 Skipping silence timeout - session ${session.callSid} is no longer active`);
+        return;
+      }
+
       console.log(`[ConversationRelay-WS] 🔇 Handling silence timeout for ${session.callSid}`);
 
       // Try to prompt the user for a response using ConversationRelay text message
@@ -949,8 +975,10 @@ class ConversationRelayWebSocket {
       // Send ConversationRelay text message to encourage user interaction
       await this.sendTextMessage(session, promptMessage);
 
-      // Reset timeout for another chance
-      this.startSilenceTimeout(session);
+      // Reset timeout for another chance (only if session is still active)
+      if (session.isActive && session.ws.readyState === WebSocket.OPEN) {
+        this.startSilenceTimeout(session);
+      }
 
     } catch (error) {
       console.error(`[ConversationRelay-WS] Error handling silence timeout:`, error);
