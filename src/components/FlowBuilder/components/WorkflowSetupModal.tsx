@@ -23,12 +23,7 @@ import {
   TranscriptionProvider,
   DEFAULT_GLOBAL_SETTINGS,
   DEFAULT_OPENAI_CONFIG,
-  DEFAULT_ELEVEN_LABS_CONFIG,
-  DEFAULT_DEEPGRAM_CONFIG,
   LLM_MODELS,
-  POPULAR_VOICES,
-  LANGUAGE_VOICES,
-  getVoicesForLanguage,
   LanguageConfig,
   DEFAULT_LANGUAGE_CONFIG
 } from '../../../types/workflowConfig';
@@ -125,39 +120,22 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
     }
   });
 
-  // Voice Configuration
+  // Voice Configuration - ConversationRelay Only
   const [voiceProvider, setVoiceProvider] = useState<VoiceProvider>(
-    initialConfig?.voice?.provider || VoiceProvider.ELEVEN_LABS
+    VoiceProvider.CONVERSATION_RELAY
   );
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>({
-    provider: voiceProvider,
-    elevenLabs: {
-      apiKey: initialConfig?.voice?.elevenLabs?.apiKey || '',
-      voiceId: initialConfig?.voice?.elevenLabs?.voiceId || 'pNInz6obpgDQGcFmaJgB',
-      ...DEFAULT_ELEVEN_LABS_CONFIG
-    },
-    azure: {
-      apiKey: initialConfig?.voice?.azure?.apiKey || '',
-      region: initialConfig?.voice?.azure?.region || 'eastus',
-      voiceName: initialConfig?.voice?.azure?.voiceName || 'en-US-JennyNeural'
-    },
-    googleCloud: {
-      apiKey: initialConfig?.voice?.googleCloud?.apiKey || '',
-      voiceName: initialConfig?.voice?.googleCloud?.voiceName || 'en-US-Wavenet-F',
-      languageCode: initialConfig?.voice?.googleCloud?.languageCode || 'en-US'
-    }
+    provider: VoiceProvider.CONVERSATION_RELAY,
+    language: initialConfig?.voice?.language || 'en-US'
   });
 
-  // Transcription Configuration
+  // Transcription Configuration - ConversationRelay Only
   const [transcriptionProvider, setTranscriptionProvider] = useState<TranscriptionProvider>(
-    initialConfig?.transcription?.provider || TranscriptionProvider.DEEPGRAM
+    TranscriptionProvider.CONVERSATION_RELAY
   );
   const [transcriptionConfig, setTranscriptionConfig] = useState<TranscriptionConfig>({
-    provider: transcriptionProvider,
-    deepgram: {
-      apiKey: initialConfig?.transcription?.deepgram?.apiKey || '',
-      ...DEFAULT_DEEPGRAM_CONFIG
-    }
+    provider: TranscriptionProvider.CONVERSATION_RELAY,
+    language: initialConfig?.transcription?.language || 'en-US'
   });
 
   // Global Settings
@@ -253,37 +231,18 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
         }
       });
 
-      // Update voice provider and config
-      const voiceProvider = initialConfig.voice?.provider || VoiceProvider.ELEVEN_LABS;
-      setVoiceProvider(voiceProvider);
+      // Update voice provider and config - ConversationRelay Only
+      setVoiceProvider(VoiceProvider.CONVERSATION_RELAY);
       setVoiceConfig({
-        provider: voiceProvider,
-        elevenLabs: {
-          apiKey: initialConfig.voice?.elevenLabs?.apiKey || '',
-          voiceId: initialConfig.voice?.elevenLabs?.voiceId || DEFAULT_ELEVEN_LABS_CONFIG.voiceId,
-          model: initialConfig.voice?.elevenLabs?.model || DEFAULT_ELEVEN_LABS_CONFIG.model,
-          stability: initialConfig.voice?.elevenLabs?.stability || DEFAULT_ELEVEN_LABS_CONFIG.stability,
-          similarityBoost: initialConfig.voice?.elevenLabs?.similarityBoost || DEFAULT_ELEVEN_LABS_CONFIG.similarityBoost
-        },
-        azure: {
-          apiKey: initialConfig.voice?.azure?.apiKey || '',
-          region: initialConfig.voice?.azure?.region || 'eastus',
-          voiceName: initialConfig.voice?.azure?.voiceName || 'en-US-JennyNeural'
-        }
+        provider: VoiceProvider.CONVERSATION_RELAY,
+        language: initialConfig.voice?.language || 'en-US'
       });
 
-      // Update transcription provider and config
-      const transcriptionProvider = initialConfig.transcription?.provider || TranscriptionProvider.DEEPGRAM;
-      setTranscriptionProvider(transcriptionProvider);
+      // Update transcription provider and config - ConversationRelay Only
+      setTranscriptionProvider(TranscriptionProvider.CONVERSATION_RELAY);
       setTranscriptionConfig({
-        provider: transcriptionProvider,
-        deepgram: {
-          apiKey: initialConfig.transcription?.deepgram?.apiKey || '',
-          model: initialConfig.transcription?.deepgram?.model || DEFAULT_DEEPGRAM_CONFIG.model,
-          language: initialConfig.transcription?.deepgram?.language || DEFAULT_DEEPGRAM_CONFIG.language,
-          smartFormat: initialConfig.transcription?.deepgram?.smartFormat ?? DEFAULT_DEEPGRAM_CONFIG.smartFormat,
-          punctuate: initialConfig.transcription?.deepgram?.punctuate ?? DEFAULT_DEEPGRAM_CONFIG.punctuate
-        }
+        provider: TranscriptionProvider.CONVERSATION_RELAY,
+        language: initialConfig.transcription?.language || 'en-US'
       });
 
       // Update global settings (preserve existing properties)
@@ -397,19 +356,11 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
       }
     }
 
-    // Voice validation based on provider
-    if (voiceProvider === VoiceProvider.ELEVEN_LABS) {
-      if (!voiceConfig.elevenLabs?.apiKey?.trim()) {
-        errors.push({message: 'ElevenLabs API Key is required', tab: 'voice', field: 'elevenLabsApiKey'});
-      }
-    }
+    // Voice validation - ConversationRelay requires no API keys
+    // ConversationRelay handles TTS/STT natively
 
-    // Transcription validation based on provider
-    if (transcriptionProvider === TranscriptionProvider.DEEPGRAM) {
-      if (!transcriptionConfig.deepgram?.apiKey?.trim()) {
-        errors.push({message: 'Deepgram API Key is required', tab: 'voice', field: 'deepgramApiKey'});
-      }
-    }
+    // Transcription validation - ConversationRelay requires no API keys
+    // ConversationRelay handles STT natively
 
     return errors;
   };
@@ -721,192 +672,54 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h4 className="font-medium text-green-800 mb-2">🎤 ConversationRelay Native TTS</h4>
+          <p className="text-sm text-green-700">
+            Uses Twilio ConversationRelay's built-in text-to-speech system.
+            This provides the best compatibility for real-time phone conversations
+            without external TTS provider conflicts.
+          </p>
+          <div className="mt-2 text-xs text-green-600">
+            ✅ No API keys required<br/>
+            ✅ Optimized for phone calls<br/>
+            ✅ No additional costs<br/>
+            ✅ Best ConversationRelay compatibility<br/>
+            ✅ Eliminates Error 64101
+          </div>
+        </div>
+
         <div>
-          <Label>Voice Provider</Label>
+          <Label>Language</Label>
           <Select
-            value={voiceProvider}
+            value={voiceConfig.language || 'en-US'}
             onValueChange={(value) => {
-              setVoiceProvider(value as VoiceProvider);
-              setVoiceConfig({ ...voiceConfig, provider: value as VoiceProvider });
+              setVoiceConfig({ ...voiceConfig, language: value });
             }}
           >
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={VoiceProvider.DEFAULT}>Default (ConversationRelay Native)</SelectItem>
-              <SelectItem value={VoiceProvider.ELEVEN_LABS}>ElevenLabs</SelectItem>
-              <SelectItem value={VoiceProvider.AZURE}>Azure Speech</SelectItem>
-              <SelectItem value={VoiceProvider.GOOGLE_CLOUD}>Google Cloud</SelectItem>
+              <SelectItem value="en-US">English (US)</SelectItem>
+              <SelectItem value="en-GB">English (UK)</SelectItem>
+              <SelectItem value="es-ES">Spanish</SelectItem>
+              <SelectItem value="fr-FR">French</SelectItem>
+              <SelectItem value="de-DE">German</SelectItem>
+              <SelectItem value="it-IT">Italian</SelectItem>
+              <SelectItem value="pt-BR">Portuguese</SelectItem>
+              <SelectItem value="zh-CN">Chinese (Mandarin)</SelectItem>
+              <SelectItem value="ja-JP">Japanese</SelectItem>
+              <SelectItem value="ko-KR">Korean</SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-xs text-gray-500 mt-1">
+            ConversationRelay will automatically handle voice synthesis for the selected language
+          </p>
         </div>
 
-        {voiceProvider === VoiceProvider.DEFAULT && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <h4 className="font-medium text-green-800 mb-2">🎤 Default ConversationRelay TTS</h4>
-            <p className="text-sm text-green-700">
-              Uses Twilio ConversationRelay's built-in text-to-speech system.
-              This option provides the best compatibility for real-time phone conversations
-              without external TTS provider conflicts.
-            </p>
-            <div className="mt-2 text-xs text-green-600">
-              ✅ No API keys required<br/>
-              ✅ Optimized for phone calls<br/>
-              ✅ No additional costs<br/>
-              ✅ Best ConversationRelay compatibility
-            </div>
-          </div>
-        )}
+        {/* All third-party voice providers removed - ConversationRelay only */}
 
-        {voiceProvider === VoiceProvider.ELEVEN_LABS && (
-          <>
-            <div>
-              <Label htmlFor="elevenLabsKey">ElevenLabs API Key *</Label>
-              <Input
-                id="elevenLabsKey"
-                type={showApiKeys ? 'text' : 'password'}
-                value={voiceConfig.elevenLabs?.apiKey || ''}
-                onChange={(e) => setVoiceConfig({
-                  ...voiceConfig,
-                  elevenLabs: { ...voiceConfig.elevenLabs!, apiKey: e.target.value }
-                })}
-                placeholder="your_elevenlabs_api_key"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Voice</Label>
-              <Select
-                value={voiceConfig.elevenLabs?.voiceId}
-                onValueChange={(value) => setVoiceConfig({
-                  ...voiceConfig,
-                  elevenLabs: { ...voiceConfig.elevenLabs!, voiceId: value }
-                })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getVoicesForLanguage(selectedLanguage, VoiceProvider.ELEVEN_LABS).map((voice) => (
-                    <SelectItem key={voice.id} value={voice.id}>
-                      {voice.name}
-                      {voice.recommended && <span className="ml-2 text-xs text-orange-600">★ Recommended</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Voices optimized for {selectedLanguage}
-              </p>
-            </div>
-          </>
-        )}
-
-        {voiceProvider === VoiceProvider.AZURE && (
-          <>
-            <div>
-              <Label htmlFor="azureVoiceKey">Azure Speech API Key *</Label>
-              <Input
-                id="azureVoiceKey"
-                type={showApiKeys ? 'text' : 'password'}
-                value={voiceConfig.azure?.apiKey || ''}
-                onChange={(e) => setVoiceConfig({
-                  ...voiceConfig,
-                  azure: { ...voiceConfig.azure!, apiKey: e.target.value }
-                })}
-                placeholder="your_azure_speech_api_key"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="azureRegion">Azure Region *</Label>
-              <Input
-                id="azureRegion"
-                value={voiceConfig.azure?.region || ''}
-                onChange={(e) => setVoiceConfig({
-                  ...voiceConfig,
-                  azure: { ...voiceConfig.azure!, region: e.target.value }
-                })}
-                placeholder="eastus"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Voice</Label>
-              <Select
-                value={voiceConfig.azure?.voiceName}
-                onValueChange={(value) => setVoiceConfig({
-                  ...voiceConfig,
-                  azure: { ...voiceConfig.azure!, voiceName: value }
-                })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getVoicesForLanguage(selectedLanguage, VoiceProvider.AZURE).map((voice) => (
-                    <SelectItem key={voice.id} value={voice.id}>
-                      {voice.name}
-                      {voice.recommended && <span className="ml-2 text-xs text-orange-600">★ Recommended</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Azure Neural voices for {selectedLanguage}
-              </p>
-            </div>
-          </>
-        )}
-
-        {voiceProvider === VoiceProvider.GOOGLE_CLOUD && (
-          <>
-            <div>
-              <Label htmlFor="googleCloudKey">Google Cloud API Key *</Label>
-              <Input
-                id="googleCloudKey"
-                type={showApiKeys ? 'text' : 'password'}
-                value={voiceConfig.googleCloud?.apiKey || ''}
-                onChange={(e) => setVoiceConfig({
-                  ...voiceConfig,
-                  googleCloud: { ...voiceConfig.googleCloud!, apiKey: e.target.value }
-                })}
-                placeholder="your_google_cloud_api_key"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Voice</Label>
-              <Select
-                value={voiceConfig.googleCloud?.voiceName}
-                onValueChange={(value) => setVoiceConfig({
-                  ...voiceConfig,
-                  googleCloud: { ...voiceConfig.googleCloud!, voiceName: value, languageCode: selectedLanguage }
-                })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getVoicesForLanguage(selectedLanguage, VoiceProvider.GOOGLE_CLOUD).map((voice) => (
-                    <SelectItem key={voice.id} value={voice.id}>
-                      {voice.name}
-                      {voice.recommended && <span className="ml-2 text-xs text-orange-600">★ Recommended</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Google Cloud voices for {selectedLanguage}
-              </p>
-            </div>
-          </>
-        )}
+        {/* All third-party voice providers removed - ConversationRelay handles TTS natively */}
       </CardContent>
     </Card>
   );
@@ -923,42 +736,52 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 className="font-medium text-blue-800 mb-2">🎙️ ConversationRelay Native STT</h4>
+          <p className="text-sm text-blue-700">
+            Uses Twilio ConversationRelay's built-in speech-to-text system.
+            This provides the best compatibility for real-time phone conversations
+            without external STT provider conflicts.
+          </p>
+          <div className="mt-2 text-xs text-blue-600">
+            ✅ No API keys required<br/>
+            ✅ Optimized for phone calls<br/>
+            ✅ No additional costs<br/>
+            ✅ Best ConversationRelay compatibility<br/>
+            ✅ Real-time transcription
+          </div>
+        </div>
+
         <div>
-          <Label>Transcription Provider</Label>
+          <Label>Language</Label>
           <Select
-            value={transcriptionProvider}
+            value={transcriptionConfig.language || 'en-US'}
             onValueChange={(value) => {
-              setTranscriptionProvider(value as TranscriptionProvider);
-              setTranscriptionConfig({ ...transcriptionConfig, provider: value as TranscriptionProvider });
+              setTranscriptionConfig({ ...transcriptionConfig, language: value });
             }}
           >
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={TranscriptionProvider.DEEPGRAM}>Deepgram</SelectItem>
-              <SelectItem value={TranscriptionProvider.ASSEMBLY_AI}>AssemblyAI</SelectItem>
-              <SelectItem value={TranscriptionProvider.WHISPER}>OpenAI Whisper</SelectItem>
+              <SelectItem value="en-US">English (US)</SelectItem>
+              <SelectItem value="en-GB">English (UK)</SelectItem>
+              <SelectItem value="es-ES">Spanish</SelectItem>
+              <SelectItem value="fr-FR">French</SelectItem>
+              <SelectItem value="de-DE">German</SelectItem>
+              <SelectItem value="it-IT">Italian</SelectItem>
+              <SelectItem value="pt-BR">Portuguese</SelectItem>
+              <SelectItem value="zh-CN">Chinese (Mandarin)</SelectItem>
+              <SelectItem value="ja-JP">Japanese</SelectItem>
+              <SelectItem value="ko-KR">Korean</SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-xs text-gray-500 mt-1">
+            ConversationRelay will automatically handle speech recognition for the selected language
+          </p>
         </div>
         
-        {transcriptionProvider === TranscriptionProvider.DEEPGRAM && (
-          <div>
-            <Label htmlFor="deepgramKey">Deepgram API Key *</Label>
-            <Input
-              id="deepgramKey"
-              type={showApiKeys ? 'text' : 'password'}
-              value={transcriptionConfig.deepgram?.apiKey || ''}
-              onChange={(e) => setTranscriptionConfig({
-                ...transcriptionConfig,
-                deepgram: { ...transcriptionConfig.deepgram!, apiKey: e.target.value }
-              })}
-              placeholder="your_deepgram_api_key"
-              className="mt-1"
-            />
-          </div>
-        )}
+        {/* All third-party transcription providers removed - ConversationRelay handles STT natively */}
       </CardContent>
     </Card>
   );

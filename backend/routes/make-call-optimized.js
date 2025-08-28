@@ -116,12 +116,8 @@ module.exports = async function makeCallOptimizedHandler(req, res) {
       },
       voice: config?.voice || {
         provider: 'conversationrelay',
-        conversationrelay: {
-          // ConversationRelay handles TTS automatically
-          // Voice configuration is managed through TwiML welcomeGreeting
-          voiceName: 'alice', // Default Twilio voice
-          language: 'en-US'
-        }
+        language: 'en-US'
+        // ConversationRelay handles TTS automatically without voice configuration
       },
       transcription: config?.transcription || {
         provider: 'conversationrelay',

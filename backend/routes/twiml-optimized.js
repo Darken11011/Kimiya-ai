@@ -83,15 +83,14 @@ function generateFastTwiML(workflowId, trackingId) {
     </Connect>
 </Response>`;
   } else {
-    // ConversationRelay with ElevenLabs-compatible voice
+    // ConversationRelay with native TTS/STT
     twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Fast ConversationRelay TwiML with Debug Info -->
+    <!-- ConversationRelay TwiML - Native TTS/STT -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
-            voice="alice"
             language="en-US"
         />
     </Connect>
@@ -126,12 +125,11 @@ function generateFastFallbackTwiML(req, res) {
 
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Emergency Fallback ConversationRelay TwiML -->
+    <!-- Emergency Fallback ConversationRelay TwiML - Native TTS/STT -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
-            voice="alice"
             language="en-US"
         />
     </Connect>

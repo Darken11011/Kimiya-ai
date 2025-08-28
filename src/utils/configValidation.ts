@@ -143,121 +143,37 @@ export class ConfigValidator {
 
   private validateVoiceConfig(): void {
     const voice = this.config.voice;
-    
-    switch (voice.provider) {
-      case VoiceProvider.ELEVEN_LABS:
-        this.validateElevenLabsConfig(voice.elevenLabs);
-        break;
-      case VoiceProvider.AZURE:
-        this.validateAzureConfig(voice.azure);
-        break;
-      case VoiceProvider.GOOGLE_CLOUD:
-        this.validateGoogleCloudConfig(voice.googleCloud);
-        break;
-      default:
-        this.result.errors.push(`Unsupported voice provider: ${voice.provider}`);
+
+    // ConversationRelay only validation
+    if (voice.provider !== VoiceProvider.CONVERSATION_RELAY) {
+      this.result.errors.push(`Only ConversationRelay voice provider is supported. Found: ${voice.provider}`);
+    }
+
+    // Validate language if provided
+    if (voice.language && typeof voice.language !== 'string') {
+      this.result.errors.push('Voice language must be a string');
     }
   }
 
-  private validateElevenLabsConfig(config?: ElevenLabsConfig): void {
-    if (!config) {
-      this.result.errors.push('ElevenLabs configuration is required');
-      return;
-    }
-
-    if (!config.apiKey) {
-      this.result.errors.push('ElevenLabs API key is required');
-    }
-
-    if (!config.voiceId) {
-      this.result.errors.push('ElevenLabs voice ID is required');
-    }
-
-    if (config.stability !== undefined && (config.stability < 0 || config.stability > 1)) {
-      this.result.warnings.push('ElevenLabs stability should be between 0 and 1');
-    }
-
-    if (config.similarityBoost !== undefined && (config.similarityBoost < 0 || config.similarityBoost > 1)) {
-      this.result.warnings.push('ElevenLabs similarity boost should be between 0 and 1');
-    }
-  }
-
-  private validateAzureConfig(config?: any): void {
-    if (!config) {
-      this.result.errors.push('Azure configuration is required');
-      return;
-    }
-
-    if (!config.apiKey) {
-      this.result.errors.push('Azure API key is required');
-    }
-
-    if (!config.region) {
-      this.result.errors.push('Azure region is required');
-    }
-  }
-
-  private validateGoogleCloudConfig(config?: any): void {
-    if (!config) {
-      this.result.errors.push('Google Cloud configuration is required');
-      return;
-    }
-
-    if (!config.apiKey) {
-      this.result.errors.push('Google Cloud API key is required');
-    }
-  }
+  // Removed all third-party voice provider validation methods
+  // ConversationRelay handles TTS natively without external API keys
 
   private validateTranscriptionConfig(): void {
     const transcription = this.config.transcription;
-    
-    switch (transcription.provider) {
-      case TranscriptionProvider.DEEPGRAM:
-        this.validateDeepgramConfig(transcription.deepgram);
-        break;
-      case TranscriptionProvider.ASSEMBLY_AI:
-        this.validateAssemblyAIConfig(transcription.assemblyAI);
-        break;
-      case TranscriptionProvider.WHISPER:
-        this.validateWhisperConfig(transcription.whisper);
-        break;
-      default:
-        this.result.errors.push(`Unsupported transcription provider: ${transcription.provider}`);
+
+    // ConversationRelay only validation
+    if (transcription.provider !== TranscriptionProvider.CONVERSATION_RELAY) {
+      this.result.errors.push(`Only ConversationRelay transcription provider is supported. Found: ${transcription.provider}`);
+    }
+
+    // Validate language if provided
+    if (transcription.language && typeof transcription.language !== 'string') {
+      this.result.errors.push('Transcription language must be a string');
     }
   }
 
-  private validateDeepgramConfig(config?: DeepgramConfig): void {
-    if (!config) {
-      this.result.errors.push('Deepgram configuration is required');
-      return;
-    }
-
-    if (!config.apiKey) {
-      this.result.errors.push('Deepgram API key is required');
-    }
-  }
-
-  private validateAssemblyAIConfig(config?: any): void {
-    if (!config) {
-      this.result.errors.push('AssemblyAI configuration is required');
-      return;
-    }
-
-    if (!config.apiKey) {
-      this.result.errors.push('AssemblyAI API key is required');
-    }
-  }
-
-  private validateWhisperConfig(config?: any): void {
-    if (!config) {
-      this.result.errors.push('Whisper configuration is required');
-      return;
-    }
-
-    if (!config.apiKey) {
-      this.result.errors.push('OpenAI API key is required for Whisper');
-    }
-  }
+  // Removed all third-party transcription provider validation methods
+  // ConversationRelay handles STT natively without external API keys
 
   private validateGlobalSettings(): void {
     const settings = this.config.globalSettings;
@@ -287,17 +203,8 @@ export class ConfigValidator {
         this.result.testedServices.push('OpenAI');
       }
 
-      // Test ElevenLabs connectivity
-      if (this.config.voice.provider === VoiceProvider.ELEVEN_LABS && this.config.voice.elevenLabs?.apiKey) {
-        await this.simulateApiTest('ElevenLabs');
-        this.result.testedServices.push('ElevenLabs');
-      }
-
-      // Test Deepgram connectivity
-      if (this.config.transcription.provider === TranscriptionProvider.DEEPGRAM && this.config.transcription.deepgram?.apiKey) {
-        await this.simulateApiTest('Deepgram');
-        this.result.testedServices.push('Deepgram');
-      }
+      // ConversationRelay requires no external API testing
+      // TTS/STT handled natively by Twilio
 
     } catch (error) {
       this.result.warnings.push('Some API connectivity tests failed - please verify your API keys');
@@ -365,13 +272,8 @@ export const validateRequiredFields = (config: Partial<WorkflowConfig>): string[
     errors.push('OpenAI API key is required');
   }
 
-  if (config.voice?.provider === VoiceProvider.ELEVEN_LABS && !config.voice?.elevenLabs?.apiKey) {
-    errors.push('ElevenLabs API key is required');
-  }
-
-  if (config.transcription?.provider === TranscriptionProvider.DEEPGRAM && !config.transcription?.deepgram?.apiKey) {
-    errors.push('Deepgram API key is required');
-  }
+  // ConversationRelay requires no external API keys
+  // All voice and transcription handled natively by Twilio
 
   return errors;
 };

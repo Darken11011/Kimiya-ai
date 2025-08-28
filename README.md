@@ -35,9 +35,9 @@ A powerful visual workflow builder for creating voice agent conversation flows, 
 - Configurable system prompts and model parameters
 
 ### 🔊 **Voice & Speech Services**
-- **Voice Synthesis**: ElevenLabs, Azure Speech, Google Cloud TTS
-- **Speech Recognition**: Deepgram, AssemblyAI, OpenAI Whisper
-- Popular voice selections and quality settings
+- **Voice Synthesis**: Twilio ConversationRelay Native TTS
+- **Speech Recognition**: Twilio ConversationRelay Native STT
+- Optimized for real-time phone conversations
 
 ### 🧠 **Smart Conditional Logic**
 - AI-based conditions (natural language)
@@ -206,19 +206,18 @@ npm run build
 | **OpenAI** | GPT-4, GPT-4 Turbo, GPT-3.5 | Temperature, max tokens, system prompts |
 | **Anthropic** | Claude 3 Opus, Sonnet, Haiku | Advanced reasoning, large context |
 
-### Voice Synthesis
-| Provider | Features | Quality |
-|----------|----------|---------|
-| **ElevenLabs** | AI voices, emotion control | Premium |
-| **Azure Speech** | Neural voices, SSML | High |
-| **Google Cloud** | WaveNet, multiple languages | High |
+### Voice & Speech Services
+| Service | Features | Quality |
+|---------|----------|---------|
+| **ConversationRelay TTS** | Native Twilio voices, optimized for calls | High |
+| **ConversationRelay STT** | Real-time transcription, low latency | High |
 
-### Speech Recognition
-| Provider | Features | Use Case |
-|----------|----------|----------|
-| **Deepgram** | Real-time, low latency | Live calls |
-| **AssemblyAI** | Advanced features, sentiment | Analysis |
-| **Whisper** | High accuracy, multilingual | Quality |
+**Benefits:**
+- ✅ No external API keys required
+- ✅ Optimized for phone calls
+- ✅ No additional costs
+- ✅ Best ConversationRelay compatibility
+- ✅ Eliminates Error 64101
 
 ## 📚 Documentation
 

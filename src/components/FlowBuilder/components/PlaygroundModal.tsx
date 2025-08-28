@@ -760,18 +760,12 @@ Conversation turns in this node: ${conversationTurns}`
         }
       },
       voice: workflowConfig?.voice || {
-        provider: 'eleven_labs' as any,
-        elevenLabs: {
-          apiKey: '',
-          voiceId: 'default'
-        }
+        provider: 'conversation_relay' as any,
+        language: 'en-US'
       },
       transcription: workflowConfig?.transcription || {
-        provider: 'deepgram' as any,
-        deepgram: {
-          apiKey: '',
-          language: 'en'
-        }
+        provider: 'conversation_relay' as any,
+        language: 'en-US'
       },
       globalSettings: workflowConfig?.globalSettings || {
         defaultLanguage: 'en-US',

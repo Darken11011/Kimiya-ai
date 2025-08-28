@@ -187,16 +187,8 @@ export const logConfigStatus = (config: EnvConfig): void => {
   console.log(`  Target Latency: ${config.performance.targetLatency}ms`);
   console.log(`  Language Optimization: ${config.performance.languageOptimization ? '✅ Enabled' : '⚠️ Disabled'}`);
   
-  // Optional services
-  const optionalServices = [];
-  if (config.optional.elevenLabsApiKey) optionalServices.push('ElevenLabs');
-  if (config.optional.deepgramApiKey) optionalServices.push('Deepgram');
-  if (config.optional.azureSpeechApiKey) optionalServices.push('Azure Speech');
-  if (config.optional.googleCloudApiKey) optionalServices.push('Google Cloud');
-  
-  if (optionalServices.length > 0) {
-    console.log(`  Optional Services: ${optionalServices.join(', ')}`);
-  }
+  // ConversationRelay handles all voice services natively
+  console.log(`  Voice Services: ConversationRelay Native TTS/STT`);
 };
 
 // Export singleton instance

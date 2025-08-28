@@ -36,72 +36,17 @@ export interface AnthropicConfig {
   systemPrompt?: string;
 }
 
-export interface ElevenLabsConfig {
-  apiKey: string;
-  voiceId: string;
-  model?: string; // e.g., 'eleven_monolingual_v1'
-  stability?: number;
-  similarityBoost?: number;
-  style?: number;
-  useSpeakerBoost?: boolean;
-}
+// Removed all third-party voice/transcription provider configurations
+// ConversationRelay handles TTS/STT natively without external API keys
 
-export interface AzureConfig {
-  apiKey: string;
-  region: string;
-  voiceName: string; // e.g., 'en-US-JennyNeural'
-  speechRate?: string;
-  speechPitch?: string;
-}
-
-export interface GoogleCloudConfig {
-  apiKey: string;
-  projectId?: string;
-  voiceName: string;
-  languageCode: string;
-  ssmlGender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
-}
-
-export interface DeepgramConfig {
-  apiKey: string;
-  model?: string; // e.g., 'nova-2', 'enhanced'
-  language?: string;
-  punctuate?: boolean;
-  diarize?: boolean;
-  smartFormat?: boolean;
-}
-
-export interface AssemblyAIConfig {
-  apiKey: string;
-  languageCode?: string;
-  punctuate?: boolean;
-  formatText?: boolean;
-  dualChannel?: boolean;
-}
-
-export interface WhisperConfig {
-  apiKey: string; // OpenAI API key for Whisper
-  model?: string; // e.g., 'whisper-1'
-  language?: string;
-  temperature?: number;
-}
-
-// Voice Provider Types
+// Voice Provider Types - ConversationRelay Only
 export enum VoiceProvider {
-  DEFAULT = 'default',
-  ELEVEN_LABS = 'eleven_labs',
-  AZURE = 'azure',
-  GOOGLE_CLOUD = 'google_cloud',
-  OPENAI_TTS = 'openai_tts'
+  CONVERSATION_RELAY = 'conversation_relay'
 }
 
-// Transcription Provider Types
+// Transcription Provider Types - ConversationRelay Only
 export enum TranscriptionProvider {
-  DEEPGRAM = 'deepgram',
-  ASSEMBLY_AI = 'assembly_ai',
-  WHISPER = 'whisper',
-  AZURE = 'azure',
-  GOOGLE_CLOUD = 'google_cloud'
+  CONVERSATION_RELAY = 'conversation_relay'
 }
 
 // LLM Provider Types
@@ -112,23 +57,16 @@ export enum LLMProvider {
   GOOGLE_PALM = 'google_palm'
 }
 
-// Voice Configuration
+// Voice Configuration - ConversationRelay Only
 export interface VoiceConfig {
   provider: VoiceProvider;
-  elevenLabs?: ElevenLabsConfig;
-  azure?: AzureConfig;
-  googleCloud?: GoogleCloudConfig;
-  openAI?: OpenAIConfig; // For OpenAI TTS
+  language?: string; // Language code (e.g., 'en-US')
 }
 
-// Transcription Configuration
+// Transcription Configuration - ConversationRelay Only
 export interface TranscriptionConfig {
   provider: TranscriptionProvider;
-  deepgram?: DeepgramConfig;
-  assemblyAI?: AssemblyAIConfig;
-  whisper?: WhisperConfig;
-  azure?: AzureConfig;
-  googleCloud?: GoogleCloudConfig;
+  language?: string; // Language code (e.g., 'en-US')
 }
 
 // LLM Configuration
@@ -187,39 +125,8 @@ export interface ConfigValidationResult {
 export const DEFAULT_LANGUAGE_CONFIG: LanguageConfig = {
   primary: 'en-US',
   fallback: ['en-GB', 'en-AU'],
-  autoDetection: true,
-  specialLanguages: {
-    'zh-HK': {
-      sttProvider: 'azure',
-      ttsProvider: 'azure',
-      voiceId: 'zh-HK-HiuGaaiNeural',
-      optimizations: {
-        dialectSupport: ['Hong Kong', 'Guangzhou', 'Macau'],
-        accentAdaptation: true,
-        contextualProcessing: true
-      }
-    },
-    'zh-MO': {
-      sttProvider: 'azure',
-      ttsProvider: 'azure',
-      voiceId: 'zh-HK-HiuMaanNeural',
-      optimizations: {
-        dialectSupport: ['Macau', 'Hong Kong'],
-        accentAdaptation: true,
-        contextualProcessing: true
-      }
-    },
-    'zh-CN': {
-      sttProvider: 'azure',
-      ttsProvider: 'azure',
-      voiceId: 'zh-CN-XiaoxiaoNeural'
-    },
-    'zh-TW': {
-      sttProvider: 'azure',
-      ttsProvider: 'azure',
-      voiceId: 'zh-TW-HsiaoChenNeural'
-    }
-  }
+  autoDetection: true
+  // ConversationRelay handles all language-specific optimizations automatically
 };
 
 // Default configurations
@@ -243,147 +150,22 @@ export const DEFAULT_OPENAI_CONFIG: Partial<OpenAIConfig> = {
   systemPrompt: 'You are a helpful AI assistant. Be professional, friendly, and concise in your responses.'
 };
 
-export const DEFAULT_ELEVEN_LABS_CONFIG: Partial<ElevenLabsConfig> = {
-  model: 'eleven_monolingual_v1',
-  stability: 0.5,
-  similarityBoost: 0.5,
-  style: 0.0,
-  useSpeakerBoost: true
-};
+// Removed all third-party provider default configurations
+// ConversationRelay uses built-in defaults
 
-export const DEFAULT_DEEPGRAM_CONFIG: Partial<DeepgramConfig> = {
-  model: 'nova-2',
-  language: 'en-US',
-  punctuate: true,
-  diarize: false,
-  smartFormat: true
-};
-
-// Language-specific voice options
+// Removed language-specific voice options
+// ConversationRelay handles voice selection automatically
 export const LANGUAGE_VOICES = {
-  // English voices
-  'en-US': {
-    [VoiceProvider.ELEVEN_LABS]: [
-      { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam (Deep Male)' },
-      { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella (Soft Female)' },
-      { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold (Confident Male)' },
-      { id: 'jsCqWAovK2LkecY7zXl4', name: 'Freya (Young Female)' }
-    ],
-    [VoiceProvider.AZURE]: [
-      { id: 'en-US-JennyNeural', name: 'Jenny (US Female)' },
-      { id: 'en-US-GuyNeural', name: 'Guy (US Male)' },
-      { id: 'en-US-AriaNeural', name: 'Aria (US Female)' },
-      { id: 'en-US-DavisNeural', name: 'Davis (US Male)' }
-    ],
-    [VoiceProvider.GOOGLE_CLOUD]: [
-      { id: 'en-US-Wavenet-D', name: 'Wavenet D (US Male)' },
-      { id: 'en-US-Wavenet-F', name: 'Wavenet F (US Female)' },
-      { id: 'en-US-Standard-B', name: 'Standard B (US Male)' },
-      { id: 'en-US-Standard-C', name: 'Standard C (US Female)' }
-    ]
-  },
-
-  // Cantonese voices (Hong Kong)
-  'zh-HK': {
-    [VoiceProvider.AZURE]: [
-      { id: 'zh-HK-HiuGaaiNeural', name: 'HiuGaai (Hong Kong Female)', recommended: true },
-      { id: 'zh-HK-HiuMaanNeural', name: 'HiuMaan (Hong Kong Male)', recommended: true },
-      { id: 'zh-HK-WanLungNeural', name: 'WanLung (Hong Kong Male)' }
-    ],
-    [VoiceProvider.GOOGLE_CLOUD]: [
-      { id: 'yue-HK-Standard-A', name: 'Standard A (Hong Kong Female)' },
-      { id: 'yue-HK-Standard-B', name: 'Standard B (Hong Kong Male)' },
-      { id: 'yue-HK-Standard-C', name: 'Standard C (Hong Kong Female)' },
-      { id: 'yue-HK-Standard-D', name: 'Standard D (Hong Kong Male)' }
-    ]
-  },
-
-  // Cantonese voices (Macau)
-  'zh-MO': {
-    [VoiceProvider.AZURE]: [
-      { id: 'zh-HK-HiuMaanNeural', name: 'HiuMaan (Macau Male)', recommended: true },
-      { id: 'zh-HK-HiuGaaiNeural', name: 'HiuGaai (Macau Female)', recommended: true }
-    ]
-  },
-
-  // Mandarin voices
-  'zh-CN': {
-    [VoiceProvider.AZURE]: [
-      { id: 'zh-CN-XiaoxiaoNeural', name: 'Xiaoxiao (Female)', recommended: true },
-      { id: 'zh-CN-YunxiNeural', name: 'Yunxi (Male)', recommended: true },
-      { id: 'zh-CN-YunyangNeural', name: 'Yunyang (Male)' },
-      { id: 'zh-CN-XiaochenNeural', name: 'Xiaochen (Female)' }
-    ],
-    [VoiceProvider.GOOGLE_CLOUD]: [
-      { id: 'cmn-CN-Wavenet-A', name: 'Wavenet A (Female)' },
-      { id: 'cmn-CN-Wavenet-B', name: 'Wavenet B (Male)' },
-      { id: 'cmn-CN-Wavenet-C', name: 'Wavenet C (Male)' },
-      { id: 'cmn-CN-Wavenet-D', name: 'Wavenet D (Female)' }
-    ]
-  },
-
-  // Spanish voices
-  'es-ES': {
-    [VoiceProvider.AZURE]: [
-      { id: 'es-ES-ElviraNeural', name: 'Elvira (Spain Female)' },
-      { id: 'es-ES-AlvaroNeural', name: 'Alvaro (Spain Male)' }
-    ],
-    [VoiceProvider.GOOGLE_CLOUD]: [
-      { id: 'es-ES-Wavenet-B', name: 'Wavenet B (Spain Female)' },
-      { id: 'es-ES-Wavenet-C', name: 'Wavenet C (Spain Male)' }
-    ]
-  },
-
-  // French voices
-  'fr-FR': {
-    [VoiceProvider.AZURE]: [
-      { id: 'fr-FR-DeniseNeural', name: 'Denise (France Female)' },
-      { id: 'fr-FR-HenriNeural', name: 'Henri (France Male)' }
-    ],
-    [VoiceProvider.GOOGLE_CLOUD]: [
-      { id: 'fr-FR-Wavenet-A', name: 'Wavenet A (France Female)' },
-      { id: 'fr-FR-Wavenet-B', name: 'Wavenet B (France Male)' }
-    ]
-  },
-
-  // Japanese voices
-  'ja-JP': {
-    [VoiceProvider.AZURE]: [
-      { id: 'ja-JP-NanamiNeural', name: 'Nanami (Japan Female)' },
-      { id: 'ja-JP-KeitaNeural', name: 'Keita (Japan Male)' }
-    ],
-    [VoiceProvider.GOOGLE_CLOUD]: [
-      { id: 'ja-JP-Wavenet-A', name: 'Wavenet A (Japan Female)' },
-      { id: 'ja-JP-Wavenet-C', name: 'Wavenet C (Japan Male)' }
-    ]
-  }
+  // ConversationRelay handles voice selection automatically
+  // No third-party voice configurations needed
 };
 
-// Popular voice options (backward compatibility)
-export const POPULAR_VOICES = {
-  [VoiceProvider.ELEVEN_LABS]: [
-    { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam (Deep Male)' },
-    { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella (Soft Female)' },
-    { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold (Confident Male)' },
-    { id: 'jsCqWAovK2LkecY7zXl4', name: 'Freya (Young Female)' }
-  ],
-  [VoiceProvider.AZURE]: [
-    { id: 'en-US-JennyNeural', name: 'Jenny (US Female)' },
-    { id: 'en-US-GuyNeural', name: 'Guy (US Male)' },
-    { id: 'en-US-AriaNeural', name: 'Aria (US Female)' },
-    { id: 'en-US-DavisNeural', name: 'Davis (US Male)' }
-  ],
-  [VoiceProvider.GOOGLE_CLOUD]: [
-    { id: 'en-US-Wavenet-D', name: 'Wavenet D (US Male)' },
-    { id: 'en-US-Wavenet-F', name: 'Wavenet F (US Female)' },
-    { id: 'en-US-Standard-B', name: 'Standard B (US Male)' },
-    { id: 'en-US-Standard-C', name: 'Standard C (US Female)' }
-  ]
-};
+// Removed popular voice options - ConversationRelay handles voices automatically
 
-// Helper function to get voices for a specific language and provider
+// Helper function simplified for ConversationRelay
 export const getVoicesForLanguage = (languageCode: string, provider: VoiceProvider) => {
-  return LANGUAGE_VOICES[languageCode]?.[provider] || POPULAR_VOICES[provider] || [];
+  // ConversationRelay doesn't require voice selection
+  return [];
 };
 
 // Language Support Types
@@ -405,18 +187,7 @@ export interface LanguageConfig {
   primary: string;
   fallback?: string[];
   autoDetection?: boolean;
-  specialLanguages?: {
-    [key: string]: {
-      sttProvider: 'azure' | 'google' | 'deepgram';
-      ttsProvider: 'azure' | 'google' | 'elevenlabs';
-      voiceId: string;
-      optimizations?: {
-        dialectSupport?: string[];
-        accentAdaptation?: boolean;
-        contextualProcessing?: boolean;
-      };
-    };
-  };
+  // ConversationRelay handles language-specific optimizations automatically
 }
 
 // Comprehensive language support with Cantonese specialization

@@ -22,17 +22,12 @@
       }
     },
     "voice": {
-      "provider": "default"
+      "provider": "conversation_relay",
+      "language": "en-US"
     },
     "transcription": {
-      "provider": "deepgram",
-      "deepgram": {
-        "apiKey": "YOUR_DEEPGRAM_API_KEY",
-        "model": "nova-2",
-        "language": "en-US",
-        "punctuate": true,
-        "smartFormat": true
-      }
+      "provider": "conversation_relay",
+      "language": "en-US"
     },
     "globalSettings": {
       "defaultLanguage": "en-US",

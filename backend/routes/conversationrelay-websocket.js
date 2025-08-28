@@ -845,17 +845,14 @@ class ConversationRelayWebSocket {
   async sendTextMessage(session, text) {
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CRITICAL: Use basic ConversationRelay-compatible voice settings
-    // Avoid ElevenLabs but provide basic voice config for TTS
-    console.log(`[ConversationRelay-WS] 📤 Sending text message with basic ConversationRelay voice config`);
+    // CRITICAL: Use plain text messages for ConversationRelay native TTS
+    // ConversationRelay handles TTS automatically without voice configuration
+    console.log(`[ConversationRelay-WS] 📤 Sending plain text message for native ConversationRelay TTS`);
 
     const textMessage = {
       type: 'text',
-      text: text,
-      voice: {
-        name: 'alice',     // Twilio ConversationRelay-compatible voice
-        language: 'en-US'
-      }
+      text: text
+      // No voice configuration - ConversationRelay handles TTS natively
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
