@@ -22,12 +22,7 @@
       }
     },
     "voice": {
-      "provider": "azure",
-      "azure": {
-        "apiKey": "f6d564a83af3498c9beb46d7d3e3da96",
-        "region": "eastus",
-        "voiceName": "en-US-JennyNeural"
-      }
+      "provider": "default"
     },
     "transcription": {
       "provider": "deepgram",

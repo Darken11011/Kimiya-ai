@@ -88,6 +88,7 @@ export interface WhisperConfig {
 
 // Voice Provider Types
 export enum VoiceProvider {
+  DEFAULT = 'default',
   ELEVEN_LABS = 'eleven_labs',
   AZURE = 'azure',
   GOOGLE_CLOUD = 'google_cloud',

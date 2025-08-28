@@ -734,13 +734,31 @@ const WorkflowSetupModal: React.FC<WorkflowSetupModalProps> = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={VoiceProvider.DEFAULT}>Default (ConversationRelay Native)</SelectItem>
               <SelectItem value={VoiceProvider.ELEVEN_LABS}>ElevenLabs</SelectItem>
               <SelectItem value={VoiceProvider.AZURE}>Azure Speech</SelectItem>
               <SelectItem value={VoiceProvider.GOOGLE_CLOUD}>Google Cloud</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        
+
+        {voiceProvider === VoiceProvider.DEFAULT && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="font-medium text-green-800 mb-2">🎤 Default ConversationRelay TTS</h4>
+            <p className="text-sm text-green-700">
+              Uses Twilio ConversationRelay's built-in text-to-speech system.
+              This option provides the best compatibility for real-time phone conversations
+              without external TTS provider conflicts.
+            </p>
+            <div className="mt-2 text-xs text-green-600">
+              ✅ No API keys required<br/>
+              ✅ Optimized for phone calls<br/>
+              ✅ No additional costs<br/>
+              ✅ Best ConversationRelay compatibility
+            </div>
+          </div>
+        )}
+
         {voiceProvider === VoiceProvider.ELEVEN_LABS && (
           <>
             <div>
