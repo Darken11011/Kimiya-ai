@@ -68,18 +68,35 @@ function generateFastTwiML(workflowId, trackingId) {
   const connectActionUrl = `/api/connect-action?workflowId=${workflowId}&amp;trackingId=${trackingId}`;
   const encodedWebsocketUrl = websocketUrl.replace(/&/g, '&amp;');
 
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+  // EMERGENCY: Try both ConversationRelay and Media Streams fallback
+  const useMediaStreamsFallback = req.query.fallback === 'true';
+
+  let twiml;
+
+  if (useMediaStreamsFallback) {
+    // Media Streams fallback to bypass ElevenLabs completely
+    twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Hello Aditya! I'm your Kimiya. How can I help you today?</Say>
+    <Connect>
+        <Stream url="${encodedWebsocketUrl}" />
+    </Connect>
+</Response>`;
+  } else {
+    // ConversationRelay with ElevenLabs-compatible voice
+    twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <!-- Fast ConversationRelay TwiML with Debug Info -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
-            voice="alice"
+            voice="Rachel"
             language="en-US"
         />
     </Connect>
 </Response>`;
+  }
 
   console.log(`[generateFastTwiML] ===== TWIML GENERATED =====`);
   console.log(`[generateFastTwiML] TwiML length: ${twiml.length} chars`);
@@ -114,7 +131,7 @@ function generateFastFallbackTwiML(req, res) {
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
-            voice="alice"
+            voice="Rachel"
             language="en-US"
         />
     </Connect>

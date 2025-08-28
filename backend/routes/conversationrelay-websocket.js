@@ -853,7 +853,7 @@ class ConversationRelayWebSocket {
       type: 'text',
       text: text,
       voice: {
-        name: 'alice',
+        name: 'Rachel',     // ElevenLabs-compatible voice
         language: 'en-US'
       }
     };
