@@ -888,8 +888,10 @@ class ConversationRelayWebSocket {
 
     const textMessage = {
       type: 'text',
-      text: text
-      // No voice configuration - let ElevenLabs use default voice
+      text: text,
+      voice: {
+        language: 'en-US'  // Specify language for ElevenLabs TTS
+      }
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
