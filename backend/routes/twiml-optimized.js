@@ -3,7 +3,6 @@ const { getActiveOrchestrator } = require('./make-call-optimized');
 /**
  * Fast TwiML Optimized Handler - Prevents Timeout Issues
  * Generates TwiML immediately without heavy processing to avoid 15s timeout
- * CRITICAL UPDATE: ElevenLabs-compatible voices to fix Error 64101
  */
 module.exports = async function twimlOptimizedHandler(req, res) {
   const startTime = performance.now();

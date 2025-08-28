@@ -43,8 +43,8 @@ ws.on('open', () => {
     // Send ConversationRelay setup message
     const setupMessage = {
       type: 'setup',
-      callSid: 'CA_test_call_sid_placeholder',
-      accountSid: 'AC_test_account_sid_placeholder',
+      callSid: 'CA1234567890abcdef1234567890abcdef',
+      accountSid: 'AC1234567890abcdef1234567890abcdef',
       from: '+17077433838',
       to: '+919649770017',
       direction: 'outbound-api',
