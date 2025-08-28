@@ -789,9 +789,10 @@ class ConversationRelayWebSocket {
     session.setupData = message;
     session.isActive = true;
 
-    // Send initial greeting using ConversationRelay text message format
+    // CRITICAL: Always send initial greeting via WebSocket to ensure audio
     const greeting = "Hello Aditya! I'm your Kimiya. How can I help you today?";
 
+    console.log(`[ConversationRelay-WS] 📤 Sending initial greeting via WebSocket...`);
     await this.sendTextMessage(session, greeting);
 
     console.log(`[ConversationRelay-WS] ✅ Setup complete, greeting sent for ${session.callSid}`);
@@ -844,15 +845,17 @@ class ConversationRelayWebSocket {
   async sendTextMessage(session, text) {
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CRITICAL: ConversationRelay should handle its own TTS
-    // Do NOT use project's TTS providers (ElevenLabs, Azure, etc.) for ConversationRelay
-    // Let ConversationRelay use its native TTS system to avoid conflicts
-    console.log(`[ConversationRelay-WS] 📤 Sending plain text message - ConversationRelay will handle TTS natively`);
+    // CRITICAL: Use basic ConversationRelay-compatible voice settings
+    // Avoid ElevenLabs but provide basic voice config for TTS
+    console.log(`[ConversationRelay-WS] 📤 Sending text message with basic ConversationRelay voice config`);
 
     const textMessage = {
       type: 'text',
-      text: text
-      // NO voice configuration - let ConversationRelay handle TTS
+      text: text,
+      voice: {
+        name: 'alice',
+        language: 'en-US'
+      }
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));

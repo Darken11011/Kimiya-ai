@@ -72,7 +72,12 @@ function generateFastTwiML(workflowId, trackingId) {
 <Response>
     <!-- Fast ConversationRelay TwiML with Debug Info -->
     <Connect action="${connectActionUrl}">
-        <ConversationRelay url="${encodedWebsocketUrl}" />
+        <ConversationRelay
+            url="${encodedWebsocketUrl}"
+            welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
+            voice="alice"
+            language="en-US"
+        />
     </Connect>
 </Response>`;
 
@@ -106,7 +111,12 @@ function generateFastFallbackTwiML(req, res) {
 <Response>
     <!-- Emergency Fallback ConversationRelay TwiML -->
     <Connect action="${connectActionUrl}">
-        <ConversationRelay url="${encodedWebsocketUrl}" />
+        <ConversationRelay
+            url="${encodedWebsocketUrl}"
+            welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
+            voice="alice"
+            language="en-US"
+        />
     </Connect>
 </Response>`;
 
