@@ -1,7 +1,20 @@
 
-# Kimiyi Call Flow Builder
+# Call Flow Weaver
 
 A powerful visual workflow builder for creating voice agent conversation flows, specifically designed for real-time call conversations via Twilio. Build sophisticated voice agents with conditional logic, AI-powered conversations, and seamless service integrations.
+
+## 📚 Documentation
+
+**Complete documentation is now available in the [`docs/`](./docs/) directory:**
+
+- **[📖 Documentation Home](./docs/README.md)** - Complete documentation index
+- **[🚀 Quick Start Guide](./docs/guides/quick-start.md)** - Get up and running in 5 minutes
+- **[🔧 Environment Setup](./docs/guides/environment-setup.md)** - Complete configuration guide
+- **[🎨 Flow Builder Tutorial](./docs/guides/flow-builder.md)** - Learn to build workflows
+- **[🏗️ System Architecture](./docs/architecture/system-overview.md)** - Technical architecture overview
+- **[🚀 Deployment Guide](./docs/deployment/production.md)** - Production deployment
+- **[⚡ Performance Optimization](./docs/performance/optimization.md)** - Performance tuning
+- **[🔧 Troubleshooting](./docs/troubleshooting/common-issues.md)** - Common issues and solutions
 
 ## ✨ Features
 
