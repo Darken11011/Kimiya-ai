@@ -844,30 +844,15 @@ class ConversationRelayWebSocket {
   async sendTextMessage(session, text) {
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CRITICAL: ElevenLabs TTS Provider detected in Twilio Console
-    // Configure ConversationRelay to work with ElevenLabs voices
-    console.log(`[ConversationRelay-WS] 📤 Sending text message with ElevenLabs-compatible voice config`);
-
-    // ElevenLabs voice options for ConversationRelay
-    const elevenlabsVoices = [
-      'Rachel',    // ElevenLabs female voice
-      'Adam',      // ElevenLabs male voice
-      'Domi',      // ElevenLabs alternative female
-      'Bella',     // ElevenLabs expressive female
-      'Antoni',    // ElevenLabs male alternative
-      'Elli',      // ElevenLabs young female
-      'Josh',      // ElevenLabs deep male
-      'Arnold',    // ElevenLabs older male
-      'Sam'        // ElevenLabs narrative male
-    ];
+    // CRITICAL: ConversationRelay should handle its own TTS
+    // Do NOT use project's TTS providers (ElevenLabs, Azure, etc.) for ConversationRelay
+    // Let ConversationRelay use its native TTS system to avoid conflicts
+    console.log(`[ConversationRelay-WS] 📤 Sending plain text message - ConversationRelay will handle TTS natively`);
 
     const textMessage = {
       type: 'text',
-      text: text,
-      voice: {
-        name: elevenlabsVoices[0], // Use Rachel as default
-        language: 'en-US'
-      }
+      text: text
+      // NO voice configuration - let ConversationRelay handle TTS
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));

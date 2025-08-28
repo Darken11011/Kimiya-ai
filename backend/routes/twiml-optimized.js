@@ -1,7 +1,6 @@
 const { getActiveOrchestrator } = require('./make-call-optimized');
 
 /**
- * Hoi
  * Fast TwiML Optimized Handler - Prevents Timeout Issues
  * Generates TwiML immediately without heavy processing to avoid 15s timeout
  */
@@ -73,12 +72,7 @@ function generateFastTwiML(workflowId, trackingId) {
 <Response>
     <!-- Fast ConversationRelay TwiML with Debug Info -->
     <Connect action="${connectActionUrl}">
-        <ConversationRelay
-            url="${encodedWebsocketUrl}"
-            voice="Rachel"
-            language="en-US"
-            welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
-        />
+        <ConversationRelay url="${encodedWebsocketUrl}" />
     </Connect>
 </Response>`;
 
@@ -112,12 +106,7 @@ function generateFastFallbackTwiML(req, res) {
 <Response>
     <!-- Emergency Fallback ConversationRelay TwiML -->
     <Connect action="${connectActionUrl}">
-        <ConversationRelay
-            url="${encodedWebsocketUrl}"
-            voice="Rachel"
-            language="en-US"
-            welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
-        />
+        <ConversationRelay url="${encodedWebsocketUrl}" />
     </Connect>
 </Response>`;
 

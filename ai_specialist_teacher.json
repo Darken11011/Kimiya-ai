@@ -22,13 +22,11 @@
       }
     },
     "voice": {
-      "provider": "eleven_labs",
-      "elevenLabs": {
-        "apiKey": "YOUR_ELEVEN_LABS_API_KEY",
-        "voiceId": "21m00Tcm4TlvDq8ikWAM",
-        "model": "eleven_monolingual_v1",
-        "stability": 0.6,
-        "similarityBoost": 0.6
+      "provider": "azure",
+      "azure": {
+        "apiKey": "f6d564a83af3498c9beb46d7d3e3da96",
+        "region": "eastus",
+        "voiceName": "en-US-JennyNeural"
       }
     },
     "transcription": {
