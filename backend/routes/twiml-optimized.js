@@ -78,7 +78,7 @@ function generateFastTwiML(workflowId, trackingId) {
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
-            voice="alice"
+            voice="Rachel"
             language="en-US"
         />
     </Connect>
@@ -117,7 +117,7 @@ function generateFastFallbackTwiML(req, res) {
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
-            voice="alice"
+            voice="Rachel"
             language="en-US"
         />
     </Connect>
