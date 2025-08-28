@@ -882,17 +882,14 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CRITICAL: Use ElevenLabs-compatible voice for TTS (account has ElevenLabs integration)
-    // Using "Rachel" voice which is compatible with ElevenLabs TTS processing
-    console.log(`[ConversationRelay-WS] 📤 Sending text message with ElevenLabs-compatible voice (Rachel)`);
+    // CRITICAL: No voice configuration to avoid ElevenLabs conflicts
+    // Let ElevenLabs use its default voice to prevent Error 64101
+    console.log(`[ConversationRelay-WS] 📤 Sending plain text message - ElevenLabs will use default voice`);
 
     const textMessage = {
       type: 'text',
-      text: text,
-      voice: {
-        name: 'Rachel',       // ElevenLabs-compatible voice
-        language: 'en-US'     // Language for TTS
-      }
+      text: text
+      // No voice configuration - let ElevenLabs use default voice
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
