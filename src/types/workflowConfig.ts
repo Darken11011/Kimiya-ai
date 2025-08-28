@@ -75,7 +75,6 @@ export interface LLMConfig {
   openAI?: OpenAIConfig;
   anthropic?: AnthropicConfig;
   azure?: AzureOpenAIConfig;
-  googlePalm?: GoogleCloudConfig;
 }
 
 // Global Workflow Settings

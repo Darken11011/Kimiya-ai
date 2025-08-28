@@ -68,25 +68,12 @@ function generateFastTwiML(workflowId, trackingId) {
   const connectActionUrl = `/api/connect-action?workflowId=${workflowId}&amp;trackingId=${trackingId}`;
   const encodedWebsocketUrl = websocketUrl.replace(/&/g, '&amp;');
 
-  // EMERGENCY: Try both ConversationRelay and Media Streams fallback
-  const useMediaStreamsFallback = req.query.fallback === 'true';
+  // ConversationRelay only - No fallback needed (fixes ReferenceError: req is not defined)
 
-  let twiml;
-
-  if (useMediaStreamsFallback) {
-    // Media Streams fallback to bypass ElevenLabs completely
-    twiml = `<?xml version="1.0" encoding="UTF-8"?>
+  // ConversationRelay with native TTS/STT - Primary TwiML generation
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Hello Aditya! I'm your Kimiya. How can I help you today?</Say>
-    <Connect>
-        <Stream url="${encodedWebsocketUrl}" />
-    </Connect>
-</Response>`;
-  } else {
-    // ConversationRelay with native TTS/STT
-    twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <!-- ConversationRelay TwiML - Native TTS/STT -->
+    <!-- Primary ConversationRelay TwiML - Native TTS/STT -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
@@ -95,7 +82,6 @@ function generateFastTwiML(workflowId, trackingId) {
         />
     </Connect>
 </Response>`;
-  }
 
   console.log(`[generateFastTwiML] ===== TWIML GENERATED =====`);
   console.log(`[generateFastTwiML] TwiML length: ${twiml.length} chars`);

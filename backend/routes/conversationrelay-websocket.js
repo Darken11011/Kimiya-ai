@@ -123,7 +123,7 @@ class ConversationRelayWebSocket {
           lastActivity: Date.now(),
           conversationState: 'waiting_for_speech',
           silenceTimeout: null,
-          maxSilenceMs: 15000 // 15 seconds max silence before timeout
+          maxSilenceMs: 30000 // 30 seconds max silence before timeout (more generous)
         };
 
         this.activeSessions.set(callSid, session);
@@ -141,13 +141,28 @@ class ConversationRelayWebSocket {
         });
 
         ws.on('close', (code, reason) => {
-          console.log(`[ConversationRelay-WS] Connection closed for CallSid=${callSid}, Code=${code}, Reason=${reason}`);
+          console.log(`[ConversationRelay-WS] 🔌 Connection closed for CallSid=${callSid}, Code=${code}, Reason=${reason}`);
+          console.log(`[ConversationRelay-WS] Session duration: ${Date.now() - session.startTime}ms, State: ${session.conversationState}`);
           this.activeSessions.delete(callSid);
         });
 
         ws.on('error', (error) => {
-          console.error(`[ConversationRelay-WS] WebSocket error for CallSid=${callSid}:`, error);
+          console.error(`[ConversationRelay-WS] ❌ WebSocket error for CallSid=${callSid}:`, error);
           this.activeSessions.delete(callSid);
+        });
+
+        // Add ping/pong to keep connection alive
+        const pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.ping();
+            console.log(`[ConversationRelay-WS] 🏓 Sent ping to keep connection alive for ${callSid}`);
+          } else {
+            clearInterval(pingInterval);
+          }
+        }, 30000); // Ping every 30 seconds
+
+        ws.on('pong', () => {
+          console.log(`[ConversationRelay-WS] 🏓 Received pong from ${callSid} - connection alive`);
         });
 
         // CRITICAL: Do NOT send initial messages to ConversationRelay
@@ -789,13 +804,18 @@ class ConversationRelayWebSocket {
     session.setupData = message;
     session.isActive = true;
 
-    // CRITICAL: Always send initial greeting via WebSocket to ensure audio
-    const greeting = "Hello Aditya! I'm your Kimiya. How can I help you today?";
+    // CRITICAL: Don't send duplicate greeting - TwiML welcomeGreeting handles initial greeting
+    // ConversationRelay will automatically play the welcomeGreeting from TwiML
+    console.log(`[ConversationRelay-WS] ✅ Setup complete, waiting for user input for ${session.callSid}`);
+    console.log(`[ConversationRelay-WS] TwiML welcomeGreeting will handle initial greeting automatically`);
 
-    console.log(`[ConversationRelay-WS] 📤 Sending initial greeting via WebSocket...`);
-    await this.sendTextMessage(session, greeting);
-
-    console.log(`[ConversationRelay-WS] ✅ Setup complete, greeting sent for ${session.callSid}`);
+    // After a short delay, send a follow-up prompt to encourage user interaction
+    setTimeout(async () => {
+      if (session.isActive && session.conversationState === 'waiting_for_speech') {
+        console.log(`[ConversationRelay-WS] 💬 Sending follow-up prompt to encourage user interaction`);
+        await this.sendTextMessage(session, "Please feel free to speak - I'm listening and ready to help you!");
+      }
+    }, 3000); // 3 second delay after welcome greeting
   }
 
   async handlePrompt(session, message) {
@@ -917,7 +937,14 @@ class ConversationRelayWebSocket {
       console.log(`[ConversationRelay-WS] 🔇 Handling silence timeout for ${session.callSid}`);
 
       // Try to prompt the user for a response using ConversationRelay text message
-      const promptMessage = "I'm still here. Could you please say something or let me know how I can help you?";
+      const promptMessages = [
+        "I'm still here and ready to help. What would you like to talk about?",
+        "Hello? I'm listening. Please let me know how I can assist you today.",
+        "Are you there? Feel free to speak - I'm here to help with any questions you have."
+      ];
+
+      // Use a random prompt to make it feel more natural
+      const promptMessage = promptMessages[Math.floor(Math.random() * promptMessages.length)];
 
       // Send ConversationRelay text message to encourage user interaction
       await this.sendTextMessage(session, promptMessage);

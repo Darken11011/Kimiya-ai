@@ -58,10 +58,10 @@ module.exports = async function connectActionHandler(req, res) {
   } catch (error) {
     console.error('[Connect-Action] Error processing connect action:', error);
     
-    // Send error TwiML
+    // Send error TwiML - ConversationRelay native TTS
     const errorTwiML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Thank you for calling. Have a great day!</Say>
+    <Say>Thank you for calling. Have a great day!</Say>
     <Hangup/>
 </Response>`;
     
@@ -100,7 +100,7 @@ function generateClosingTwiML(connectStatus, connectDuration) {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">${closingMessage}</Say>
+    <Say>${closingMessage}</Say>
     <Hangup/>
 </Response>`;
 }
