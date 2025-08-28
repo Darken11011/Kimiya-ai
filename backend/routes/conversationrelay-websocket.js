@@ -853,7 +853,7 @@ class ConversationRelayWebSocket {
       type: 'text',
       text: text,
       voice: {
-        name: 'Rachel',     // ElevenLabs-compatible voice
+        name: 'alice',     // Twilio ConversationRelay-compatible voice
         language: 'en-US'
       }
     };
