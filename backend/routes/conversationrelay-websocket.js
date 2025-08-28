@@ -844,21 +844,13 @@ class ConversationRelayWebSocket {
   async sendTextMessage(session, text) {
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // ConversationRelay compatible voice configurations
-    const voiceConfigs = [
-      { name: 'alice', language: 'en-US' },           // Standard ConversationRelay voice
-      { name: 'man', language: 'en-US' },            // Alternative ConversationRelay voice
-      { name: 'woman', language: 'en-US' }           // Alternative ConversationRelay voice
-    ];
-
-    // Use alice voice for ConversationRelay compatibility
-    const selectedVoice = voiceConfigs[0];
-    console.log(`[ConversationRelay-WS] 🎤 Using voice: ${selectedVoice.name} (${selectedVoice.language})`);
+    // CRITICAL: Remove voice configuration to avoid ElevenLabs TTS conflicts
+    // Let ConversationRelay use default TTS settings to prevent Error 64101
+    console.log(`[ConversationRelay-WS] 📤 Sending text message without voice config to avoid ElevenLabs conflicts`);
 
     const textMessage = {
       type: 'text',
-      text: text,
-      voice: selectedVoice
+      text: text
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
