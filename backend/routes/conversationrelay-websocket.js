@@ -882,14 +882,17 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CRITICAL: Use plain text messages for ConversationRelay native TTS
-    // ConversationRelay handles TTS automatically without voice configuration
-    console.log(`[ConversationRelay-WS] 📤 Sending plain text message for native ConversationRelay TTS`);
+    // CRITICAL: Use ConversationRelay-compatible voice configuration for TTS
+    // ConversationRelay requires voice settings for proper TTS synthesis
+    console.log(`[ConversationRelay-WS] 📤 Sending text message with ConversationRelay voice config for TTS`);
 
     const textMessage = {
       type: 'text',
-      text: text
-      // No voice configuration - ConversationRelay handles TTS natively
+      text: text,
+      voice: {
+        name: 'alice',        // ConversationRelay-compatible voice
+        language: 'en-US'     // Language for TTS
+      }
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
