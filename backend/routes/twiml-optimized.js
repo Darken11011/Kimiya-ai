@@ -70,15 +70,17 @@ function generateFastTwiML(workflowId, trackingId) {
 
   // ConversationRelay only - No fallback needed (fixes ReferenceError: req is not defined)
 
-  // ConversationRelay with native TTS/STT - Primary TwiML generation
+  // ConversationRelay with ElevenLabs TTS - Primary TwiML generation
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Primary ConversationRelay TwiML - Native TTS/STT -->
+    <!-- Primary ConversationRelay TwiML - ElevenLabs TTS -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
+            voice="21m00Tcm4TlvDq8ikWAM"
             language="en-US"
+            dtmfDetection="true"
         />
     </Connect>
 </Response>`;
@@ -111,12 +113,14 @@ function generateFastFallbackTwiML(req, res) {
 
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Emergency Fallback ConversationRelay TwiML - Native TTS/STT -->
+    <!-- Emergency Fallback ConversationRelay TwiML - ElevenLabs TTS -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello! I'm your AI assistant. How can I help you today?"
+            voice="pNInz6obpgDQGcFmaJgB"
             language="en-US"
+            dtmfDetection="true"
         />
     </Connect>
 </Response>`;

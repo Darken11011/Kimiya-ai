@@ -49,13 +49,21 @@ async function testTwiMLVoiceConfiguration() {
         const voiceValue = voiceMatch[1];
         console.log(`   Voice setting: "${voiceValue}"`);
         
-        // Validate voice setting
-        const validVoices = ['alice', 'man', 'woman'];
+        // Validate voice setting - Updated for ElevenLabs integration
+        const validVoices = [
+          '21m00Tcm4TlvDq8ikWAM', // Rachel (Female, English)
+          'pNInz6obpgDQGcFmaJgB', // Adam (Male, English)
+          'AZnzlk1XvdvUeBnXmlld', // Domi (Female, English)
+          'EXAVITQu4vr4xnSDxMaL', // Bella (Female, English)
+          'en-US-Standard-A',      // Google fallback
+          'Joanna-Generative'      // Amazon Polly fallback
+        ];
         if (validVoices.includes(voiceValue)) {
-          console.log('✅ Voice setting is VALID for ConversationRelay');
+          console.log('✅ Voice setting is VALID for ConversationRelay with ElevenLabs');
         } else {
           console.log('❌ Voice setting is INVALID - will cause Error 64101');
-          console.log(`   Valid options: ${validVoices.join(', ')}`);
+          console.log(`   Valid ElevenLabs options: 21m00Tcm4TlvDq8ikWAM, pNInz6obpgDQGcFmaJgB`);
+          console.log(`   Valid fallback options: en-US-Standard-A, Joanna-Generative`);
           return false;
         }
       } else {
@@ -183,13 +191,20 @@ async function testWebSocketVoiceConfiguration() {
           console.log(`   Voice Name: "${message.voice.name}"`);
           console.log(`   Voice Language: "${message.voice.language}"`);
           
-          // Validate WebSocket voice configuration
-          const validVoices = ['alice', 'man', 'woman'];
+          // Validate WebSocket voice configuration - Updated for ElevenLabs
+          const validVoices = [
+            '21m00Tcm4TlvDq8ikWAM', // Rachel (Female, English)
+            'pNInz6obpgDQGcFmaJgB', // Adam (Male, English)
+            'AZnzlk1XvdvUeBnXmlld', // Domi (Female, English)
+            'EXAVITQu4vr4xnSDxMaL', // Bella (Female, English)
+            'en-US-Standard-A',      // Google fallback
+            'Joanna-Generative'      // Amazon Polly fallback
+          ];
           if (validVoices.includes(message.voice.name)) {
-            console.log('✅ WebSocket voice configuration is VALID');
+            console.log('✅ WebSocket voice configuration is VALID for ElevenLabs');
           } else {
             console.log('❌ WebSocket voice configuration is INVALID');
-            console.log(`   Valid options: ${validVoices.join(', ')}`);
+            console.log(`   Valid ElevenLabs options: 21m00Tcm4TlvDq8ikWAM, pNInz6obpgDQGcFmaJgB`);
           }
         } else {
           console.log('⚠️  No voice configuration in WebSocket message');
@@ -246,14 +261,14 @@ async function runVoiceConfigurationTest() {
     if (!twimlOk) {
       console.log('🔧 TwiML Issues:');
       console.log('   - Voice setting may cause Error 64101');
-      console.log('   - Use voice="alice", "man", or "woman" only');
-      console.log('   - Remove AWS Polly, ElevenLabs, or other provider names');
+      console.log('   - Use ElevenLabs voice IDs like "21m00Tcm4TlvDq8ikWAM" (Rachel)');
+      console.log('   - Or fallback options like "en-US-Standard-A" (Google)');
     }
     
     if (!websocketOk) {
       console.log('🔧 WebSocket Issues:');
       console.log('   - Voice configuration in text messages may be invalid');
-      console.log('   - Ensure voice.name uses ConversationRelay-compatible values');
+      console.log('   - Ensure voice.name uses ElevenLabs voice IDs like "21m00Tcm4TlvDq8ikWAM"');
     }
     
     console.log('\n🚀 RECOMMENDED ACTIONS:');
