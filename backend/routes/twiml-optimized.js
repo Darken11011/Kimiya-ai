@@ -69,14 +69,14 @@ function generateFastTwiML(workflowId, trackingId) {
 
   // ConversationRelay only - No fallback needed (fixes ReferenceError: req is not defined)
 
-  // ConversationRelay - EXACT copy of working Test 2 (Minimal ConversationRelay)
+  // ConversationRelay - Using ElevenLabs with complete voice ID
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Connect>
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
-            voice="alice"
+            voice="21m00Tcm4TlvDq8ikWAM"
             language="en-US"
         />
     </Connect>
