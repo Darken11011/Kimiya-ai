@@ -13,18 +13,31 @@ if (process.env.NODE_ENV !== 'production') {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS configuration to allow Vercel frontend
+// CORS configuration to allow Vercel frontend - Enhanced for better compatibility
 const corsOptions = {
-  origin: [
-    'http://localhost:8080',
-    'http://localhost:3000',
-    'https://kimiya-ai.vercel.app',
-    'https://kimiyi-ai.onrender.com'
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      'http://localhost:8080',
+      'http://localhost:3000',
+      'https://kimiya-ai.vercel.app',
+      'https://kimiyi-ai.onrender.com'
+    ];
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  preflightContinue: false
 };
 
 // Middleware
@@ -35,8 +48,13 @@ app.use(express.urlencoded({ extended: true }));
 // Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
 
-// Health check endpoint
+// Health check endpoint with explicit CORS
 app.get('/health', (req, res) => {
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', 'https://kimiya-ai.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+
   // Check ConversationRelay WebSocket status
   const conversationRelayStatus = global.conversationRelayWS ? 'active' : 'not_initialized';
   const activeConnections = global.conversationRelayWS ? global.conversationRelayWS.activeSessions?.size || 0 : 0;
@@ -92,9 +110,14 @@ app.get('/health', (req, res) => {
   res.json(healthStatus);
 });
 
-// Quick ping endpoint for fast wake-up
+// Quick ping endpoint for fast wake-up with CORS
 app.get('/ping', (req, res) => {
-  res.json({ pong: true, timestamp: Date.now() });
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', 'https://kimiya-ai.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+
+  res.json({ pong: true, timestamp: Date.now(), status: 'awake' });
 });
 
 // Import essential route handlers (removed conflicting traditional TwiML handlers)
