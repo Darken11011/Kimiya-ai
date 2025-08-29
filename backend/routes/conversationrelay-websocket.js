@@ -882,16 +882,12 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CORRECTED: WebSocket messages need voice config to trigger TTS playback
-    console.log(`[ConversationRelay-WS] 📤 Sending text message with Google TTS (testing)`);
+    // TESTING: Minimal message format for ConversationRelay TTS
+    console.log(`[ConversationRelay-WS] 📤 Sending minimal text message for TTS testing`);
 
     const textMessage = {
       type: 'text',
-      text: text,
-      voice: {
-        name: 'en-US-Standard-A',  // Google TTS for testing
-        language: 'en-US'
-      }
+      text: text
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
