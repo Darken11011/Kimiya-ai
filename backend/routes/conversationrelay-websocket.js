@@ -882,14 +882,14 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // UPDATED: Use ElevenLabs voice ID for ConversationRelay TTS
-    console.log(`[ConversationRelay-WS] 📤 Sending text message with ElevenLabs voice`);
+    // CORRECTED: WebSocket messages need voice config to trigger TTS playback
+    console.log(`[ConversationRelay-WS] 📤 Sending text message with Google TTS (testing)`);
 
     const textMessage = {
       type: 'text',
       text: text,
       voice: {
-        name: '21m00Tcm4TlvDq8ikWAM',  // Rachel - ElevenLabs female voice
+        name: 'en-US-Standard-A',  // Google TTS for testing
         language: 'en-US'
       }
     };
