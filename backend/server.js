@@ -107,6 +107,7 @@ const twimlOptimizedHandler = require('./routes/twiml-optimized');
 const connectActionHandler = require('./routes/connect-action');
 const optimizedRoutes = require('./routes/optimized-routes');
 const ConversationRelayWebSocket = require('./routes/conversationrelay-websocket');
+const { testTTSEndpoint } = require('./routes/test-tts-endpoint');
 
 // Essential API Routes (removed conflicting traditional TwiML routes)
 app.get('/api/twilio-config', twilioConfigHandler);
@@ -116,6 +117,9 @@ app.post('/api/chat', chatHandler);
 app.post('/api/make-call-optimized', makeCallOptimizedHandler);
 app.all('/api/twiml-optimized', twimlOptimizedHandler);
 app.all('/api/connect-action', connectActionHandler);
+
+// TTS diagnostic endpoint (accept both GET and POST)
+app.all('/api/test-tts', testTTSEndpoint);
 
 // Mount additional optimized routes (includes call-status-optimized and performance endpoints)
 app.use('/api', optimizedRoutes);
