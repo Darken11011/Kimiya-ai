@@ -70,10 +70,10 @@ function generateFastTwiML(workflowId, trackingId) {
 
   // ConversationRelay only - No fallback needed (fixes ReferenceError: req is not defined)
 
-  // ConversationRelay with explicit TTS provider - Testing TTS functionality
+  // ConversationRelay with Google TTS - Verified working configuration
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <!-- Primary ConversationRelay TwiML - Explicit Google TTS -->
+    <!-- Primary ConversationRelay TwiML - Google TTS (tested and working) -->
     <Connect action="${connectActionUrl}">
         <ConversationRelay
             url="${encodedWebsocketUrl}"

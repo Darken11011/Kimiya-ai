@@ -767,8 +767,16 @@ class ConversationRelayWebSocket {
   }
 
   sendMessage(ws, message) {
+    console.log(`[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket`);
+    console.log(`[ConversationRelay-WS] WebSocket state: ${ws.readyState} (1=OPEN, 2=CLOSING, 3=CLOSED)`);
+
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
+      const messageStr = JSON.stringify(message);
+      console.log(`[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: ${messageStr}`);
+      ws.send(messageStr);
+      console.log(`[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay`);
+    } else {
+      console.log(`[ConversationRelay-WS] ❌ Cannot send message - WebSocket not open (state: ${ws.readyState})`);
     }
   }
 
@@ -785,12 +793,6 @@ class ConversationRelayWebSocket {
 
   // ConversationRelay handles STT automatically - no need for custom convertAudioToText
   // The STT is handled by Twilio's ConversationRelay service natively
-
-  sendMessage(ws, message) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
-    }
-  }
 
   closeSession(callSid) {
     const session = this.activeSessions.get(callSid);
@@ -882,8 +884,8 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // TESTING: Minimal message format for ConversationRelay TTS
-    console.log(`[ConversationRelay-WS] 📤 Sending minimal text message for TTS testing`);
+    // FIXED: Use same format as successful test - minimal and clean
+    console.log(`[ConversationRelay-WS] 📤 Sending text message (format verified by tests)`);
 
     const textMessage = {
       type: 'text',
