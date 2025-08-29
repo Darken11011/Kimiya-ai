@@ -12,123 +12,20 @@ const fromNumber = process.env.TWILIO_PHONE_NUMBER || '+17077433838';
 
 async function testTTSEndpoint(req, res) {
   console.log('[TTS-Test] Starting TTS diagnostic tests...');
-  console.log('[TTS-Test] Request method:', req.method);
-  console.log('[TTS-Test] Request body:', req.body);
-  console.log('[TTS-Test] Request query:', req.query);
-
-  // Set CORS headers
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+  
   try {
     // Validate credentials
     if (!accountSid || !authToken) {
-      console.log('[TTS-Test] Missing credentials:', { accountSid: !!accountSid, authToken: !!authToken });
       return res.status(500).json({
         success: false,
         error: 'Missing Twilio credentials',
-        details: 'TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN required',
-        env: {
-          hasAccountSid: !!accountSid,
-          hasAuthToken: !!authToken,
-          hasFromNumber: !!fromNumber
-        }
+        details: 'TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN required'
       });
     }
     
-    // If GET request, return a simple test page
-    if (req.method === 'GET') {
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>TTS Diagnostic Test</title>
-          <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-            .button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 0; }
-            .button:hover { background: #005a87; }
-            .result { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0; }
-            .loading { color: #666; font-style: italic; }
-          </style>
-        </head>
-        <body>
-          <h1>🎤 TTS Diagnostic Test</h1>
-          <p>This will make 3 test calls to diagnose TTS functionality:</p>
-          <ol>
-            <li><strong>Basic TTS</strong> - Uses &lt;Say&gt; verb (should work)</li>
-            <li><strong>ConversationRelay Minimal</strong> - Tests ConversationRelay TTS</li>
-            <li><strong>ConversationRelay Google TTS</strong> - Tests Google TTS provider</li>
-          </ol>
-
-          <input type="text" id="phoneNumber" placeholder="Phone number (e.g., +919649770017)" value="+919649770017" style="width: 300px; padding: 8px; margin: 10px 0;">
-          <br>
-          <button class="button" onclick="runTest()">🚀 Run TTS Tests</button>
-
-          <div id="result"></div>
-
-          <script>
-            async function runTest() {
-              const phoneNumber = document.getElementById('phoneNumber').value;
-              const resultDiv = document.getElementById('result');
-
-              resultDiv.innerHTML = '<div class="loading">🔄 Running TTS tests... This will take about 15 seconds.</div>';
-
-              try {
-                const response = await fetch('/api/test-tts', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ to: phoneNumber })
-                });
-
-                const data = await response.json();
-
-                let html = '<div class="result"><h3>📋 Test Results:</h3>';
-
-                if (data.success) {
-                  html += '<p>✅ Tests completed successfully!</p>';
-                  html += '<h4>Test Results:</h4><ul>';
-
-                  data.results.tests.forEach(test => {
-                    const icon = test.status === 'success' ? '✅' : '❌';
-                    html += \`<li>\${icon} <strong>\${test.test}</strong>: \${test.status}\`;
-                    if (test.callSid) html += \` (Call: \${test.callSid})\`;
-                    if (test.error) html += \` - Error: \${test.error}\`;
-                    if (test.expected) html += \`<br><em>\${test.expected}</em>\`;
-                    html += '</li>';
-                  });
-
-                  html += '</ul><h4>📞 Next Steps:</h4><ul>';
-                  data.nextSteps.forEach(step => {
-                    html += \`<li>\${step}</li>\`;
-                  });
-                  html += '</ul>';
-                } else {
-                  html += \`<p>❌ Test failed: \${data.error}</p>\`;
-                  if (data.details) html += \`<p>Details: \${data.details}</p>\`;
-                }
-
-                html += '</div>';
-                resultDiv.innerHTML = html;
-
-              } catch (error) {
-                resultDiv.innerHTML = \`<div class="result">❌ Error running tests: \${error.message}</div>\`;
-              }
-            }
-          </script>
-        </body>
-        </html>
-      `);
-    }
-
     const client = twilio(accountSid, authToken);
     const toNumber = req.body.to || req.query.to || '+919649770017';
-
+    
     console.log(`[TTS-Test] Using credentials: ${accountSid.substring(0, 10)}...`);
     console.log(`[TTS-Test] Testing TTS to: ${toNumber}`);
     

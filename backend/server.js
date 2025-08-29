@@ -118,8 +118,8 @@ app.post('/api/make-call-optimized', makeCallOptimizedHandler);
 app.all('/api/twiml-optimized', twimlOptimizedHandler);
 app.all('/api/connect-action', connectActionHandler);
 
-// TTS diagnostic endpoint (accept both GET and POST)
-app.all('/api/test-tts', testTTSEndpoint);
+// TTS diagnostic endpoint
+app.post('/api/test-tts', testTTSEndpoint);
 
 // Mount additional optimized routes (includes call-status-optimized and performance endpoints)
 app.use('/api', optimizedRoutes);
