@@ -65,29 +65,28 @@ function generateFastTwiML(workflowId, trackingId) {
   console.log(`[generateFastTwiML] WebSocket URL: ${websocketUrl}`);
 
   // CRITICAL: Encode & in URL parameters to prevent XML parsing errors
-  const connectActionUrl = `/api/connect-action?workflowId=${workflowId}&amp;trackingId=${trackingId}`;
   const encodedWebsocketUrl = websocketUrl.replace(/&/g, '&amp;');
 
   // ConversationRelay only - No fallback needed (fixes ReferenceError: req is not defined)
 
-  // ConversationRelay - EXACT copy of working test configuration
+  // ConversationRelay - EXACT copy of working Test 2 (Minimal ConversationRelay)
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Connect>
         <ConversationRelay
             url="${encodedWebsocketUrl}"
             welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
+            voice="alice"
             language="en-US"
-        >
-            <Language code="en-US" ttsProvider="google" voice="en-US-Standard-A" />
-        </ConversationRelay>
+        />
     </Connect>
 </Response>`;
 
   console.log(`[generateFastTwiML] ===== TWIML GENERATED =====`);
   console.log(`[generateFastTwiML] TwiML length: ${twiml.length} chars`);
   console.log(`[generateFastTwiML] WebSocket URL encoded: ${encodedWebsocketUrl}`);
-  console.log(`[generateFastTwiML] Connect action: ${connectActionUrl}`);
+  console.log(`[generateFastTwiML] ACTUAL TWIML CONTENT:`);
+  console.log(twiml);
 
   return twiml;
 }
