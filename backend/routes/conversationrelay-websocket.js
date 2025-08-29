@@ -678,11 +678,14 @@ class ConversationRelayWebSocket {
       // Get orchestrator for workflow data
       const orchestrator = getActiveOrchestrator(session.trackingId);
 
-      // Build conversation context with workflow awareness
+      // Build conversation context with workflow awareness - VOICE CALL OPTIMIZED
+      const voiceOptimizedPrompt = orchestrator?.workflowData?.globalPrompt ||
+        'You are Kimiya, a helpful AI assistant speaking on a phone call. You can hear and speak clearly. Provide natural, conversational responses as if you are talking to someone on the phone. Keep responses concise and friendly. Never mention that you cannot hear or speak - you are having a normal voice conversation.';
+
       const messages = [
         {
           role: 'system',
-          content: orchestrator?.workflowData?.globalPrompt || 'You are a helpful AI assistant. Provide concise, helpful responses based on the conversation context.'
+          content: voiceOptimizedPrompt
         }
       ];
 
@@ -826,7 +829,7 @@ class ConversationRelayWebSocket {
     setTimeout(async () => {
       if (session.isActive && session.conversationState === 'waiting_for_speech') {
         console.log(`[ConversationRelay-WS] 💬 Sending follow-up prompt to encourage user interaction`);
-        await this.sendTextMessage(session, "Please feel free to speak - I'm listening and ready to help you!");
+        await this.sendTextMessage(session, "How can I help you today?");
       }
     }, 3000); // 3 second delay after welcome greeting
   }
