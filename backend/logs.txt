@@ -1,6 +1,6 @@
-Optimized Route] POST /call-status-optimized - 200 - 2ms
+[Optimized Route] POST /call-status-optimized - 200 - 1ms
 === OPTIMIZED MAKE CALL REQUEST ===
-Timestamp: 2025-08-29T18:38:57.520Z
+Timestamp: 2025-08-30T08:45:17.258Z
 Request body keys: [
   'to',
   'from',
@@ -39,23 +39,23 @@ Request body keys: [
 }
 [ConversationRelay] Initialized with bidirectional streaming
 [PerformanceOrchestrator] Initialized with all optimizations enabled
-[PerformanceOrchestrator] Starting optimized conversation for call call_1756492737521_uh9pp9y1g
-[ConversationRelay] Starting conversation for call call_1756492737521_uh9pp9y1g
+[PerformanceOrchestrator] Starting optimized conversation for call call_1756543517258_gmo5ebddf
+[ConversationRelay] Starting conversation for call call_1756543517258_gmo5ebddf
 [ConversationRelay] Workflow data: {
-  workflowId: 'workflow-1756492736537',
+  workflowId: 'workflow-1756543515468',
   nodesCount: 12,
   edgesCount: 16,
   hasGlobalPrompt: true
 }
-[ConversationRelay] WebSocket connection setup for call call_1756492737521_uh9pp9y1g (using TwiML bridge)
+[ConversationRelay] WebSocket connection setup for call call_1756543517258_gmo5ebddf (using TwiML bridge)
 [ConversationRelay] Audio pipeline configured
-[ConversationRelay] Stream initialized for call call_1756492737521_uh9pp9y1g
-[ConversationRelay] Bidirectional streaming setup complete for call call_1756492737521_uh9pp9y1g
-[ConversationRelay] Conversation started in 0.21866700000828132ms
-[PerformanceOrchestrator] Optimized conversation started in 0.2776210000156425ms
+[ConversationRelay] Stream initialized for call call_1756543517258_gmo5ebddf
+[ConversationRelay] Bidirectional streaming setup complete for call call_1756543517258_gmo5ebddf
+[ConversationRelay] Conversation started in 0.17734399996697903ms
+[PerformanceOrchestrator] Optimized conversation started in 0.2271650000475347ms
 Performance optimization initialized: {
   success: true,
-  callSid: 'call_1756492737521_uh9pp9y1g',
+  callSid: 'call_1756543517258_gmo5ebddf',
   optimizations: {
     conversationRelay: true,
     predictiveCache: true,
@@ -64,65 +64,65 @@ Performance optimization initialized: {
   },
   expectedLatency: '150-250ms'
 }
-Using optimized TwiML endpoint: https://kimiyi-ai.onrender.com/api/twiml-optimized?id=workflow-1756492736537&trackingId=call_1756492737521_uh9pp9y1g
+Using optimized TwiML endpoint: https://kimiyi-ai.onrender.com/api/twiml-optimized?id=workflow-1756543515468&trackingId=call_1756543517258_gmo5ebddf
 Optimized Twilio API call parameters: {
   To: '+919649770017',
   From: '+17077433838',
-  Url: 'https://kimiyi-ai.onrender.com/api/twiml-optimized?id=workflow-1756492736537&trackingId=call_1756492737521_uh9pp9y1g',
+  Url: 'https://kimiyi-ai.onrender.com/api/twiml-optimized?id=workflow-1756543515468&trackingId=call_1756543517258_gmo5ebddf',
   OptimizationEnabled: true,
   ExpectedLatency: '150-250ms',
-  TrackingId: 'call_1756492737521_uh9pp9y1g'
+  TrackingId: 'call_1756543517258_gmo5ebddf'
 }
 Twilio call created successfully: {
-  callSid: 'CA79589809a8e7974591354ac6e76f8ff0',
+  callSid: 'CAa2509f67f86b8651a77658eecec2e4da',
   status: 'queued',
   to: '+919649770017',
   from: '+17077433838',
   optimizationEnabled: true,
-  trackingId: 'call_1756492737521_uh9pp9y1g'
+  trackingId: 'call_1756543517258_gmo5ebddf'
 }
 [TwiML-Optimized] ===== FAST TWIML REQUEST =====
-[TwiML-Optimized] Call: CA79589809a8e7974591354ac6e76f8ff0, Workflow: workflow-1756492736537, Tracking: call_1756492737521_uh9pp9y1g
+[TwiML-Optimized] Call: CAa2509f67f86b8651a77658eecec2e4da, Workflow: workflow-1756543515468, Tracking: call_1756543517258_gmo5ebddf
 [generateFastTwiML] ===== CREATING TWIML =====
-[generateFastTwiML] Workflow: workflow-1756492736537, Tracking: call_1756492737521_uh9pp9y1g
-[generateFastTwiML] WebSocket URL: wss://kimiyi-ai.onrender.com/api/conversationrelay-ws?workflowId=workflow-1756492736537&trackingId=call_1756492737521_uh9pp9y1g
+[generateFastTwiML] Workflow: workflow-1756543515468, Tracking: call_1756543517258_gmo5ebddf
+[generateFastTwiML] WebSocket URL: wss://kimiyi-ai.onrender.com/api/conversationrelay-ws?workflowId=workflow-1756543515468&trackingId=call_1756543517258_gmo5ebddf
 [generateFastTwiML] ===== TWIML GENERATED =====
 [generateFastTwiML] TwiML length: 435 chars
-[generateFastTwiML] WebSocket URL encoded: wss://kimiyi-ai.onrender.com/api/conversationrelay-ws?workflowId=workflow-1756492736537&amp;trackingId=call_1756492737521_uh9pp9y1g
+[generateFastTwiML] WebSocket URL encoded: wss://kimiyi-ai.onrender.com/api/conversationrelay-ws?workflowId=workflow-1756543515468&amp;trackingId=call_1756543517258_gmo5ebddf
 [generateFastTwiML] ACTUAL TWIML CONTENT:
 <?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Connect>
         <ConversationRelay
-            url="wss://kimiyi-ai.onrender.com/api/conversationrelay-ws?workflowId=workflow-1756492736537&amp;trackingId=call_1756492737521_uh9pp9y1g"
+            url="wss://kimiyi-ai.onrender.com/api/conversationrelay-ws?workflowId=workflow-1756543515468&amp;trackingId=call_1756543517258_gmo5ebddf"
             welcomeGreeting="Hello Aditya! I'm your Kimiya. How can I help you today?"
             voice="21m00Tcm4TlvDq8ikWAM"
             language="en-US"
         />
     </Connect>
 </Response>
-[TwiML-Optimized] FAST TwiML generated in 0.18ms
-[TwiML-Optimized] Background orchestrator ready for call_1756492737521_uh9pp9y1g
+[TwiML-Optimized] FAST TwiML generated in 0.16ms
+[TwiML-Optimized] Background orchestrator ready for call_1756543517258_gmo5ebddf
 [ConversationRelay-WS] 🔍 Verifying WebSocket client connection
 [ConversationRelay-WS] 🔍 Origin: undefined
-[ConversationRelay-WS] 🔍 URL: /api/conversationrelay-ws?workflowId=workflow-1756492736537&trackingId=call_1756492737521_uh9pp9y1g
+[ConversationRelay-WS] 🔍 URL: /api/conversationrelay-ws?workflowId=workflow-1756543515468&trackingId=call_1756543517258_gmo5ebddf
 [ConversationRelay-WS] 🔍 User-Agent: Jetty/11.0.20
 [ConversationRelay-WS] 🔍 Sec-WebSocket-Protocol: undefined
 [ConversationRelay-WS] ✅ Detected Twilio ConversationRelay connection attempt
 [ConversationRelay-WS] 🎉 ===== NEW WEBSOCKET CONNECTION ESTABLISHED =====
-[ConversationRelay-WS] 🔗 Request URL: /api/conversationrelay-ws?workflowId=workflow-1756492736537&trackingId=call_1756492737521_uh9pp9y1g
+[ConversationRelay-WS] 🔗 Request URL: /api/conversationrelay-ws?workflowId=workflow-1756543515468&trackingId=call_1756543517258_gmo5ebddf
 [ConversationRelay-WS] 🔗 Request method: GET
-[ConversationRelay-WS] 🔗 Connection time: 2025-08-29T18:39:05.434Z
+[ConversationRelay-WS] 🔗 Connection time: 2025-08-30T08:45:24.347Z
 [ConversationRelay-WS] 🔗 Remote address: ::1
 [ConversationRelay-WS] 🔗 User-Agent: Jetty/11.0.20
 [ConversationRelay-WS] 🔗 Protocol: 
 [ConversationRelay-WS] ===== CONNECTION PARAMETERS =====
-[ConversationRelay-WS] CallSid: call_1756492745434
-[ConversationRelay-WS] TrackingId: call_1756492737521_uh9pp9y1g
-[ConversationRelay-WS] WorkflowId: workflow-1756492736537
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] TrackingId: call_1756543517258_gmo5ebddf
+[ConversationRelay-WS] WorkflowId: workflow-1756543515468
 [ConversationRelay-WS] All URL params: {
-  workflowId: 'workflow-1756492736537',
-  trackingId: 'call_1756492737521_uh9pp9y1g'
+  workflowId: 'workflow-1756543515468',
+  trackingId: 'call_1756543517258_gmo5ebddf'
 }
 [ConversationRelay-WS] ===== REQUEST HEADERS =====
 [ConversationRelay-WS] User-Agent: Jetty/11.0.20
@@ -135,34 +135,34 @@ Twilio call created successfully: {
   'accept-encoding': 'gzip, br',
   'cache-control': 'no-cache',
   'cdn-loop': 'cloudflare; loops=1',
-  'cf-connecting-ip': '52.207.243.62',
+  'cf-connecting-ip': '52.86.15.75',
   'cf-ipcountry': 'US',
-  'cf-ray': '976e2b4989e53afc-IAD',
+  'cf-ray': '977303019f91c488-IAD',
   'cf-visitor': '{"scheme":"https"}',
   connection: 'Upgrade',
   pragma: 'no-cache',
-  'render-cf-start-time-msec': '203',
-  'render-cf-start-time-sec': '1756492745',
+  'render-cf-start-time-msec': '93',
+  'render-cf-start-time-sec': '1756543524',
   'render-proxy-ttl': '4',
-  'rndr-id': 'a256890c-9c4b-462c',
-  'sec-websocket-key': '3NqSvIsH2OokEeT8ok2tNQ==',
+  'rndr-id': '9ea6a131-2b54-4c15',
+  'sec-websocket-key': 'LZ2l3c2yZa433bm8xg+5og==',
   'sec-websocket-version': '13',
-  'true-client-ip': '52.207.243.62',
+  'true-client-ip': '52.86.15.75',
   upgrade: 'websocket',
-  'x-forwarded-for': '52.207.243.62, 10.220.9.194',
+  'x-forwarded-for': '52.86.15.75, 10.220.242.102',
   'x-forwarded-proto': 'https',
   'x-render-as-num': '14618',
   'x-render-threat-score': '0',
-  'x-twilio-signature': 'JC7WKfF6I6vmdrGmMxWfrhwSP6o='
+  'x-twilio-signature': '+l6SEd8Ww/Et0oC4FhZfwCLLrfo='
 }
-[ConversationRelay-WS] 🕐 Started silence timeout for call_1756492745434 (30000ms)
-[ConversationRelay-WS] ✅ ConversationRelay session ready for call_1756492745434 - waiting for setup message
+[ConversationRelay-WS] 🕐 Started silence timeout for call_1756543524347 (30000ms)
+[ConversationRelay-WS] ✅ ConversationRelay session ready for call_1756543524347 - waiting for setup message
 [ConversationRelay-WS] ===== MESSAGE RECEIVED =====
-[ConversationRelay-WS] CallSid: call_1756492745434
+[ConversationRelay-WS] CallSid: call_1756543524347
 [ConversationRelay-WS] Event: undefined
 [ConversationRelay-WS] Message count: 1
 [ConversationRelay-WS] Message size: 353 bytes
-[ConversationRelay-WS] Timestamp: 2025-08-29T18:39:05.524Z
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:24.445Z
 [ConversationRelay-WS] Session active: false
 [ConversationRelay-WS] Full message structure: [
   'type',             'sessionId',
@@ -173,13 +173,13 @@ Twilio call created successfully: {
   'callStatus',       'accountSid',
   'customParameters'
 ]
-[ConversationRelay-WS] Message preview: {"type":"setup","sessionId":"VXd677fbb9af006811d1e745f63f62f000","callSid":"CA79589809a8e7974591354ac6e76f8ff0","parentCallSid":"","from":"+17077433838","to":"+919649770017","forwardedFrom":"","caller...
+[ConversationRelay-WS] Message preview: {"type":"setup","sessionId":"VX6c48222fbc79aaa7ab69a654c8bee08f","callSid":"CAa2509f67f86b8651a77658eecec2e4da","parentCallSid":"","from":"+17077433838","to":"+919649770017","forwardedFrom":"","caller...
 [ConversationRelay-WS] 🔧 Handling SETUP message - ConversationRelay initialization
-[ConversationRelay-WS] 🔧 SETUP message received for call_1756492745434
+[ConversationRelay-WS] 🔧 SETUP message received for call_1756543524347
 [ConversationRelay-WS] Setup details: {
   "type": "setup",
-  "sessionId": "VXd677fbb9af006811d1e745f63f62f000",
-  "callSid": "CA79589809a8e7974591354ac6e76f8ff0",
+  "sessionId": "VX6c48222fbc79aaa7ab69a654c8bee08f",
+  "callSid": "CAa2509f67f86b8651a77658eecec2e4da",
   "parentCallSid": "",
   "from": "+17077433838",
   "to": "+919649770017",
@@ -191,112 +191,319 @@ Twilio call created successfully: {
   "accountSid": "AC64208c7087a03b475ea7fa9337b692f8",
   "customParameters": {}
 }
-[ConversationRelay-WS] ✅ Setup complete, waiting for user input for call_1756492745434
+[ConversationRelay-WS] ✅ Setup complete, waiting for user input for call_1756543524347
 [ConversationRelay-WS] TwiML welcomeGreeting will handle initial greeting automatically
 [ConversationRelay-WS] 💬 Sending follow-up prompt to encourage user interaction
-[ConversationRelay-WS] 📤 Sending text message to call_1756492745434: "How can I help you today?"
-[ConversationRelay-WS] 📤 Sending text message with ElevenLabs voice config
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "How can I help you today?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
 [ConversationRelay-WS] 📋 Full message being sent: {
-  "type": "text",
-  "text": "How can I help you today?",
-  "voice": {
-    "name": "21m00Tcm4TlvDq8ikWAM",
-    "language": "en-US"
-  }
+  "type": "assistant",
+  "text": "How can I help you today?"
 }
 [ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
 [ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
-[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"text","text":"How can I help you today?","voice":{"name":"21m00Tcm4TlvDq8ikWAM","language":"en-US"}}
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"How can I help you today?"}
 [ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
-[ConversationRelay-WS] ✅ Text message sent successfully to call_1756492745434
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
 [ConversationRelay-WS] ===== MESSAGE RECEIVED =====
-[ConversationRelay-WS] CallSid: call_1756492745434
+[ConversationRelay-WS] CallSid: call_1756543524347
 [ConversationRelay-WS] Event: undefined
 [ConversationRelay-WS] Message count: 2
-[ConversationRelay-WS] Message size: 84 bytes
-[ConversationRelay-WS] Timestamp: 2025-08-29T18:39:19.652Z
+[ConversationRelay-WS] Message size: 122 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:27.545Z
 [ConversationRelay-WS] Session active: true
-[ConversationRelay-WS] Full message structure: [ 'type', 'voicePrompt', 'lang', 'last' ]
-[ConversationRelay-WS] Message preview: {"type":"prompt","voicePrompt":"Hello, can you hear me?","lang":"en-US","last":true}...
-[ConversationRelay-WS] 🎤 Handling PROMPT message - User speech transcription
-[ConversationRelay-WS] 🎤 PROMPT message received for call_1756492745434
-[ConversationRelay-WS] User speech: Hello, can you hear me?
-[ConversationRelay-WS] 🕐 Started silence timeout for call_1756492745434 (30000ms)
-[ConversationRelay-WS] 🔄 Reset silence timeout for call_1756492745434
-[ConversationRelay-WS] Processing speech transcript: "Hello, can you hear me?"
-[ConversationRelay-WS] No ConversationRelay service for call_1756492745434, using basic processing
-[ConversationRelay-WS] Processing transcript fallback: "Hello, can you hear me?"
-[ConversationRelay-WS] Calling Azure OpenAI with 2 messages
-[ConversationRelay-WS] Azure OpenAI response: Hi there! Yes, I can hear you. How can I help you today?...
-[ConversationRelay-WS] ===== SENDING AI RESPONSE =====
-[ConversationRelay-WS] CallSid: call_1756492745434
-[ConversationRelay-WS] Response text: "Hi there! Yes, I can hear you. How can I help you today?"
-[ConversationRelay-WS] WebSocket state: 1
-[ConversationRelay-WS] Session active: true
-[ConversationRelay-WS] Added to conversation history. Total messages: 1
-[ConversationRelay-WS] 📤 Sending text message to call_1756492745434: "Hi there! Yes, I can hear you. How can I help you today?"
-[ConversationRelay-WS] 📤 Sending text message with ElevenLabs voice config
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"How can I help you today?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
 [ConversationRelay-WS] 📋 Full message being sent: {
-  "type": "text",
-  "text": "Hi there! Yes, I can hear you. How can I help you today?",
-  "voice": {
-    "name": "21m00Tcm4TlvDq8ikWAM",
-    "language": "en-US"
-  }
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
 }
 [ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
 [ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
-[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"text","text":"Hi there! Yes, I can hear you. How can I help you today?","voice":{"name":"21m00Tcm4TlvDq8ikWAM","language":"en-US"}}
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"How can I help you today?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
 [ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
-[ConversationRelay-WS] ✅ Text message sent successfully to call_1756492745434
-[ConversationRelay-WS] ✅ AI response sent successfully to call_1756492745434
-[ConversationRelay-WS] Response preview: "Hi there! Yes, I can hear you. How can I help you today?..."
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
 [ConversationRelay-WS] ===== MESSAGE RECEIVED =====
-[ConversationRelay-WS] CallSid: call_1756492745434
+[ConversationRelay-WS] CallSid: call_1756543524347
 [ConversationRelay-WS] Event: undefined
 [ConversationRelay-WS] Message count: 3
-[ConversationRelay-WS] Message size: 82 bytes
-[ConversationRelay-WS] Timestamp: 2025-08-29T18:39:30.856Z
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:27.643Z
 [ConversationRelay-WS] Session active: true
-[ConversationRelay-WS] Full message structure: [ 'type', 'voicePrompt', 'lang', 'last' ]
-[ConversationRelay-WS] Message preview: {"type":"prompt","voicePrompt":" You are not Audible.","lang":"en-US","last":true}...
-[ConversationRelay-WS] 🎤 Handling PROMPT message - User speech transcription
-[ConversationRelay-WS] 🎤 PROMPT message received for call_1756492745434
-[ConversationRelay-WS] User speech:  You are not Audible.
-[ConversationRelay-WS] 🕐 Started silence timeout for call_1756492745434 (30000ms)
-[ConversationRelay-WS] 🔄 Reset silence timeout for call_1756492745434
-[ConversationRelay-WS] Processing speech transcript: " You are not Audible."
-[ConversationRelay-WS] Processing transcript fallback: " You are not Audible."
-[ConversationRelay-WS] No ConversationRelay service for call_1756492745434, using basic processing
-[ConversationRelay-WS] Calling Azure OpenAI with 5 messages
-[ConversationRelay-WS] ===== SENDING AI RESPONSE =====
-[ConversationRelay-WS] CallSid: call_1756492745434
-[ConversationRelay-WS] Response text: "I'm experiencing some technical difficulties. How else can I help you?"
-[ConversationRelay-WS] Azure OpenAI API error: 400 {"error":{"message":"The response was filtered due to the prompt triggering Azure OpenAI's content management policy. Please modify your prompt and retry. To learn more about our content filtering policies please read our documentation: https://go.microsoft.com/fwlink/?linkid=2198766","type":null,"param":"prompt","code":"content_filter","status":400,"innererror":{"code":"ResponsibleAIPolicyViolation","content_filter_result":{"hate":{"filtered":true,"severity":"medium"},"jailbreak":{"filtered":false,"detected":false},"self_harm":{"filtered":false,"severity":"safe"},"sexual":{"filtered":false,"severity":"safe"},"violence":{"filtered":false,"severity":"safe"}}}}}
-[ConversationRelay-WS] WebSocket state: 1
-[ConversationRelay-WS] Session active: true
-[ConversationRelay-WS] Added to conversation history. Total messages: 4
-[ConversationRelay-WS] 📤 Sending text message to call_1756492745434: "I'm experiencing some technical difficulties. How else can I help you?"
-[ConversationRelay-WS] 📤 Sending text message with ElevenLabs voice config
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
 [ConversationRelay-WS] 📋 Full message being sent: {
-  "type": "text",
-  "text": "I'm experiencing some technical difficulties. How else can I help you?",
-  "voice": {
-    "name": "21m00Tcm4TlvDq8ikWAM",
-    "language": "en-US"
-  }
+  "type": "assistant",
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
 }
 [ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
 [ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
-[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"text","text":"I'm experiencing some technical difficulties. How else can I help you?","voice":{"name":"21m00Tcm4TlvDq8ikWAM","language":"en-US"}}
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
 [ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
-[ConversationRelay-WS] ✅ Text message sent successfully to call_1756492745434
-[ConversationRelay-WS] ✅ AI response sent successfully to call_1756492745434
-[ConversationRelay-WS] Response preview: "I'm experiencing some technical difficulties. How else can I help you?..."
-[ConversationRelay-WS] 🏓 Sent ping to keep connection alive for call_1756492745434
-[ConversationRelay-WS] 🏓 Received pong from call_1756492745434 - connection alive
-[ConversationRelay-WS] 🔌 Connection closed for CallSid=call_1756492745434, Code=1000, Reason=Closing websocket session
-[ConversationRelay-WS] Session duration: 40261ms, State: waiting_for_speech
-[ConversationRelay-WS] 🛑 Cleared silence timeout for closed session call_1756492745434
-[Call Status Optimized] Call CA79589809a8e7974591354ac6e76f8ff0 status: completed, tracking: call_1756492737521_uh9pp9y1g
-[PerformanceOrchestrator] Stopping optimized conversation for call CA79589809a8e7
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 4
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:27.746Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] 📋 Full message being sent: {
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 5
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:27.844Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] 📋 Full message being sent: {
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 6
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:27.942Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] 📋 Full message being sent: {
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 7
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:28.040Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+[ConversationRelay-WS] 📋 Full message being sent: {
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 8
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:28.139Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+[ConversationRelay-WS] 📋 Full message being sent: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 9
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:28.237Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] 📋 Full message being sent: {
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 10
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:28.335Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] 📋 Full message being sent: {
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+[ConversationRelay-WS] ===== MESSAGE RECEIVED =====
+[ConversationRelay-WS] CallSid: call_1756543524347
+[ConversationRelay-WS] Event: undefined
+[ConversationRelay-WS] Message count: 11
+[ConversationRelay-WS] Message size: 168 bytes
+[ConversationRelay-WS] Timestamp: 2025-08-30T08:45:28.432Z
+[ConversationRelay-WS] Session active: true
+[ConversationRelay-WS] Full message structure: [ 'type', 'description' ]
+[ConversationRelay-WS] Message preview: {"type":"error","description":"Invalid message received: {\"type\":\"assistant\",\"text\":\"I apologize, there was a technical issue. Could you please repeat that?\"}"}...
+[ConversationRelay-WS] ❌ Handling ERROR message - ConversationRelay error
+[ConversationRelay-WS] ❌ ConversationRelay ERROR for call_1756543524347: {
+  type: 'error',
+  description: 'Invalid message received: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}'
+}
+[ConversationRelay-WS] Error type: unknown
+[ConversationRelay-WS] Error message: No message
+[ConversationRelay-WS] 📤 Sending text message to call_1756543524347: "I apologize, there was a technical issue. Could you please repeat that?"
+[ConversationRelay-WS] 📤 Sending assistant message (official format)
+[ConversationRelay-WS] 📋 Full message being sent: {
+  "type": "assistant",
+  "text": "I apologize, there was a technical issue. Could you please repeat that?"
+}
+[ConversationRelay-WS] 🔄 Attempting to send message via WebSocket
+[ConversationRelay-WS] WebSocket state: 1 (1=OPEN, 2=CLOSING, 3=CLOSED)
+[ConversationRelay-WS] 📡 Sending to Twilio ConversationRelay: {"type":"assistant","text":"I apologize, there was a technical issue. Could you please repeat that?"}
+[ConversationRelay-WS] ✅ Message sent successfully to ConversationRelay
+[ConversationRelay-WS] ✅ Text message sent successfully to call_1756543524347
+[ConversationRelay-WS] 🔌 Connection closed for CallSid=call_1756543524347, Code=1007, Reason=Too many consecutive malformed messages.
+[ConversationRelay-WS] Session duration: 4086ms, State: waiting_for_speech
+[ConversationRelay-WS] 🛑 Cleared silence timeout for closed session call_1756543524347
+[Call Status Optimized] Call CAa2509f67f86b8651a77658eecec2e4da status: completed, tracking: call_1756543517258_gmo5ebddf
+[PerformanceOrchestrator] Failed to stop optimized conversation: Error: No call data found for CAa2509f67f86b8651a77658eecec2e4da
+    at PerformanceOrchestrator.stopOptimizedConversation (/opt/render/project/src/backend/services/performanceOrchestrator.js:147:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /opt/render/project/src/backend/routes/optimized-routes.js:50:11
+[PerformanceOrchestrator] Stopping optimized conversation for call CAa2509f67f86b8651a77658eecec2e4da
+[ConversationRelay] Stopping conversation for call CAa2509f67f86b8651a77658eecec2e4da
+[Call Status Optimized] Error cleaning up orchestrator: Error [ERR_UNHANDLED_ERROR]: Unhandled error. ({
+  callSid: 'CAa2509f67f86b8651a77658eecec2e4da',
+  error: Error: No call data found for CAa2509f67f86b8651a77658eecec2e4da
+      at PerformanceOrchestrator.stopOptimizedConversation (/opt/render/project/src/backend/services/performanceOrchestrator.js:147:15)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async /opt/render/project/src/backend/routes/optimized-routes.js:50:11,
+  phase: 'cleanup'
+})
+    at PerformanceOrchestrator.emit (node:events:497:17)
+    at PerformanceOrchestrator.stopOptimizedConversation (/opt/render/project/src/backend/services/performanceOrchestrator.js:159:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /opt/render/project/src/backend/routes/optimized-routes.js:50:11 {
+  code: 'ERR_UNHANDLED_ERROR',
+  context: {
+    callSid: 'CAa2509f67f86b8651a77658eecec2e4da',
+    error: Error: No call data found for CAa2509f67f86b8651a77658eecec2e4da
+        at PerformanceOrchestrator.stopOptimizedConversation (/opt/render/project/src/backend/services/performanceOrchestrator.js:147:15)
+        at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at async /opt/render/project/src/backend/routes/optimized-routes.js:50:11,
+    phase: 'cleanup'
+  }
+}

@@ -872,9 +872,11 @@ class ConversationRelayWebSocket {
     // Log error details
     console.error(`[ConversationRelay-WS] Error type: ${message.error?.type || 'unknown'}`);
     console.error(`[ConversationRelay-WS] Error message: ${message.error?.message || 'No message'}`);
+    console.error(`[ConversationRelay-WS] Error description: ${message.description || 'No description'}`);
 
-    // Try to recover with a fallback response
-    await this.sendTextMessage(session, "I apologize, there was a technical issue. Could you please repeat that?");
+    // DO NOT send another message - this causes infinite loops!
+    // Just log the error and let the conversation continue
+    console.error(`[ConversationRelay-WS] ⚠️  Not sending recovery message to avoid infinite loop`);
   }
 
   // ConversationRelay message sending methods
@@ -887,11 +889,11 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // TRYING: Official ConversationRelay message format
-    console.log(`[ConversationRelay-WS] 📤 Sending assistant message (official format)`);
+    // CORRECT: ConversationRelay expects 'text' type messages
+    console.log(`[ConversationRelay-WS] 📤 Sending text message (correct format)`);
 
     const textMessage = {
-      type: 'assistant',
+      type: 'text',
       text: text
     };
 
