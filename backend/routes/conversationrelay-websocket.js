@@ -887,16 +887,12 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // CRITICAL FIX: WebSocket messages need voice config for TTS to work
-    console.log(`[ConversationRelay-WS] 📤 Sending text message with ElevenLabs voice config`);
+    // FIXED: Use same format as successful test - minimal and clean
+    console.log(`[ConversationRelay-WS] 📤 Sending text message (format verified by tests)`);
 
     const textMessage = {
       type: 'text',
-      text: text,
-      voice: {
-        name: '21m00Tcm4TlvDq8ikWAM',  // Rachel - ElevenLabs voice ID
-        language: 'en-US'
-      }
+      text: text
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
