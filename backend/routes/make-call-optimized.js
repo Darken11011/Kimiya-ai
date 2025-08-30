@@ -25,17 +25,6 @@ function normalizePhoneNumber(phoneNumber) {
 
 module.exports = async function makeCallOptimizedHandler(req, res) {
   try {
-    // Set CORS headers explicitly for this endpoint
-    res.header('Access-Control-Allow-Origin', 'https://kimiya-ai.vercel.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-
     console.log('=== OPTIMIZED MAKE CALL REQUEST ===');
     console.log('Timestamp:', new Date().toISOString());
     console.log('Request body keys:', Object.keys(req.body));
