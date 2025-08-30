@@ -887,16 +887,12 @@ class ConversationRelayWebSocket {
 
     console.log(`[ConversationRelay-WS] 📤 Sending text message to ${session.callSid}: "${text}"`);
 
-    // REVERTED: Back to working format that made phone ring
-    console.log(`[ConversationRelay-WS] 📤 Sending text message with ElevenLabs voice config`);
+    // TRYING: Official ConversationRelay message format
+    console.log(`[ConversationRelay-WS] 📤 Sending assistant message (official format)`);
 
     const textMessage = {
-      type: 'text',
-      text: text,
-      voice: {
-        name: '21m00Tcm4TlvDq8ikWAM',  // Rachel - ElevenLabs voice ID
-        language: 'en-US'
-      }
+      type: 'assistant',
+      text: text
     };
 
     console.log(`[ConversationRelay-WS] 📋 Full message being sent:`, JSON.stringify(textMessage, null, 2));
